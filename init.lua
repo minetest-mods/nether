@@ -357,7 +357,7 @@ minetest.register_node("nether:glowstone", {
 minetest.register_node("nether:brick", {
 	description = "Nether Brick",
 	tiles = {"nether_brick.png"},
-	groups = {cracky=2},
+	groups = {cracky=2,level=2},
 	sounds = default.node_sound_stone_defaults(),
 })
 
@@ -388,3 +388,4 @@ replace("default:dirt", "nether:sand")
 replace("default:sand", "nether:sand")
 replace("default:cobble", "nether:brick")
 replace("default:mossycobble", "nether:brick")
+replace("stairs:stair_cobble", "nether:brick")
