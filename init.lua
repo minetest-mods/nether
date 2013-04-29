@@ -354,6 +354,13 @@ minetest.register_node("nether:glowstone", {
 	sounds = default.node_sound_glass_defaults(),
 })
 
+minetest.register_node("nether:brick", {
+	description = "Nether Brick",
+	tiles = {"nether_brick.png"},
+	groups = {cracky=2},
+	sounds = default.node_sound_stone_defaults(),
+})
+
 local function replace(old, new)
 	for i=1,8 do
 		minetest.register_ore({
@@ -369,12 +376,15 @@ local function replace(old, new)
 	end
 end
 
-replace("default:stone", "nether:netherrack")
-replace("default:stone_with_coal", "nether:netherrack")
-replace("default:stone_with_iron", "nether:netherrack")
-replace("default:stone_with_copper", "nether:nethersand")
+replace("default:stone", "nether:rack")
+replace("default:stone_with_coal", "nether:rack")
+replace("default:stone_with_iron", "nether:rack")
 replace("default:stone_with_mese", "default:lava_source")
-replace("default:stone_with_gold", "nether:glowstone")
 replace("default:stone_with_diamond", "default:lava_source")
-replace("default:gravel", "nether:nethersand")
-replace("default:dirt", "nether:nethersand")
+replace("default:stone_with_gold", "nether:glowstone")
+replace("default:stone_with_copper", "nether:sand")
+replace("default:gravel", "nether:sand")
+replace("default:dirt", "nether:sand")
+replace("default:sand", "nether:sand")
+replace("default:cobble", "nether:brick")
+replace("default:mossycobble", "nether:brick")
