@@ -136,6 +136,7 @@ minetest.register_abm({
 							if n and n.name ~= "nether:portal" then
 								build_portal(target, pos)
 								minetest.after(2, check_and_build_portal, pos, target)
+								minetest.after(4, check_and_build_portal, pos, target)
 							elseif not n then
 								minetest.after(1, check_and_build_portal, pos, target)
 							end
@@ -326,7 +327,7 @@ minetest.register_craftitem(":default:mese_crystal_fragment", {
 	end,
 })
 
-minetest.register_node("nether:netherrack", {
+minetest.register_node("nether:rack", {
 	description = "Netherrack",
 	tiles = {"nether_netherrack.png"},
 	is_ground_content = true,
@@ -334,7 +335,7 @@ minetest.register_node("nether:netherrack", {
 	sounds = default.node_sound_stone_defaults(),
 })
 
-minetest.register_node("nether:nethersand", {
+minetest.register_node("nether:sand", {
 	description = "Nethersand",
 	tiles = {"nether_nethersand.png"},
 	is_ground_content = true,
@@ -354,7 +355,7 @@ minetest.register_node("nether:glowstone", {
 })
 
 local function replace(old, new)
-	for i=1,6 do
+	for i=1,8 do
 		minetest.register_ore({
 			ore_type       = "scatter",
 			ore            = new,
