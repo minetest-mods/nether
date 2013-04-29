@@ -377,8 +377,8 @@ local function replace(old, new)
 end
 
 replace("default:stone", "nether:rack")
-replace("default:stone_with_coal", "nether:rack")
-replace("default:stone_with_iron", "nether:rack")
+replace("default:stone_with_coal", "air")
+replace("default:stone_with_iron", "air")
 replace("default:stone_with_mese", "default:lava_source")
 replace("default:stone_with_diamond", "default:lava_source")
 replace("default:stone_with_gold", "nether:glowstone")
