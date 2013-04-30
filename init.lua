@@ -329,7 +329,7 @@ minetest.register_craftitem(":default:mese_crystal_fragment", {
 
 minetest.register_node("nether:rack", {
 	description = "Netherrack",
-	tiles = {"nether_netherrack.png"},
+	tiles = {"nether_rack.png"},
 	is_ground_content = true,
 	drop = {
 		max_items = 1,
@@ -344,7 +344,7 @@ minetest.register_node("nether:rack", {
 
 minetest.register_node("nether:sand", {
 	description = "Nethersand",
-	tiles = {"nether_nethersand.png"},
+	tiles = {"nether_sand.png"},
 	is_ground_content = true,
 	groups = {crumbly=3,level=2,falling_node=1},
 	sounds = default.node_sound_dirt_defaults({
