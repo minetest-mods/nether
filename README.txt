@@ -22,3 +22,4 @@ Everything not listed in here:
 Copyright (C) 2013 PilzAdam
 
 nether_rack.png: Zeg9
+nether_glowstone.png: BlockMen
