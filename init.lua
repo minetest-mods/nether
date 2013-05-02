@@ -37,6 +37,7 @@ minetest.register_node("nether:portal", {
 	digable = false,
 	pointable = false,
 	buildable_to = false,
+	drop = "",
 	light_source = 5,
 	post_effect_color = {a=180, r=128, g=0, b=128},
 	alpha = 192,
