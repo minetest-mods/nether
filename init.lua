@@ -498,6 +498,28 @@ if minetest.get_modpath("moreblocks") then
 	})
 end
 
+stairs.register_stair_and_slab("brick", "nether:brick",
+	{cracky=3, oddly_breakable_by_hand=1},
+	{"nether_brick.png"},
+	"nether stair",
+	"nether slab",
+	sounds = default.node_sound_stone_defaults())
+
+local function replace(old, new)
+	for i=1,8 do
+		minetest.register_ore({
+			ore_type       = "scatter",
+			ore            = new,
+			wherein        = old,
+			clust_scarcity = 1,
+			clust_num_ores = 1,
+			clust_size     = 1,
+			height_min     = -31000,
+			height_max     = NETHER_DEPTH,
+		})
+	end
+end
+
 -- Craftitems
 
 minetest.register_craftitem(":default:mese_crystal_fragment", {
@@ -514,7 +536,6 @@ minetest.register_craftitem(":default:mese_crystal_fragment", {
 		return stack
 	end,
 })
-
 
 -- Crafting
 
