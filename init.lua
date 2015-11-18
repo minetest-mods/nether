@@ -369,6 +369,13 @@ minetest.register_node("nether:brick", {
 	sounds = default.node_sound_stone_defaults(),
 })
 
+stairs.register_stair_and_slab("nether_brick", "nether:brick",
+	{cracky=3, oddly_breakable_by_hand=1},
+	{"nether_brick.png"},
+	"nether stair",
+	"nether slab",
+	default.node_sound_stone_defaults())
+
 local function replace(old, new)
 	for i=1,8 do
 		minetest.register_ore({
