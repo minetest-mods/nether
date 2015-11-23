@@ -376,6 +376,25 @@ stairs.register_stair_and_slab("nether_brick", "nether:brick",
 	"nether slab",
 	default.node_sound_stone_defaults())
 
+local fence_texture =
+	"default_fence_overlay.png^nether_brick.png^default_fence_overlay.png^[makealpha:255,126,126"
+minetest.register_node("nether:fence_nether_brick", {
+	description = "Nether Brick Fence",
+	drawtype = "fencelike",
+	tiles = {"nether_brick.png"},
+	inventory_image = fence_texture,
+	wield_image = fence_texture,
+	paramtype = "light",
+	sunlight_propagates = true,
+	is_ground_content = false,
+	selection_box = {
+		type = "fixed",
+		fixed = {-1/7, -1/2, -1/7, 1/7, 1/2, 1/7},
+	},
+	groups = {cracky=3,level=2},
+	sounds = default.node_sound_stone_defaults(),
+})
+
 local function replace(old, new)
 	for i=1,8 do
 		minetest.register_ore({
