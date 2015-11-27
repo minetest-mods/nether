@@ -404,8 +404,8 @@ local function replace(old, new)
 			clust_scarcity = 1,
 			clust_num_ores = 1,
 			clust_size     = 1,
-			height_min     = -31000,
-			height_max     = NETHER_DEPTH,
+			y_min          = -31000,
+			y_max          = NETHER_DEPTH,
 		})
 	end
 end
