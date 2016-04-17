@@ -401,6 +401,25 @@ minetest.register_node("nether:fence_nether_brick", {
 	sounds = default.node_sound_stone_defaults(),
 })
 
+minetest.register_craft({
+	output = "nether:brick",
+	type = "shapeless",
+	recipe = {
+		"nether:rack",
+		"nether:rack",
+		"nether:rack",
+		"nether:rack",
+	},
+})
+
+minetest.register_craft({
+	output = "nether:fence_nether_brick 16",
+	recipe = {
+		{"nether:brick", "nether:brick", "nether:brick"},
+		{"nether:brick", "nether:brick", "nether:brick"},
+	},
+})
+
 local function replace(old, new)
 	for i=1,8 do
 		minetest.register_ore({
