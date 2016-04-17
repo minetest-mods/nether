@@ -123,6 +123,12 @@ minetest.register_abm({
 				local meta = minetest.get_meta(pos)
 				local target = minetest.string_to_pos(meta:get_string("target"))
 				if target then
+					-- force emerge of target area
+					minetest.get_voxel_manip():read_from_map(target, target)
+					if not minetest.get_node_or_nil(target) then
+						minetest.emerge_area(vector.subtract(target, 80), vector.add(target, 80))
+					end
+					-- teleport the player
 					minetest.after(3, function(obj, pos, target)
 						local objpos = obj:getpos()
 						objpos.y = objpos.y+0.1 -- Fix some glitches at -8000
