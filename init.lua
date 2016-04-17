@@ -55,28 +55,28 @@ local function build_portal(pos, target)
 	local p1 = {x=pos.x-1, y=pos.y-1, z=pos.z}
 	local p2 = {x=p1.x+3, y=p1.y+4, z=p1.z}
 	for i=1,4 do
-		minetest.env:set_node(p, {name="default:obsidian"})
+		minetest.set_node(p, {name="default:obsidian"})
 		p.y = p.y+1
 	end
 	for i=1,3 do
-		minetest.env:set_node(p, {name="default:obsidian"})
+		minetest.set_node(p, {name="default:obsidian"})
 		p.x = p.x+1
 	end
 	for i=1,4 do
-		minetest.env:set_node(p, {name="default:obsidian"})
+		minetest.set_node(p, {name="default:obsidian"})
 		p.y = p.y-1
 	end
 	for i=1,3 do
-		minetest.env:set_node(p, {name="default:obsidian"})
+		minetest.set_node(p, {name="default:obsidian"})
 		p.x = p.x-1
 	end
 	for x=p1.x,p2.x do
 	for y=p1.y,p2.y do
 		p = {x=x, y=y, z=p1.z}
 		if not (x == p1.x or x == p2.x or y==p1.y or y==p2.y) then
-			minetest.env:set_node(p, {name="nether:portal", param2=0})
+			minetest.set_node(p, {name="nether:portal", param2=0})
 		end
-		local meta = minetest.env:get_meta(p)
+		local meta = minetest.get_meta(p)
 		meta:set_string("p1", minetest.pos_to_string(p1))
 		meta:set_string("p2", minetest.pos_to_string(p2))
 		meta:set_string("target", minetest.pos_to_string(target))
@@ -85,8 +85,8 @@ local function build_portal(pos, target)
 			for z=-2,2 do
 				if z ~= 0 then
 					p.z = p.z+z
-					if minetest.registered_nodes[minetest.env:get_node(p).name].is_ground_content then
-						minetest.env:remove_node(p)
+					if minetest.registered_nodes[minetest.get_node(p).name].is_ground_content then
+						minetest.remove_node(p)
 					end
 					p.z = p.z-z
 				end
@@ -118,22 +118,22 @@ minetest.register_abm({
 			false, --collisiondetection
 			"nether_particle.png" --texture
 		)
-		for _,obj in ipairs(minetest.env:get_objects_inside_radius(pos, 1)) do
+		for _,obj in ipairs(minetest.get_objects_inside_radius(pos, 1)) do
 			if obj:is_player() then
-				local meta = minetest.env:get_meta(pos)
+				local meta = minetest.get_meta(pos)
 				local target = minetest.string_to_pos(meta:get_string("target"))
 				if target then
 					minetest.after(3, function(obj, pos, target)
 						local objpos = obj:getpos()
 						objpos.y = objpos.y+0.1 -- Fix some glitches at -8000
-						if minetest.env:get_node(objpos).name ~= "nether:portal" then
+						if minetest.get_node(objpos).name ~= "nether:portal" then
 							return
 						end
 						
 						obj:setpos(target)
 						
 						local function check_and_build_portal(pos, target)
-							local n = minetest.env:get_node_or_nil(target)
+							local n = minetest.get_node_or_nil(target)
 							if n and n.name ~= "nether:portal" then
 								build_portal(target, pos)
 								minetest.after(2, check_and_build_portal, pos, target)
@@ -157,7 +157,7 @@ local function move_check(p1, max, dir)
 	local d = math.abs(max-p1[dir]) / (max-p1[dir])
 	while p[dir] ~= max do
 		p[dir] = p[dir] + d
-		if minetest.env:get_node(p).name ~= "default:obsidian" then
+		if minetest.get_node(p).name ~= "default:obsidian" then
 			return false
 		end
 	end
@@ -222,7 +222,7 @@ local function make_portal(pos)
 		else
 			p = {x=p1.x, y=y, z=p1.z+d}
 		end
-		if minetest.env:get_node(p).name ~= "air" then
+		if minetest.get_node(p).name ~= "air" then
 			return false
 		end
 	end
@@ -243,10 +243,10 @@ local function make_portal(pos)
 	for y=p1.y,p2.y do
 		local p = {}
 		if param2 == 0 then p = {x=p1.x+d, y=y, z=p1.z} else p = {x=p1.x, y=y, z=p1.z+d} end
-		if minetest.env:get_node(p).name == "air" then
-			minetest.env:set_node(p, {name="nether:portal", param2=param2})
+		if minetest.get_node(p).name == "air" then
+			minetest.set_node(p, {name="nether:portal", param2=param2})
 		end
-		local meta = minetest.env:get_meta(p)
+		local meta = minetest.get_meta(p)
 		meta:set_string("p1", minetest.pos_to_string(p1))
 		meta:set_string("p2", minetest.pos_to_string(p2))
 		meta:set_string("target", minetest.pos_to_string(target))
@@ -263,7 +263,7 @@ minetest.register_node(":default:obsidian", {
 	groups = {cracky=1,level=2},
 	
 	on_destruct = function(pos)
-		local meta = minetest.env:get_meta(pos)
+		local meta = minetest.get_meta(pos)
 		local p1 = minetest.string_to_pos(meta:get_string("p1"))
 		local p2 = minetest.string_to_pos(meta:get_string("p2"))
 		local target = minetest.string_to_pos(meta:get_string("target"))
@@ -273,12 +273,12 @@ minetest.register_node(":default:obsidian", {
 		for x=p1.x,p2.x do
 		for y=p1.y,p2.y do
 		for z=p1.z,p2.z do
-			local nn = minetest.env:get_node({x=x,y=y,z=z}).name
+			local nn = minetest.get_node({x=x,y=y,z=z}).name
 			if nn == "default:obsidian" or nn == "nether:portal" then
 				if nn == "nether:portal" then
-					minetest.env:remove_node({x=x,y=y,z=z})
+					minetest.remove_node({x=x,y=y,z=z})
 				end
-				local m = minetest.env:get_meta({x=x,y=y,z=z})
+				local m = minetest.get_meta({x=x,y=y,z=z})
 				m:set_string("p1", "")
 				m:set_string("p2", "")
 				m:set_string("target", "")
@@ -286,7 +286,7 @@ minetest.register_node(":default:obsidian", {
 		end
 		end
 		end
-		meta = minetest.env:get_meta(target)
+		meta = minetest.get_meta(target)
 		if not meta then
 			return
 		end
@@ -298,12 +298,12 @@ minetest.register_node(":default:obsidian", {
 		for x=p1.x,p2.x do
 		for y=p1.y,p2.y do
 		for z=p1.z,p2.z do
-			local nn = minetest.env:get_node({x=x,y=y,z=z}).name
+			local nn = minetest.get_node({x=x,y=y,z=z}).name
 			if nn == "default:obsidian" or nn == "nether:portal" then
 				if nn == "nether:portal" then
-					minetest.env:remove_node({x=x,y=y,z=z})
+					minetest.remove_node({x=x,y=y,z=z})
 				end
-				local m = minetest.env:get_meta({x=x,y=y,z=z})
+				local m = minetest.get_meta({x=x,y=y,z=z})
 				m:set_string("p1", "")
 				m:set_string("p2", "")
 				m:set_string("target", "")
@@ -318,7 +318,7 @@ minetest.register_craftitem(":default:mese_crystal_fragment", {
 	description = "Mese Crystal Fragment",
 	inventory_image = "default_mese_crystal_fragment.png",
 	on_place = function(stack,_, pt)
-		if pt.under and minetest.env:get_node(pt.under).name == "default:obsidian" then
+		if pt.under and minetest.get_node(pt.under).name == "default:obsidian" then
 			local done = make_portal(pt.under)
 			if done and not minetest.setting_getbool("creative_mode") then
 				stack:take_item()
