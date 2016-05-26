@@ -85,14 +85,14 @@ local function check_portal(p1, p2)
 	else
 		return false
 	end
-	
+
 	if not move_check(p1, p2.y, "y") then
 		return false
 	end
 	if not move_check(p2, p1.y, "y") then
 		return false
 	end
-	
+
 	return true
 end
 
@@ -117,7 +117,7 @@ local function make_portal(pos)
 	if not p1 or not p2 then
 		return false
 	end
-	
+
 	for d = 1, 2 do
 	for y = p1.y + 1, p2.y - 1 do
 		local p
@@ -131,14 +131,14 @@ local function make_portal(pos)
 		end
 	end
 	end
-	
+
 	local param2
 	if p1.z == p2.z then
 		param2 = 0
 	else
 		param2 = 1
 	end
-	
+
 	local target = {x = p1.x, y = p1.y, z = p1.z}
 	target.x = target.x + 1
 	if target.y < NETHER_DEPTH then
@@ -146,7 +146,7 @@ local function make_portal(pos)
 	else
 		target.y = NETHER_DEPTH - math.random(500, 1500)
 	end
-	
+
 	for d = 0, 3 do
 	for y = p1.y, p2.y do
 		local p = {}
@@ -210,9 +210,9 @@ minetest.register_abm({
 						if minetest.get_node(objpos).name ~= "nether:portal" then
 							return
 						end
-						
+
 						obj:setpos(target)
-						
+
 						local function check_and_build_portal(pos, target)
 							local n = minetest.get_node_or_nil(target)
 							if n and n.name ~= "nether:portal" then
@@ -223,9 +223,9 @@ minetest.register_abm({
 								minetest.after(1, check_and_build_portal, pos, target)
 							end
 						end
-						
+
 						minetest.after(1, check_and_build_portal, pos, target)
-						
+
 					end, obj, pos, target)
 				end
 			end
@@ -290,7 +290,7 @@ minetest.register_node(":default:obsidian", {
 	is_ground_content = true,
 	sounds = default.node_sound_stone_defaults(),
 	groups = {cracky = 1, level = 2},
-	
+
 	on_destruct = function(pos)
 		local meta = minetest.get_meta(pos)
 		local p1 = minetest.string_to_pos(meta:get_string("p1"))
