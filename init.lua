@@ -25,56 +25,55 @@ local yblmax = NETHER_DEPTH - BLEND * 2
 -- Functions
 
 local function build_portal(pos, target)
-	local p = {x = pos.x - 1, y = pos.y - 1, z = pos.z}
 	local p1 = {x = pos.x - 1, y = pos.y - 1, z = pos.z}
 	local p2 = {x = p1.x + 3, y = p1.y + 4, z = p1.z}
 
-	for i = 1, 4 do
-		minetest.set_node(p, {name = "default:obsidian"})
-		p.y = p.y + 1
-	end
-	for i = 1, 3 do
-		minetest.set_node(p, {name = "default:obsidian"})
-		p.x = p.x + 1
-	end
-	for i = 1, 4 do
-		minetest.set_node(p, {name = "default:obsidian"})
-		p.y = p.y - 1
-	end
-	for i = 1, 3 do
-		minetest.set_node(p, {name = "default:obsidian"})
-		p.x = p.x - 1
-	end
+	local path = minetest.get_modpath("nether") .. "/schematics/nether_portal.mts"
+	minetest.place_schematic({x = p1.x, y = p1.y, z = p1.z - 2}, path, 0, nil, true)
 
-	for x = p1.x, p2.x do
 	for y = p1.y, p2.y do
-		p = {x = x, y = y, z = p1.z}
-		if not (x == p1.x or x == p2.x or y == p1.y or y == p2.y) then
-			minetest.set_node(p, {name = "nether:portal", param2 = 0})
-		end
-		local meta = minetest.get_meta(p)
+	for x = p1.x, p2.x do
+		local meta = minetest.get_meta({x = x, y = y, z = p1.z})
 		meta:set_string("p1", minetest.pos_to_string(p1))
 		meta:set_string("p2", minetest.pos_to_string(p2))
 		meta:set_string("target", minetest.pos_to_string(target))
-
-		if y ~= p1.y then
-			for z = -2, 2 do
-				if z ~= 0 then
-					p.z = p.z + z
-					if minetest.registered_nodes[
-							minetest.get_node(p).name].is_ground_content then
-						minetest.remove_node(p)
-					end
-					p.z = p.z - z
-				end
-			end
-		end
 	end
 	end
 end
 
-local function find_nether_target_y(target_x, target_z)
-	local start_y = NETHER_DEPTH - math.random(500, 1500) -- Search start
+
+local function volume_is_natural(minp, maxp)
+	local c_air = minetest.get_content_id("air")
+	local c_ignore = minetest.get_content_id("ignore")
+
+	local vm = minetest.get_voxel_manip()
+	local pos1 = {x = minp.x, y = minp.y, z = minp.z}
+	local pos2 = {x = maxp.x, y = maxp.y, z = maxp.z}
+	local emin, emax = vm:read_from_map(pos1, pos2)
+	local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
+	local data = vm:get_data()
+
+	for z = pos1.z, pos2.z do
+	for y = pos1.y, pos2.y do
+		local vi = area:index(pos1.x, y, z)
+		for x = pos1.x, pos2.x do
+			local id = data[vi] -- Existing node
+			if id ~= c_air and id ~= c_ignore then -- These are natural
+				local name = minetest.get_name_from_content_id(id)
+				if not minetest.registered_nodes[name].is_ground_content then
+					return false
+				end
+			end
+			vi = vi + 1
+		end
+	end
+	end
+
+	return true
+end
+
+
+local function find_nether_target_y(target_x, target_z, start_y)
 	local nobj_cave_point = minetest.get_perlin(np_cave)
 	local air = 0 -- Consecutive air nodes found
 
@@ -85,15 +84,37 @@ local function find_nether_target_y(target_x, target_z)
 			air = air + 1
 		else -- Not cavern, check if 4 nodes of space above
 			if air >= 4 then
-				return y + 2
+				-- Check volume for non-natural nodes
+				local minp = {x = target_x - 1, y = y - 1, z = target_z - 2}
+				local maxp = {x = target_x + 2, y = y + 3, z = target_z + 2}
+				if volume_is_natural(minp, maxp) then
+					return y + 2
+				else -- Restart search a little lower
+					find_nether_target_y(target_x, target_z, y - 16)
+				end
 			else -- Not enough space, reset air to zero
 				air = 0
 			end
 		end
 	end
 
+	return start_y -- Fallback
+end
+
+
+local function find_surface_target_y(target_x, target_z, start_y)
+	for y = start_y, start_y - 256, -16 do
+		-- Check volume for non-natural nodes
+		local minp = {x = target_x - 1, y = y - 1, z = target_z - 2}
+		local maxp = {x = target_x + 2, y = y + 3, z = target_z + 2}
+		if volume_is_natural(minp, maxp) then
+			return y
+		end
+	end
+
 	return y -- Fallback
 end
+
 
 local function move_check(p1, max, dir)
 	local p = {x = p1.x, y = p1.y, z = p1.z}
@@ -108,6 +129,7 @@ local function move_check(p1, max, dir)
 
 	return true
 end
+
 
 local function check_portal(p1, p2)
 	if p1.x ~= p2.x then
@@ -138,6 +160,7 @@ local function check_portal(p1, p2)
 	return true
 end
 
+
 local function is_portal(pos)
 	for d = -3, 3 do
 		for y = -4, 4 do
@@ -153,6 +176,7 @@ local function is_portal(pos)
 		end
 	end
 end
+
 
 local function make_portal(pos)
 	local p1, p2 = is_portal(pos)
@@ -184,9 +208,10 @@ local function make_portal(pos)
 	local target = {x = p1.x, y = p1.y, z = p1.z}
 	target.x = target.x + 1
 	if target.y < NETHER_DEPTH then
-		target.y = math.random(-32, 1)
+		target.y = find_surface_target_y(target.x, target.z, -16)
 	else
-		target.y = find_nether_target_y(target.x, target.z)
+		local start_y = NETHER_DEPTH - math.random(500, 1500) -- Search start
+		target.y = find_nether_target_y(target.x, target.z, start_y)
 	end
 
 	for d = 0, 3 do
