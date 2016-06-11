@@ -483,6 +483,17 @@ stairs.register_stair_and_slab(
 	default.node_sound_stone_defaults()
 )
 
+-- StairsPlus
+
+if minetest.get_modpath("moreblocks") then
+	stairsplus:register_all(
+		"nether", "brick", "nether:brick", {
+			description = "Nether Brick",
+			groups = {cracky = 2, level = 2},
+			tiles = {"nether_brick.png"},
+			sounds = default.node_sound_stone_defaults(),
+	})
+end
 
 -- Craftitems
 
