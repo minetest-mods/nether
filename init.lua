@@ -3,6 +3,7 @@
 local NETHER_DEPTH = -5000
 local TCAVE = 0.6
 local BLEND = 128
+local DEBUG = false
 
 
 -- 3D noise
@@ -13,7 +14,9 @@ local np_cave = {
 	spread = {x = 384, y = 128, z = 384}, -- squashed 3:1
 	seed = 59033,
 	octaves = 5,
-	persist = 0.7
+	persist = 0.7,
+	lacunarity = 2.0,
+	--flags = ""
 }
 
 
@@ -534,10 +537,11 @@ minetest.register_craft({
 
 -- Mapgen
 
--- Initialize noise object and localise noise buffer
+-- Initialize noise object, localise noise and data buffers
 
 local nobj_cave = nil
 local nbuf_cave
+local dbuf
 
 
 -- Content ids
@@ -589,7 +593,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 
 	local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
 	local area = VoxelArea:new{MinEdge = emin, MaxEdge = emax}
-	local data = vm:get_data()
+	local data = vm:get_data(dbuf)
 
 	local x11 = emax.x -- Limits of mapchunk plus mapblock shell
 	local y11 = emax.y
@@ -678,6 +682,8 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	vm:update_liquids()
 	vm:write_to_map()
 
-	local chugent = math.ceil((os.clock() - t1) * 1000)
-	print ("[nether] generate chunk " .. chugent .. " ms")
+	if DEBUG then
+		local chugent = math.ceil((os.clock() - t1) * 1000)
+		print ("[nether] generate chunk " .. chugent .. " ms")
+	end
 end)
