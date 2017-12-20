@@ -525,7 +525,7 @@ stairs.register_stair_and_slab("brick", "nether:brick",
 	{"nether_brick.png"},
 	"nether stair",
 	"nether slab",
-	sounds = default.node_sound_stone_defaults())
+	default.node_sound_stone_defaults())
 
 local function replace(old, new)
 	for i=1,8 do
