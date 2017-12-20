@@ -3,7 +3,6 @@
 local NETHER_DEPTH = -5000
 local TCAVE = 0.6
 local BLEND = 128
-local DEBUG = false
 
 
 -- 3D noise
@@ -603,8 +602,6 @@ minetest.register_on_generated(function(minp, maxp, seed)
 		return
 	end
 
-	local t1 = os.clock()
-
 	local x1 = maxp.x
 	local y1 = maxp.y
 	local z1 = maxp.z
@@ -702,9 +699,4 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	vm:calc_lighting()
 	vm:update_liquids()
 	vm:write_to_map()
-
-	if DEBUG then
-		local chugent = math.ceil((os.clock() - t1) * 1000)
-		print ("[nether] generate chunk " .. chugent .. " ms")
-	end
 end)
