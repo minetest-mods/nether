@@ -268,7 +268,7 @@ minetest.register_abm({
 	interval = 1,
 	chance = 2,
 	action = function(pos, node)
-		minetest.add_particlespawner(
+		minetest.add_particlespawner({
 			32, --amount
 			4, --time
 			{x = pos.x - 0.25, y = pos.y - 0.25, z = pos.z - 0.25}, --minpos
@@ -283,7 +283,7 @@ minetest.register_abm({
 			2, --maxsize
 			false, --collisiondetection
 			"nether_particle.png" --texture
-		)
+		})
 		for _, obj in ipairs(minetest.get_objects_inside_radius(pos, 1)) do
 			if obj:is_player() then
 				local meta = minetest.get_meta(pos)
