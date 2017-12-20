@@ -137,7 +137,7 @@ local function find_surface_target_y(target_x, target_z, start_y)
 		end
 	end
 
-	return y -- Fallback
+	return start_y - 256 -- Fallback
 end
 
 
@@ -241,7 +241,7 @@ local function make_portal(pos)
 
 	for d = 0, 3 do
 	for y = p1.y, p2.y do
-		local p = {}
+		local p
 		if param2 == 0 then
 			p = {x = p1.x + d, y = y, z = p1.z}
 		else
@@ -296,27 +296,27 @@ minetest.register_abm({
 							vector.subtract(target, 4), vector.add(target, 4))
 					end
 					-- teleport the player
-					minetest.after(3, function(obj, pos, target)
-						local objpos = obj:getpos()
+					minetest.after(3, function(o, p, t)
+						local objpos = o:getpos()
 						objpos.y = objpos.y + 0.1 -- Fix some glitches at -8000
 						if minetest.get_node(objpos).name ~= "nether:portal" then
 							return
 						end
 
-						obj:setpos(target)
+						o:setpos(t)
 
-						local function check_and_build_portal(pos, target)
-							local n = minetest.get_node_or_nil(target)
+						local function check_and_build_portal(pp, tt)
+							local n = minetest.get_node_or_nil(tt)
 							if n and n.name ~= "nether:portal" then
-								build_portal(target, pos)
-								minetest.after(2, check_and_build_portal, pos, target)
-								minetest.after(4, check_and_build_portal, pos, target)
+								build_portal(tt, pp)
+								minetest.after(2, check_and_build_portal, pp, tt)
+								minetest.after(4, check_and_build_portal, pp, tt)
 							elseif not n then
-								minetest.after(1, check_and_build_portal, pos, target)
+								minetest.after(1, check_and_build_portal, pp, tt)
 							end
 						end
 
-						minetest.after(1, check_and_build_portal, pos, target)
+						minetest.after(1, check_and_build_portal, p, t)
 
 					end, obj, pos, target)
 				end
@@ -527,20 +527,6 @@ stairs.register_stair_and_slab("brick", "nether:brick",
 	"nether slab",
 	default.node_sound_stone_defaults())
 
-local function replace(old, new)
-	for i=1,8 do
-		minetest.register_ore({
-			ore_type       = "scatter",
-			ore            = new,
-			wherein        = old,
-			clust_scarcity = 1,
-			clust_num_ores = 1,
-			clust_size     = 1,
-			height_min     = -31000,
-			height_max     = NETHER_DEPTH,
-		})
-	end
-end
 
 -- Craftitems
 
@@ -583,20 +569,20 @@ minetest.register_craft({
 -- Initialize noise object, localise noise and data buffers
 
 local nobj_cave = nil
-local nbuf_cave
-local dbuf
+local nbuf_cave = nil
+local dbuf = nil
 
 
 -- Content ids
 
 local c_air = minetest.get_content_id("air")
 
-local c_stone_with_coal = minetest.get_content_id("default:stone_with_coal")
-local c_stone_with_iron = minetest.get_content_id("default:stone_with_iron")
+--local c_stone_with_coal = minetest.get_content_id("default:stone_with_coal")
+--local c_stone_with_iron = minetest.get_content_id("default:stone_with_iron")
 local c_stone_with_mese = minetest.get_content_id("default:stone_with_mese")
 local c_stone_with_diamond = minetest.get_content_id("default:stone_with_diamond")
 local c_stone_with_gold = minetest.get_content_id("default:stone_with_gold")
-local c_stone_with_copper = minetest.get_content_id("default:stone_with_copper")
+--local c_stone_with_copper = minetest.get_content_id("default:stone_with_copper")
 local c_mese = minetest.get_content_id("default:mese")
 
 local c_gravel = minetest.get_content_id("default:gravel")
