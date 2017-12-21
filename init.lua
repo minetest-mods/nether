@@ -530,7 +530,7 @@ stairs.register_stair_and_slab("brick", "nether:brick",
 
 -- Craftitems
 
-minetest.override_craftitem("default:mese_crystal_fragment", {
+minetest.override_item("default:mese_crystal_fragment", {
 	on_place = function(stack, _, pt)
 		if pt.under and minetest.get_node(pt.under).name == "default:obsidian" then
 			local done = make_portal(pt.under)
