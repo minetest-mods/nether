@@ -269,20 +269,20 @@ minetest.register_abm({
 	chance = 2,
 	action = function(pos, node)
 		minetest.add_particlespawner({
-			32, --amount
-			4, --time
-			{x = pos.x - 0.25, y = pos.y - 0.25, z = pos.z - 0.25}, --minpos
-			{x = pos.x + 0.25, y = pos.y + 0.25, z = pos.z + 0.25}, --maxpos
-			{x = -0.8, y = -0.8, z = -0.8}, --minvel
-			{x = 0.8, y = 0.8, z = 0.8}, --maxvel
-			{x = 0, y = 0, z = 0}, --minacc
-			{x = 0, y = 0, z = 0}, --maxacc
-			0.5, --minexptime
-			1, --maxexptime
-			1, --minsize
-			2, --maxsize
-			false, --collisiondetection
-			"nether_particle.png" --texture
+			amount = 32,
+			time   = 4,
+			minpos = {x = pos.x - 0.25, y = pos.y - 0.25, z = pos.z - 0.25},
+			maxpos = {x = pos.x + 0.25, y = pos.y + 0.25, z = pos.z + 0.25},
+			minvel = {x = -0.8, y = -0.8, z = -0.8},
+			maxvel = {x =  0.8, y =  0.8, z =  0.8},
+			minacc = {x = 0, y = 0, z = 0},
+			maxacc = {x = 0, y = 0, z = 0},
+			minexptime = 0.5,
+			maxexptime = 1,
+			minsize    = 1,
+			maxsize    = 2,
+			collisiondetection = false,
+			texture = "nether_particle.png"
 		})
 		for _, obj in ipairs(minetest.get_objects_inside_radius(pos, 1)) do
 			if obj:is_player() then
