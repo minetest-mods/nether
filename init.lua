@@ -25,6 +25,7 @@
 local NETHER_DEPTH = -5000
 local TCAVE = 0.6
 local BLEND = 128
+local DEBUG = true
 
 
 -- 3D noise
@@ -46,23 +47,344 @@ local np_cave = {
 local yblmax = NETHER_DEPTH - BLEND * 2
 
 
+netherportal = {} -- portal API
+
 -- Functions
 
-local function build_portal(pos, target)
-	local p1 = {x = pos.x - 1, y = pos.y - 1, z = pos.z}
-	local p2 = {x = p1.x + 3, y = p1.y + 4, z = p1.z}
 
-	local path = minetest.get_modpath("nether") .. "/schematics/nether_portal.mts"
-	minetest.place_schematic({x = p1.x, y = p1.y, z = p1.z - 2}, path, 0, nil, true)
+--[[
+  AnchorPos and WormholdPos are node locations in a portal defined as follows:
+                                          .
+    +--------+--------+--------+--------+
+    |        |      Frame      |        |
+    |        |        |        |        |
+    +--------+--------+--------+--------+
+    |        |                 |        |
+    |        |                 |        |
+    +--------+        +        +--------+
+    |        |     Wormhole    |        |
+    |        |                 |        |
+    +--------+        +        +--------+
+    |        |Wormhole         |        |
+    |        |  Pos            |        |
+    +--------+--------+--------+--------+
+    | Anchor |        |        |        |
+    |  Pos   |        |        |        |
+    +--------+--------+--------+--------+
 
-	for y = p1.y, p2.y do
-	for x = p1.x, p2.x do
-		local meta = minetest.get_meta({x = x, y = y, z = p1.z})
-		meta:set_string("p1", minetest.pos_to_string(p1))
-		meta:set_string("p2", minetest.pos_to_string(p2))
-		meta:set_string("target", minetest.pos_to_string(target))
+    +X/East or +Z/North ----->
+
+A better location for AnchorPos would be directly under WormholePos, as it's more centered
+and you don't need to know the portal's orientation to find AnchorPos from the WormholePos
+or vice-versa, however AnchorPos is in the bottom/south/west-corner to keep compatibility
+with earlier versions of this mod (which only records portal corners p1 & p2 in the node metadata).
+
+Orientation is 0 or 90, 0 meaning a portal that faces north/south - i.e. obsidian running
+east/west.
+]]
+
+
+-- This object defines a portal's shape, segregating the shape logic code from portal physics.
+-- You can create a new "PortalShape" definition object which implements the same
+-- functions if you wish to register a custom shaped portal in register_portal().
+-- Since it's symmetric, this PortalShape definition has only implemented orientations of 0 and 90
+local TraditionalPortalShape = {
+	-- todo: use size to update is_portal_frame
+	size = vector.new(4, 5, 1), -- size of the portal, and not necessarily the size of the schematic, which may clear area around the portal.
+	schematic_filename = minetest.get_modpath("nether") .. "/schematics/nether_portal.mts",
+
+	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
+	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
+		assert(orientation, "no orientation passed")
+		if orientation == 0 then
+			return {x = anchorPos.x,     y = anchorPos.y, z = anchorPos.z - 2}
+		else
+			return {x = anchorPos.x - 2, y = anchorPos.y, z = anchorPos.z    }
+		end
+	end,
+
+	get_wormholePos_from_anchorPos = function(anchorPos, orientation)
+		assert(orientation, "no orientation passed")
+		if orientation == 0 then
+			return {x = anchorPos.x + 1, y = anchorPos.y + 1, z = anchorPos.z    }
+		else
+			return {x = anchorPos.x,     y = anchorPos.y + 1, z = anchorPos.z + 1}
+		end
+	end,
+
+	get_anchorPos_from_wormholePos = function(wormholePos, orientation)
+		assert(orientation, "no orientation passed")
+		if orientation == 0 then
+			return {x = wormholePos.x - 1, y = wormholePos.y - 1, z = wormholePos.z    }
+		else
+			return {x = wormholePos.x,     y = wormholePos.y - 1, z = wormholePos.z - 1}
+		end
+	end,
+
+	apply_func_to_frame_nodes = function(anchorPos, orientation, func)
+		local shortCircuited
+		if orientation == 0 then
+			-- use short-circuiting of boolean evaluation to allow func() to cause an abort by returning true
+			shortCircuited =
+				func({x = anchorPos.x + 0, y = anchorPos.y,     z = anchorPos.z}) or
+			    func({x = anchorPos.x + 1, y = anchorPos.y,     z = anchorPos.z}) or
+				func({x = anchorPos.x + 2, y = anchorPos.y,     z = anchorPos.z}) or
+				func({x = anchorPos.x + 3, y = anchorPos.y,     z = anchorPos.z}) or
+				func({x = anchorPos.x + 0, y = anchorPos.y + 4, z = anchorPos.z}) or
+				func({x = anchorPos.x + 1, y = anchorPos.y + 4, z = anchorPos.z}) or
+				func({x = anchorPos.x + 2, y = anchorPos.y + 4, z = anchorPos.z}) or
+				func({x = anchorPos.x + 3, y = anchorPos.y + 4, z = anchorPos.z}) or
+
+				func({x = anchorPos.x,     y = anchorPos.y + 1, z = anchorPos.z}) or
+				func({x = anchorPos.x,     y = anchorPos.y + 2, z = anchorPos.z}) or
+				func({x = anchorPos.x,     y = anchorPos.y + 3, z = anchorPos.z}) or
+				func({x = anchorPos.x + 3, y = anchorPos.y + 1, z = anchorPos.z}) or
+				func({x = anchorPos.x + 3, y = anchorPos.y + 2, z = anchorPos.z}) or
+				func({x = anchorPos.x + 3, y = anchorPos.y + 3, z = anchorPos.z})
+		else
+			shortCircuited =
+				func({x = anchorPos.x, y = anchorPos.y,     z = anchorPos.z + 0}) or
+				func({x = anchorPos.x, y = anchorPos.y,     z = anchorPos.z + 1}) or
+				func({x = anchorPos.x, y = anchorPos.y,     z = anchorPos.z + 2}) or
+				func({x = anchorPos.x, y = anchorPos.y,     z = anchorPos.z + 3}) or
+				func({x = anchorPos.x, y = anchorPos.y + 4, z = anchorPos.z + 0}) or
+				func({x = anchorPos.x, y = anchorPos.y + 4, z = anchorPos.z + 1}) or
+				func({x = anchorPos.x, y = anchorPos.y + 4, z = anchorPos.z + 2}) or
+				func({x = anchorPos.x, y = anchorPos.y + 4, z = anchorPos.z + 3}) or
+
+				func({x = anchorPos.x, y = anchorPos.y + 1, z = anchorPos.z    }) or
+				func({x = anchorPos.x, y = anchorPos.y + 2, z = anchorPos.z    }) or
+				func({x = anchorPos.x, y = anchorPos.y + 3, z = anchorPos.z    }) or
+				func({x = anchorPos.x, y = anchorPos.y + 1, z = anchorPos.z + 3}) or
+				func({x = anchorPos.x, y = anchorPos.y + 2, z = anchorPos.z + 3}) or
+				func({x = anchorPos.x, y = anchorPos.y + 3, z = anchorPos.z + 3})
+		end
+		return not shortCircuited
+	end,
+
+	apply_func_to_wormhole_nodes = function(anchorPos, orientation, func)
+		local shortCircuited
+		if orientation == 0 then
+			local wormholePos = {x = anchorPos.x + 1, y = anchorPos.y + 1, z = anchorPos.z}
+			-- use short-circuiting of boolean evaluation to allow func() to cause an abort by returning true
+			shortCircuited =
+				func({x = wormholePos.x + 0, y = wormholePos.y + 0, z = wormholePos.z}) or
+			    func({x = wormholePos.x + 1, y = wormholePos.y + 0, z = wormholePos.z}) or
+				func({x = wormholePos.x + 0, y = wormholePos.y + 1, z = wormholePos.z}) or
+				func({x = wormholePos.x + 1, y = wormholePos.y + 1, z = wormholePos.z}) or
+				func({x = wormholePos.x + 0, y = wormholePos.y + 2, z = wormholePos.z}) or
+				func({x = wormholePos.x + 1, y = wormholePos.y + 2, z = wormholePos.z})
+		else
+			local wormholePos = {x = anchorPos.x, y = anchorPos.y + 1, z = anchorPos.z + 1}
+			shortCircuited =
+				func({x = wormholePos.x, y = wormholePos.y + 0, z = wormholePos.z + 0}) or
+				func({x = wormholePos.x, y = wormholePos.y + 0, z = wormholePos.z + 1}) or
+				func({x = wormholePos.x, y = wormholePos.y + 1, z = wormholePos.z + 0}) or
+				func({x = wormholePos.x, y = wormholePos.y + 1, z = wormholePos.z + 1}) or
+				func({x = wormholePos.x, y = wormholePos.y + 2, z = wormholePos.z + 0}) or
+				func({x = wormholePos.x, y = wormholePos.y + 2, z = wormholePos.z + 1})
+		end
+		return not shortCircuited
+	end,
+
+	-- Check for whether the portal is blocked in, and if so then provide a safe way
+	-- on one side for the player to step out of the portal. Suggest including a roof 
+	-- incase the portal was blocked with lava flowing from above.
+	disable_portal_trap = function(anchorPos, orientation)
+		assert(orientation, "no orientation passed")
+
+		-- Not implemented yet. It may not need to be implemented because if you
+		-- wait in a portal long enough you teleport again. So a trap portal would have to link
+		-- to one of two blocked-in portals which link to each other - which is possible, but
+		-- quite extreme.		
 	end
+}
+
+local registered_portals = {
+	["default:obsidian"] = {
+		shape = TraditionalPortalShape,
+		wormhole_node_name = "nether:portal",
+		frame_node_name    = "default:obsidian",
+
+		find_realm_anchorPos = function(pos)
+		end,
+
+		find_surface_anchorPos = function(pos)
+		end
+	}
+}
+
+
+-- p1 and p2 are used to keep maps backwards compatible with earlier versions of this mod.
+-- p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner.
+local function get_p1_and_p2_from_anchorPos(portal_shape, anchorPos, orientation)
+	assert(orientation, "no orientation passed")
+	local p1 = anchorPos
+	local p2
+
+	if orientation == 0 then
+		p2 = {x = p1.x + portal_shape.size.x - 1, y = p1.y + portal_shape.size.y - 1, z = p1.z                          }
+	else
+		p2 = {x = p1.x,                           y = p1.y + portal_shape.size.y - 1, z = p1.z + portal_shape.size.x - 1}
 	end
+	return p1, p2
+end
+
+-- orientation is the rotation degrees passed to place_schematic: 0, 90, 180, or 270
+local function get_param2_from_orientation(param2, orientation)
+	return orientation / 90
+end
+
+local function get_orientation_from_param2(param2)
+	return param2 * 90
+end
+
+local function set_portal_metadata(portal_definition, anchorPos, orientation, destination_wormholePos, ignite)
+
+	-- p1 and p2 are used here to keep maps backwards compatible with earlier versions of this mod
+	-- (p2's value is the opposite corner of the portal frame to p1, according to the fixed portal shape of earlier versions of this mod)
+	local p1, p2 = get_p1_and_p2_from_anchorPos(portal_definition.shape, anchorPos, orientation)
+	local param2 = get_param2_from_orientation(0, orientation)
+
+	local updateFunc = function(pos)
+		if ignite and minetest.get_node(pos).name == "air" then
+			minetest.set_node(pos, {name = portal_definition.wormhole_node_name, param2 = param2})
+		end
+
+		local meta = minetest.get_meta(pos)
+		meta:set_string("p1",     minetest.pos_to_string(p1))
+		meta:set_string("p2",     minetest.pos_to_string(p2))
+		meta:set_string("target", minetest.pos_to_string(destination_wormholePos))
+	end
+
+	portal_definition.shape.apply_func_to_frame_nodes(anchorPos, orientation, updateFunc)
+	portal_definition.shape.apply_func_to_wormhole_nodes(anchorPos, orientation, updateFunc)
+end
+
+local function set_portal_metadata_and_ignite(portal_definition, anchorPos, orientation, destination_wormholePos)
+	set_portal_metadata(portal_definition, anchorPos, orientation, destination_wormholePos, true)
+end
+
+-- Checks pos, and if it's part of a portal or portal frame then three values are returned: anchorPos, orientation, is_ignited
+-- where orientation is 0 or 90 (0 meaning a portal that faces north/south - i.e. obsidian running east/west)
+local function is_portal_frame(portal_definition, pos)
+
+	local nodes_are_valid   -- using closures as a way for the functions to return extra information - by setting this variable
+	local portal_is_ignited -- using closures as a way for the functions to return extra information - by setting this variable
+
+	local frame_node_name = portal_definition.frame_node_name
+	local check_frame_Func = function(check_pos)
+		if minetest.get_node(check_pos).name ~= frame_node_name then
+			nodes_are_valid = false
+			return true -- short-circuit the search
+		end
+	end
+
+	local wormhole_node_name = portal_definition.wormhole_node_name
+	local check_wormhole_Func = function(check_pos)
+		local node_name = minetest.get_node(check_pos).name
+		if node_name ~= wormhole_node_name then
+			portal_is_ignited = false;
+			if node_name ~= "air" then
+				nodes_are_valid = false
+				return true -- short-circuit the search
+			end
+		end
+	end
+
+	-- this function returns two bools: portal found, portal is lit
+	local is_portal_at_anchorPos = function(anchorPos, orientation)
+
+		nodes_are_valid   = true
+		portal_is_ignited = true
+		portal_definition.shape.apply_func_to_frame_nodes(anchorPos, orientation, check_frame_Func)
+
+		if nodes_are_valid then
+			-- a valid frame exists at anchorPos, check the wormhole is either ignited or unobstructed
+			portal_definition.shape.apply_func_to_wormhole_nodes(anchorPos, orientation, check_wormhole_Func)
+		end
+
+		return nodes_are_valid, portal_is_ignited and nodes_are_valid -- returns two bools: portal was found, portal is lit
+	end
+
+	local width_minus_1  = portal_definition.shape.size.x - 1
+	local height_minus_1 = portal_definition.shape.size.y - 1
+	local depth_minus_1  = portal_definition.shape.size.z - 1
+
+	for d = -depth_minus_1, depth_minus_1 do
+		for w = -width_minus_1, width_minus_1 do
+			for y = -height_minus_1, height_minus_1 do
+
+				local testAnchorPos_x = {x = pos.x + w, y = pos.y + y, z = pos.z + d}
+				local portal_found, portal_lit = is_portal_at_anchorPos(testAnchorPos_x, 0)
+
+				if portal_found then
+					return testAnchorPos_x, 0, portal_lit
+				else
+					-- try orthogonal orientation
+					local testForAnchorPos_z = {x = pos.x + d, y = pos.y + y, z = pos.z + w}
+					portal_found, portal_lit = is_portal_at_anchorPos(testForAnchorPos_z, 90)
+
+					if portal_found then return testForAnchorPos_z, 90, portal_lit end
+				end
+			end
+		end
+	end
+end
+
+
+local function build_portal(portal_definition, anchorPos, orientation, destination_wormholePos)
+
+	minetest.place_schematic(
+		portal_definition.shape.get_schematicPos_from_anchorPos(anchorPos, orientation),
+		portal_definition.shape.schematic_filename,
+		orientation,
+		nil,
+		true
+	)
+	if DEBUG then minetest.chat_send_all("Placed portal schematic at " ..  minetest.pos_to_string(portal_definition.shape.get_schematicPos_from_anchorPos(anchorPos, orientation)) .. ", orientation " .. orientation) end
+
+	set_portal_metadata(portal_definition, anchorPos, orientation, destination_wormholePos)
+end
+
+
+-- Used to find or build a remote twin after a portal is opened.
+-- If a portal is found that is already lit then the destination_wormholePos argument is ignored - the anchorPos
+-- of the portal that was found will be returned but its destination will be unchanged.
+-- * suggested_anchorPos indicates where the portal should be built
+-- * destination_wormholePos is the wormholePos of the destination portal this one will be linked to.
+-- * suggested_orientation is the suggested schematic rotation: 0, 90, 180, 270 (0 meaning a portal that faces north/south - i.e. obsidian running east/west)
+--
+-- Returns the final (anchorPos, orientation), as they may differ from the anchorPos and orientation that was
+-- specified if an existing portal was already found there.
+local function locate_or_build_portal(portal_definition, suggested_anchorPos, suggested_orientation, destination_wormholePos)
+
+	if DEBUG then minetest.chat_send_all("locate_or_build_portal at " .. minetest.pos_to_string(suggested_anchorPos) .. ", targetted to " .. minetest.pos_to_string(destination_wormholePos) .. ", orientation " .. suggested_orientation) end
+
+	local result_anchorPos   = suggested_anchorPos;
+	local result_orientation = suggested_orientation;
+	local place_new_portal   = true
+
+	-- Searching for an existing portal at wormholePos seems better than at anchorPos, though isn't important
+	local suggested_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(suggested_anchorPos, suggested_orientation)
+	local found_anchorPos, found_orientation, is_ignited = is_portal_frame(portal_definition, suggested_wormholePos)
+
+	if found_anchorPos ~= nil then
+		-- A portal is already here, we don't have to build one, though we may need to ignite it
+		result_anchorPos   = found_anchorPos
+		result_orientation = found_orientation
+
+		if is_ignited then
+			if DEBUG then minetest.chat_send_all("Build aborted: already a portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation) end
+		else
+			if DEBUG then minetest.chat_send_all("Build aborted: already an unlit portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation) end
+			-- ignite the portal
+			set_portal_metadata_and_ignite(portal_definition, result_anchorPos, result_orientation, destination_wormholePos)
+		end
+	else
+		build_portal(portal_definition, result_anchorPos, result_orientation, destination_wormholePos)
+	end
+	return result_anchorPos, result_orientation
 end
 
 
@@ -126,6 +448,7 @@ local function find_nether_target_y(target_x, target_z, start_y)
 end
 
 
+--todo: find_surface_target_y() fails and selects locations under the surface
 local function find_surface_target_y(target_x, target_z, start_y)
 	for y = start_y, start_y - 256, -16 do
 		-- Check volume for non-natural nodes
@@ -140,123 +463,109 @@ local function find_surface_target_y(target_x, target_z, start_y)
 end
 
 
-local function move_check(p1, max, dir)
-	local p = {x = p1.x, y = p1.y, z = p1.z}
-	local d = math.abs(max - p1[dir]) / (max - p1[dir])
+-- invoked when a player attempts to turn obsidian nodes into an open portal
+local function ignite_portal(ignition_pos)
 
-	while p[dir] ~= max do
-		p[dir] = p[dir] + d
-		if minetest.get_node(p).name ~= "default:obsidian" then
-			return false
+	local ignition_node_name = minetest.get_node(ignition_pos).name
+
+	-- find out what sort of portals are made from the node that was clicked on
+	local portal_definition = registered_portals[ignition_node_name]
+	if portal_definition == nil then
+		return false -- no portals are made from the node at ignition_pos
+	end
+
+	-- check it was a portal frame that the player is trying to ignite
+	local anchorPos, orientation, is_ignited = is_portal_frame(portal_definition, ignition_pos)
+	if anchorPos == nil then
+		if DEBUG then minetest.chat_send_all("No portal frame found at " .. minetest.pos_to_string(ignition_pos)) end
+		return false -- no portal is here
+	elseif is_ignited then
+		if DEBUG then
+			local meta = minetest.get_meta(ignition_pos)
+			if meta ~= nil then minetest.chat_send_all("This portal links to " .. meta:get_string("target") .. ". p1=" .. meta:get_string("p1") .. " p2=" .. meta:get_string("p2")) end
 		end
+		return false -- portal is already ignited
 	end
+	if DEBUG then minetest.chat_send_all("Found portal frame. Looked at " .. minetest.pos_to_string(ignition_pos) .. ", found at " .. minetest.pos_to_string(anchorPos) .. " orientation " .. orientation) end
 
-	return true
-end
-
-
-local function check_portal(p1, p2)
-	if p1.x ~= p2.x then
-		if not move_check(p1, p2.x, "x") then
-			return false
-		end
-		if not move_check(p2, p1.x, "x") then
-			return false
-		end
-	elseif p1.z ~= p2.z then
-		if not move_check(p1, p2.z, "z") then
-			return false
-		end
-		if not move_check(p2, p1.z, "z") then
-			return false
-		end
-	else
-		return false
-	end
-
-	if not move_check(p1, p2.y, "y") then
-		return false
-	end
-	if not move_check(p2, p1.y, "y") then
-		return false
-	end
-
-	return true
-end
-
-
-local function is_portal(pos)
-	for d = -3, 3 do
-		for y = -4, 4 do
-			local px = {x = pos.x + d, y = pos.y + y, z = pos.z}
-			local pz = {x = pos.x, y = pos.y + y, z = pos.z + d}
-
-			if check_portal(px, {x = px.x + 3, y = px.y + 4, z = px.z}) then
-				return px, {x = px.x + 3, y = px.y + 4, z = px.z}
-			end
-			if check_portal(pz, {x = pz.x, y = pz.y + 4, z = pz.z + 3}) then
-				return pz, {x = pz.x, y = pz.y + 4, z = pz.z + 3}
-			end
-		end
-	end
-end
-
-
-local function make_portal(pos)
-	local p1, p2 = is_portal(pos)
-	if not p1 or not p2 then
-		return false
-	end
-
-	for d = 1, 2 do
-	for y = p1.y + 1, p2.y - 1 do
-		local p
-		if p1.z == p2.z then
-			p = {x = p1.x + d, y = y, z = p1.z}
-		else
-			p = {x = p1.x, y = y, z = p1.z + d}
-		end
-		if minetest.get_node(p).name ~= "air" then
-			return false
-		end
-	end
-	end
-
-	local param2
-	if p1.z == p2.z then
-		param2 = 0
-	else
-		param2 = 1
-	end
-
-	local target = {x = p1.x, y = p1.y, z = p1.z}
-	target.x = target.x + 1
-	if target.y < NETHER_DEPTH then
-		target.y = find_surface_target_y(target.x, target.z, -16)
+	-- pick a destination
+	local destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
+	if anchorPos.y < NETHER_DEPTH then
+		destination_wormholePos.y = find_surface_target_y(destination_wormholePos.x, destination_wormholePos.z, -16)
 	else
 		local start_y = NETHER_DEPTH - math.random(500, 1500) -- Search start
-		target.y = find_nether_target_y(target.x, target.z, start_y)
+		destination_wormholePos.y = find_nether_target_y(destination_wormholePos.x, destination_wormholePos.z, start_y)
 	end
+	if DEBUG then minetest.chat_send_all("Destinaton set to " .. minetest.pos_to_string(destination_wormholePos)) end
 
-	for d = 0, 3 do
-	for y = p1.y, p2.y do
-		local p
-		if param2 == 0 then
-			p = {x = p1.x + d, y = y, z = p1.z}
-		else
-			p = {x = p1.x, y = y, z = p1.z + d}
-		end
-		if minetest.get_node(p).name == "air" then
-			minetest.set_node(p, {name = "nether:portal", param2 = param2})
-		end
-		local meta = minetest.get_meta(p)
-		meta:set_string("p1", minetest.pos_to_string(p1))
-		meta:set_string("p2", minetest.pos_to_string(p2))
-		meta:set_string("target", minetest.pos_to_string(target))
-	end
-	end
+	-- ignition/BURN_BABY_BURN
+	set_portal_metadata_and_ignite(portal_definition, anchorPos, orientation, destination_wormholePos)
 
 	return true
+end
+
+
+-- invoked when a player is standing in a portal
+local function ensure_remote_portal_then_teleport(player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
+
+	-- check player is still standing in a portal
+	local playerPos = player:getpos()
+	playerPos.y = playerPos.y + 0.1 -- Fix some glitches at -8000
+	if minetest.get_node(playerPos).name ~= portal_definition.wormhole_node_name then
+		return -- the player has moved out of the portal
+	end
+
+	-- debounce - check player is still standing in the same portal that called this function
+	local meta = minetest.get_meta(playerPos)
+	if not vector.equals(local_anchorPos, minetest.string_to_pos(meta:get_string("p1"))) then
+		if DEBUG then minetest.chat_send_all("the player already teleported from " .. minetest.pos_to_string(local_anchorPos) .. ", and is now standing in a different portal - " .. meta:get_string("p1")) end
+		return -- the player already teleported, and is now standing in a different portal
+	end
+
+	local destination_anchorPos = portal_definition.shape.get_anchorPos_from_wormholePos(destination_wormholePos, local_orientation)
+	local node = minetest.get_node_or_nil(destination_wormholePos)
+
+	if node == nil then
+		-- area not emerged yet, delay and retry
+		if DEBUG then minetest.chat_send_all("ensure_remote_portal_then_teleport() could not find anything yet at " .. minetest.pos_to_string(destination_wormholePos)) end
+		minetest.after(1, ensure_remote_portal_then_teleport, player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
+	else
+		local local_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(local_anchorPos, local_orientation)
+
+		if node.name == portal_definition.wormhole_node_name then
+			-- portal exists
+			local destination_orientation = get_orientation_from_param2(node.param2)
+			portal_definition.shape.disable_portal_trap(destination_anchorPos, destination_orientation)
+
+			-- rotate the player if the destination portal is a different orientation
+			local rotation_angle = math.rad(destination_orientation - local_orientation)
+			local offset = vector.subtract(playerPos, local_wormholePos) -- preserve player's position in the portal
+			local rotated_offset = {x = math.cos(rotation_angle) * offset.x - math.sin(rotation_angle) * offset.z, y = offset.y, z = math.sin(rotation_angle) * offset.x + math.cos(rotation_angle) * offset.z}
+			player:setpos(vector.add(destination_wormholePos, rotated_offset))
+			player:set_look_horizontal(player:get_look_horizontal() + rotation_angle)
+		else
+			-- destination portal still needs to be built
+			if DEBUG then minetest.chat_send_all("ensure_remote_portal_then_teleport() saw " .. node.name .. " at " .. minetest.pos_to_string(destination_wormholePos) .. " rather than a wormhole. Calling locate_or_build_portal()") end
+
+			local new_dest_anchorPos, new_dest_orientation = locate_or_build_portal(portal_definition, destination_anchorPos, local_orientation, local_wormholePos)
+
+			if local_orientation ~= new_dest_orientation or not vector.equals(destination_anchorPos, new_dest_anchorPos) then
+				-- Update the local portal's target to match where the existing remote portal was found
+				destination_anchorPos   = new_dest_anchorPos
+				destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(new_dest_anchorPos, new_dest_orientation)
+				if DEBUG then minetest.chat_send_all("update target to " .. minetest.pos_to_string(destination_wormholePos)) end
+
+				set_portal_metadata(
+					portal_definition,
+					local_anchorPos,
+					local_orientation,
+					destination_wormholePos
+				)
+
+				minetest.after(0.1, ensure_remote_portal_then_teleport, player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
+			end
+		end
+	end
 end
 
 
@@ -286,41 +595,42 @@ minetest.register_abm({
 		for _, obj in ipairs(minetest.get_objects_inside_radius(pos, 1)) do
 			if obj:is_player() then
 				local meta = minetest.get_meta(pos)
-				local target = minetest.string_to_pos(meta:get_string("target"))
-				if target then
-					-- force emerge of target area
-					minetest.get_voxel_manip():read_from_map(target, target)
-					if not minetest.get_node_or_nil(target) then
-						minetest.emerge_area(
-							vector.subtract(target, 4), vector.add(target, 4))
+				local destination_wormholePos = minetest.string_to_pos(meta:get_string("target"))
+				local local_p1                = minetest.string_to_pos(meta:get_string("p1"))
+				if destination_wormholePos ~= nil and local_p1 ~= nil then
+
+					-- find out what sort of portal we're in
+					local p1_node_name = minetest.get_node(local_p1).name
+					local portal_definition = registered_portals[p1_node_name]
+					if portal_definition == nil then
+						if p1_node_name ~= "ignore" then
+							-- I've seen cases where the p1_node_name temporarily returns "ignore", but it comes right - perhaps it happens when playerPos and anchorPos are in different chunks?
+							if DEBUG then minetest.chat_send_all("Weirdness: No portal with a \"" .. p1_node_name .. "\" frame is registered. Portal metadata at " .. minetest.pos_to_string(pos) .. " claims node ".. minetest.pos_to_string(local_p1) .. " is its portal corner (p1), but that location contains \"" .. p1_node_name .. "\"") end
+						else
+							minetest.log("error", "No portal with a \"" .. p1_node_name .. "\" frame is registered. Portal metadata at " .. minetest.pos_to_string(pos) .. " claims node ".. minetest.pos_to_string(local_p1) .. " is its portal corner (p1), but that location contains \"" .. p1_node_name .. "\"")
+						end
+						return
 					end
-					-- teleport the player
-					minetest.after(3, function(o, p, t)
-						local objpos = o:getpos()
-						if not objpos then -- player quit the game while teleporting
-							return
+
+					-- force emerge of target area
+					minetest.get_voxel_manip():read_from_map(destination_wormholePos, destination_wormholePos)
+					if not minetest.get_node_or_nil(destination_wormholePos) then
+						minetest.emerge_area(vector.subtract(destination_wormholePos, 4), vector.add(destination_wormholePos, 4))
+					end
+
+					local local_orientation  = get_orientation_from_param2(node.param2)
+					minetest.after(
+						3, -- hopefully target area is emerged in 3 seconds
+						function()
+							ensure_remote_portal_then_teleport(
+								obj,
+								portal_definition,
+								local_p1,
+								local_orientation,
+								destination_wormholePos
+							)
 						end
-						objpos.y = objpos.y + 0.1 -- Fix some glitches at -8000
-						if minetest.get_node(objpos).name ~= "nether:portal" then
-							return
-						end
-
-						o:setpos(t)
-
-						local function check_and_build_portal(pp, tt)
-							local n = minetest.get_node_or_nil(tt)
-							if n and n.name ~= "nether:portal" then
-								build_portal(tt, pp)
-								minetest.after(2, check_and_build_portal, pp, tt)
-								minetest.after(4, check_and_build_portal, pp, tt)
-							elseif not n then
-								minetest.after(1, check_and_build_portal, pp, tt)
-							end
-						end
-
-						minetest.after(1, check_and_build_portal, p, t)
-
-					end, obj, pos, target)
+					)
 				end
 			end
 		end
@@ -528,7 +838,7 @@ end
 minetest.override_item("default:mese_crystal_fragment", {
 	on_place = function(stack, _, pt)
 		if pt.under and minetest.get_node(pt.under).name == "default:obsidian" then
-			local done = make_portal(pt.under)
+			local done = ignite_portal(pt.under)
 			if done and not minetest.settings:get_bool("creative_mode") then
 				stack:take_item()
 			end
