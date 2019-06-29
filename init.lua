@@ -216,7 +216,8 @@ local registered_portals = {
 
 
 -- p1 and p2 are used to keep maps backwards compatible with earlier versions of this mod.
--- p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner.
+-- p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner, together
+-- they define the bounding volume for the portal.
 local function get_p1_and_p2_from_anchorPos(portal_shape, anchorPos, orientation)
 	assert(orientation, "no orientation passed")
 	local p1 = anchorPos
@@ -348,7 +349,7 @@ local function build_portal(portal_definition, anchorPos, orientation, destinati
 end
 
 
--- Used to find or build a remote twin after a portal is opened.
+-- Used to find or build the remote twin after a portal is opened.
 -- If a portal is found that is already lit then the destination_wormholePos argument is ignored - the anchorPos
 -- of the portal that was found will be returned but its destination will be unchanged.
 -- * suggested_anchorPos indicates where the portal should be built
@@ -468,7 +469,7 @@ local function ignite_portal(ignition_pos)
 
 	local ignition_node_name = minetest.get_node(ignition_pos).name
 
-	-- find out what sort of portals are made from the node that was clicked on
+	-- find which sort of portals are made from the node that was clicked on
 	local portal_definition = registered_portals[ignition_node_name]
 	if portal_definition == nil then
 		return false -- no portals are made from the node at ignition_pos
@@ -502,6 +503,71 @@ local function ignite_portal(ignition_pos)
 	set_portal_metadata_and_ignite(portal_definition, anchorPos, orientation, destination_wormholePos)
 
 	return true
+end
+
+
+local function extinguish_portal(pos, node_name)
+
+	-- find which sort of portals are made from the node that was clicked on
+	local portal_definition = registered_portals[node_name]
+	if portal_definition == nil then
+		minetest.log("error", "extinguish_portal() invoked on " .. node_name .. " but no registered portal is constructed from " .. node_name)
+		return false -- no portal frames are made from this type of node
+	end
+	local frame_node_name    = portal_definition.frame_node_name
+	local wormhole_node_name = portal_definition.wormhole_node_name
+
+	local meta = minetest.get_meta(pos)
+	local p1 = minetest.string_to_pos(meta:get_string("p1"))
+	local p2 = minetest.string_to_pos(meta:get_string("p2"))
+	local target = minetest.string_to_pos(meta:get_string("target"))
+	if not p1 or not p2 then
+		return
+	end
+
+	for x = p1.x, p2.x do
+	for y = p1.y, p2.y do
+	for z = p1.z, p2.z do
+		local nn = minetest.get_node({x = x, y = y, z = z}).name
+		if nn == frame_node_name or nn == wormhole_node_name then
+			if nn == wormhole_node_name then
+				minetest.remove_node({x = x, y = y, z = z})
+			end
+			local m = minetest.get_meta({x = x, y = y, z = z})
+			m:set_string("p1", "")
+			m:set_string("p2", "")
+			m:set_string("target", "")
+		end
+	end
+	end
+	end
+
+	meta = minetest.get_meta(target)
+	if not meta then
+		return
+	end
+	p1 = minetest.string_to_pos(meta:get_string("p1"))
+	p2 = minetest.string_to_pos(meta:get_string("p2"))
+	if not p1 or not p2 then
+		return
+	end
+
+	for x = p1.x, p2.x do
+	for y = p1.y, p2.y do
+	for z = p1.z, p2.z do
+		local nn = minetest.get_node({x = x, y = y, z = z}).name
+		if nn == frame_node_name or nn == wormhole_node_name then
+			if nn == wormhole_node_name then
+				minetest.remove_node({x = x, y = y, z = z})
+			end
+			local m = minetest.get_meta({x = x, y = y, z = z})
+			m:set_string("p1", "")
+			m:set_string("p2", "")
+			m:set_string("target", "")
+		end
+	end
+	end
+	end
 end
 
 
@@ -696,58 +762,16 @@ minetest.register_node(":default:obsidian", {
 	sounds = default.node_sound_stone_defaults(),
 	groups = {cracky = 1, level = 2},
 
+	mesecons = {effector = {		
+		action_on = function (pos, node)
+			ignite_portal(pos, node.name)
+		end,
+		action_off = function (pos, node)
+			extinguish_portal(pos, node.name)
+		end
+	}},	
 	on_destruct = function(pos)
-		local meta = minetest.get_meta(pos)
-		local p1 = minetest.string_to_pos(meta:get_string("p1"))
-		local p2 = minetest.string_to_pos(meta:get_string("p2"))
-		local target = minetest.string_to_pos(meta:get_string("target"))
-		if not p1 or not p2 then
-			return
-		end
-
-		for x = p1.x, p2.x do
-		for y = p1.y, p2.y do
-		for z = p1.z, p2.z do
-			local nn = minetest.get_node({x = x, y = y, z = z}).name
-			if nn == "default:obsidian" or nn == "nether:portal" then
-				if nn == "nether:portal" then
-					minetest.remove_node({x = x, y = y, z = z})
-				end
-				local m = minetest.get_meta({x = x, y = y, z = z})
-				m:set_string("p1", "")
-				m:set_string("p2", "")
-				m:set_string("target", "")
-			end
-		end
-		end
-		end
-
-		meta = minetest.get_meta(target)
-		if not meta then
-			return
-		end
-		p1 = minetest.string_to_pos(meta:get_string("p1"))
-		p2 = minetest.string_to_pos(meta:get_string("p2"))
-		if not p1 or not p2 then
-			return
-		end
-
-		for x = p1.x, p2.x do
-		for y = p1.y, p2.y do
-		for z = p1.z, p2.z do
-			local nn = minetest.get_node({x = x, y = y, z = z}).name
-			if nn == "default:obsidian" or nn == "nether:portal" then
-				if nn == "nether:portal" then
-					minetest.remove_node({x = x, y = y, z = z})
-				end
-				local m = minetest.get_meta({x = x, y = y, z = z})
-				m:set_string("p1", "")
-				m:set_string("p2", "")
-				m:set_string("target", "")
-			end
-		end
-		end
-		end
+		extinguish_portal(pos, "default:obsidian")
 	end,
 })
 
