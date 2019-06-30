@@ -90,7 +90,6 @@ east/west.
 -- functions if you wish to register a custom shaped portal in register_portal().
 -- Since it's symmetric, this PortalShape definition has only implemented orientations of 0 and 90
 local TraditionalPortalShape = {
-	-- todo: use size to update is_portal_frame
 	size = vector.new(4, 5, 1), -- size of the portal, and not necessarily the size of the schematic, which may clear area around the portal.
 	schematic_filename = minetest.get_modpath("nether") .. "/schematics/nether_portal.mts",
 
@@ -146,7 +145,7 @@ local TraditionalPortalShape = {
 		elseif p1.x == p2.x then
 			return p1, 90
 		else
-			-- this KISS implementation will break you've made a 3D PortalShape definition, and will need to be reimplemented
+			-- this KISS implementation will break you've made a 3D PortalShape definition
 			minetest.log("error", "get_anchorPos_and_orientation_from_p1_and_p2 failed on  p1=" .. meta:get_string("p1") .. " p2=" .. meta:get_string("p2"))
 		end
 	end,
@@ -158,7 +157,7 @@ local TraditionalPortalShape = {
 			-- use short-circuiting of boolean evaluation to allow func() to cause an abort by returning true
 			shortCircuited =
 				func({x = anchorPos.x + 0, y = anchorPos.y,     z = anchorPos.z}) or
-			    func({x = anchorPos.x + 1, y = anchorPos.y,     z = anchorPos.z}) or
+				func({x = anchorPos.x + 1, y = anchorPos.y,     z = anchorPos.z}) or
 				func({x = anchorPos.x + 2, y = anchorPos.y,     z = anchorPos.z}) or
 				func({x = anchorPos.x + 3, y = anchorPos.y,     z = anchorPos.z}) or
 				func({x = anchorPos.x + 0, y = anchorPos.y + 4, z = anchorPos.z}) or
@@ -624,6 +623,30 @@ local function extinguish_portal(pos, node_name)
 end
 
 
+-- Sometimes after a portal is placed, concurrent mapgen routines overwrite it.
+-- Make portals immortal for ~20 seconds after creation
+local function remote_portal_checkup(elapsed, portal_definition, anchorPos, orientation, destination_wormholePos)
+
+	local wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
+	local wormhole_node = minetest.get_node_or_nil(wormholePos)
+
+	if wormhole_node == nil or wormhole_node.name ~= portal_definition.wormhole_node_name then
+		-- ruh roh
+		local message = "Newly created portal at " .. minetest.pos_to_string(anchorPos) .. " was overwritten. Attempting to recreate. Issue spotted after " .. elapsed .. " seconds"
+		minetest.log("warning", message)
+		if DEBUG then minetest.chat_send_all("!!! " .. message) end
+
+		-- A pre-existing portal frame wouldn't have been immediately overwritten, so no need to check for one, just place the portal.
+		build_portal(portal_definition, anchorPos, orientation, destination_wormholePos)
+	end
+
+	if elapsed < 20 then -- stop checking after 20 seconds
+		local delay = elapsed * 2
+		minetest.after(delay, remote_portal_checkup, elapsed + delay, portal_definition, anchorPos, orientation, destination_wormholePos)
+	end
+end
+
+
 -- invoked when a player is standing in a portal
 local function ensure_remote_portal_then_teleport(player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
 
@@ -642,18 +665,18 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 	end
 
 	local destination_anchorPos = portal_definition.shape.get_anchorPos_from_wormholePos(destination_wormholePos, local_orientation)
-	local node = minetest.get_node_or_nil(destination_wormholePos)
+	local dest_wormhole_node = minetest.get_node_or_nil(destination_wormholePos)
 
-	if node == nil then
+	if dest_wormhole_node == nil then
 		-- area not emerged yet, delay and retry
 		if DEBUG then minetest.chat_send_all("ensure_remote_portal_then_teleport() could not find anything yet at " .. minetest.pos_to_string(destination_wormholePos)) end
 		minetest.after(1, ensure_remote_portal_then_teleport, player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
 	else
 		local local_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(local_anchorPos, local_orientation)
 
-		if node.name == portal_definition.wormhole_node_name then
+		if dest_wormhole_node.name == portal_definition.wormhole_node_name then
 			-- portal exists
-			local destination_orientation = get_orientation_from_param2(node.param2)
+			local destination_orientation = get_orientation_from_param2(dest_wormhole_node.param2)
 			portal_definition.shape.disable_portal_trap(destination_anchorPos, destination_orientation)
 
 			-- rotate the player if the destination portal is a different orientation
@@ -664,7 +687,7 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 			player:set_look_horizontal(player:get_look_horizontal() + rotation_angle)
 		else
 			-- destination portal still needs to be built
-			if DEBUG then minetest.chat_send_all("ensure_remote_portal_then_teleport() saw " .. node.name .. " at " .. minetest.pos_to_string(destination_wormholePos) .. " rather than a wormhole. Calling locate_or_build_portal()") end
+			if DEBUG then minetest.chat_send_all("ensure_remote_portal_then_teleport() saw " .. dest_wormhole_node.name .. " at " .. minetest.pos_to_string(destination_wormholePos) .. " rather than a wormhole. Calling locate_or_build_portal()") end
 
 			local new_dest_anchorPos, new_dest_orientation = locate_or_build_portal(portal_definition, destination_anchorPos, local_orientation, local_wormholePos)
 
@@ -680,9 +703,11 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 					local_orientation,
 					destination_wormholePos
 				)
-
-				minetest.after(0.1, ensure_remote_portal_then_teleport, player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
 			end
+			minetest.after(0.1, ensure_remote_portal_then_teleport, player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
+
+			-- make sure portal isn't overwritten by ongoing generation/emerge
+			minetest.after(2, remote_portal_checkup, 2, portal_definition, new_dest_anchorPos, new_dest_orientation, local_wormholePos)
 		end
 	end
 end
