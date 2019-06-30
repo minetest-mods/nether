@@ -25,7 +25,7 @@
 local NETHER_DEPTH = -5000
 local TCAVE = 0.6
 local BLEND = 128
-local DEBUG = true
+local DEBUG = false
 
 
 -- 3D noise
@@ -77,14 +77,15 @@ netherportal = {} -- portal API
 A better location for AnchorPos would be directly under WormholePos, as it's more centered
 and you don't need to know the portal's orientation to find AnchorPos from the WormholePos
 or vice-versa, however AnchorPos is in the bottom/south/west-corner to keep compatibility
-with earlier versions of this mod (which only records portal corners p1 & p2 in the node metadata).
+with earlier versions of nether mod (which only records portal corners p1 & p2 in the node 
+metadata).
 
 Orientation is 0 or 90, 0 meaning a portal that faces north/south - i.e. obsidian running
 east/west.
 ]]
 
 
--- This object defines a portal's shape, segregating the shape logic code from portal physics.
+-- This object defines a portal's shape, segregating the shape logic code from portal behaviour code.
 -- You can create a new "PortalShape" definition object which implements the same
 -- functions if you wish to register a custom shaped portal in register_portal().
 -- Since it's symmetric, this PortalShape definition has only implemented orientations of 0 and 90
@@ -140,15 +141,15 @@ local TraditionalPortalShape = {
 	end,
 
 	get_anchorPos_and_orientation_from_p1_and_p2 = function(p1, p2)
-		if p1.z == p2.z then 
+		if p1.z == p2.z then
 			return p1, 0
-		elseif p1.x == p2.x then 
+		elseif p1.x == p2.x then
 			return p1, 90
-		else 
+		else
 			-- this KISS implementation will break you've made a 3D PortalShape definition, and will need to be reimplemented
 			minetest.log("error", "get_anchorPos_and_orientation_from_p1_and_p2 failed on  p1=" .. meta:get_string("p1") .. " p2=" .. meta:get_string("p2"))
 		end
-	end,	
+	end,
 
 	apply_func_to_frame_nodes = function(anchorPos, orientation, func)
 		-- a 4x5 portal is small enough that hardcoded positions is simpler that procedural code
@@ -218,7 +219,7 @@ local TraditionalPortalShape = {
 	end,
 
 	-- Check for whether the portal is blocked in, and if so then provide a safe way
-	-- on one side for the player to step out of the portal. Suggest including a roof 
+	-- on one side for the player to step out of the portal. Suggest including a roof
 	-- incase the portal was blocked with lava flowing from above.
 	disable_portal_trap = function(anchorPos, orientation)
 		assert(orientation, "no orientation passed")
@@ -226,7 +227,7 @@ local TraditionalPortalShape = {
 		-- Not implemented yet. It may not need to be implemented because if you
 		-- wait in a portal long enough you teleport again. So a trap portal would have to link
 		-- to one of two blocked-in portals which link to each other - which is possible, but
-		-- quite extreme.		
+		-- quite extreme.
 	end
 }
 
@@ -246,18 +247,18 @@ local registered_portals = {
 
 
 local function get_timerPos_from_p1_and_p2(p1, p2)
-	-- Pick a frame node for the portal's timer. 
+	-- Pick a frame node for the portal's timer.
 	--
-	-- The timer event will need to know the portal definition, which can be determined by 
+	-- The timer event will need to know the portal definition, which can be determined by
 	-- what the portal frame is made from, so the timer node should be on the frame.
 	-- The timer event will also need to know its portal orientation, but unless someone
-	-- makes a cubic portal shape, orientation can be determined from p1 and p2 in the node's 
+	-- makes a cubic portal shape, orientation can be determined from p1 and p2 in the node's
 	-- metadata (frame nodes don't have orientation set in param2 like wormhole nodes do).
 	--
-	-- We shouldn't pick p1 (or p2) as it's possible for two orthogonal portals to share 
+	-- We shouldn't pick p1 (or p2) as it's possible for two orthogonal portals to share
 	-- the same p1, etc.
-	-- 
-	-- I'll pick the bottom center node of the portal, since that works for rectangular portals 
+	--
+	-- I'll pick the bottom center node of the portal, since that works for rectangular portals
 	-- and if someone want to make a circular portal then that positon will still likely be part
 	-- of the frame.
 	return {
@@ -291,11 +292,12 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 		local meta = minetest.get_meta(pos)
 		meta:set_string("p1",              minetest.pos_to_string(p1))
 		meta:set_string("p2",              minetest.pos_to_string(p2))
-		meta:set_string("target",          minetest.pos_to_string(destination_wormholePos))		
-		-- including "frame_node_name" in the metadata lets us know which kind of portal this is. 
-		-- It's not strictly necessary for TraditionalPortalShape as we know that p1 is part of 
-		-- the frame, and legacy portals don't have this extra metadata, but p1 isn't always loaded
-		-- and reading this from the metadata saves an extra call to minetest.getnode().
+		meta:set_string("target",          minetest.pos_to_string(destination_wormholePos))
+		-- including "frame_node_name" in the metadata lets us know which kind of portal this is.
+		-- It's not strictly necessary for TraditionalPortalShape as we know that p1 is part of
+		-- the frame, and legacy portals don't have this extra metadata - indicating obsidian, 
+		-- but p1 isn't always loaded so reading this from the metadata saves an extra call to 
+		-- minetest.getnode().
 		meta:set_string("frame_node_name", portal_definition.frame_node_name)
 	end
 
@@ -515,13 +517,20 @@ Also, the search for non-natural nodes doesn't actually guarantee avoiding playe
 Each placement position search has to search a volume of nodes for non-natural nodes, this is not lightweight, and many searches may happen if there a lot of underground player builds present. So the code has been written to avoid intensive procedures.
 https://github.com/minetest-mods/nether/issues/5#issuecomment-506983676
 ]]
-local function find_surface_target_y(target_x, target_z, start_y)
+local function find_surface_target_y(portal_definition, target_x, target_z, start_y)
 	for y = start_y, start_y - 256, -16 do
 		-- Check volume for non-natural nodes
 		local minp = {x = target_x - 1, y = y - 1, z = target_z - 2}
 		local maxp = {x = target_x + 2, y = y + 3, z = target_z + 2}
 		if volume_is_natural(minp, maxp) then
 			return y
+		else
+			-- players have built here - don't grief.
+			-- but reigniting existing portals in portal rooms is fine - desirable even.
+			local anchorPos, orientation, is_ignited = is_portal_frame(portal_definition, {x = target_x, y = y, z = target_z})
+			if anchorPos ~= nil then
+				return y
+			end
 		end
 	end
 
@@ -557,7 +566,7 @@ local function ignite_portal(ignition_pos)
 	-- pick a destination
 	local destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
 	if anchorPos.y < NETHER_DEPTH then
-		destination_wormholePos.y = find_surface_target_y(destination_wormholePos.x, destination_wormholePos.z, -16)
+		destination_wormholePos.y = find_surface_target_y(portal_definition, destination_wormholePos.x, destination_wormholePos.z, -16)
 	else
 		local start_y = NETHER_DEPTH - math.random(500, 1500) -- Search start
 		destination_wormholePos.y = find_nether_target_y(destination_wormholePos.x, destination_wormholePos.z, start_y)
@@ -751,7 +760,7 @@ function run_wormhole(pos, time_elapsed)
 
 	local p1, p2, frame_node_name
 	local meta = minetest.get_meta(pos)
-	if meta ~= nil then 
+	if meta ~= nil then
 		p1              = minetest.string_to_pos(meta:get_string("p1"))
 		p2              = minetest.string_to_pos(meta:get_string("p2"))
 		--frame_node_name = minetest.string_to_pos(meta:get_string("frame_node_name")) don't rely on this yet until you're sure everything works with old portals that don't have this set
@@ -761,11 +770,11 @@ function run_wormhole(pos, time_elapsed)
 		if frame_node_name == nil then frame_node_name = minetest.get_node(pos).name end -- pos should be a frame node
 		local portal_definition = registered_portals[frame_node_name]
 		if portal_definition == nil then
-			minetest.log("error", "No portal with a \"" .. frame_node_name .. "\" frame is registered. run_wormhole" .. minetest.pos_to_string(pos) .. " was invoked but that location contains \"" .. frame_node_name .. "\"")			
-		else 
+			minetest.log("error", "No portal with a \"" .. frame_node_name .. "\" frame is registered. run_wormhole" .. minetest.pos_to_string(pos) .. " was invoked but that location contains \"" .. frame_node_name .. "\"")
+		else
 			local anchorPos, orientation = portal_definition.shape.get_anchorPos_and_orientation_from_p1_and_p2(p1, p2)
 			portal_definition.shape.apply_func_to_wormhole_nodes(anchorPos, orientation, run_wormhole_node_func)
-		end		
+		end
 	end
 end
 
@@ -776,11 +785,11 @@ minetest.register_lbm({
 	nodenames = {"nether:portal"},
 	run_at_every_load = false,
 	action = function(pos, node)
-		local p1
+		local p1, p2
 		local meta = minetest.get_meta(pos)
-		if meta ~= nil then 
-			p1 = minetest.string_to_pos(meta:get_string("p1")) 
-			p2 = minetest.string_to_pos(meta:get_string("p1")) 
+		if meta ~= nil then
+			p1 = minetest.string_to_pos(meta:get_string("p1"))
+			p2 = minetest.string_to_pos(meta:get_string("p1"))
 		end
 		if p1 ~= nil and p2 ~= nil then
 			local timerPos = get_timerPos_from_p1_and_p2(p1, p2)
@@ -853,14 +862,14 @@ minetest.register_node(":default:obsidian", {
 	sounds = default.node_sound_stone_defaults(),
 	groups = {cracky = 1, level = 2},
 
-	mesecons = {effector = {		
+	mesecons = {effector = {
 		action_on = function (pos, node)
 			ignite_portal(pos, node.name)
 		end,
 		action_off = function (pos, node)
 			extinguish_portal(pos, node.name)
 		end
-	}},	
+	}},
 	on_destruct = function(pos)
 		extinguish_portal(pos, "default:obsidian")
 	end,
