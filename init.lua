@@ -121,20 +121,18 @@ local TraditionalPortalShape = {
 		end
 	end,
 
-	-- todo - convert TraditionalPortalShape to class so this doesn't need to be passed portal_shape
-	--
 	-- p1 and p2 are used to keep maps backwards compatible with earlier versions of this mod.
 	-- p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner, together
 	-- they define the bounding volume for the portal.
-	get_p1_and_p2_from_anchorPos = function(portal_shape, anchorPos, orientation)
+	get_p1_and_p2_from_anchorPos = function(self, anchorPos, orientation)
 		assert(orientation, "no orientation passed")
 		local p1 = anchorPos -- TraditionalPortalShape puts the anchorPos at p1 for backwards&forwards compatibility
 		local p2
 
 		if orientation == 0 then
-			p2 = {x = p1.x + portal_shape.size.x - 1, y = p1.y + portal_shape.size.y - 1, z = p1.z                          }
+			p2 = {x = p1.x + self.size.x - 1, y = p1.y + self.size.y - 1, z = p1.z                          }
 		else
-			p2 = {x = p1.x,                           y = p1.y + portal_shape.size.y - 1, z = p1.z + portal_shape.size.x - 1}
+			p2 = {x = p1.x,                   y = p1.y + self.size.y - 1, z = p1.z + self.size.x - 1}
 		end
 		return p1, p2
 	end,
@@ -229,18 +227,35 @@ local TraditionalPortalShape = {
 		-- quite extreme.
 	end
 }
+--=====================================================--
+--======== End of TraditionalPortalShape class ========--
+--=====================================================--
+
+
 
 local registered_portals = {
 	["default:obsidian"] = {
-		shape = TraditionalPortalShape,
-		wormhole_node_name = "nether:portal",
-		frame_node_name    = "default:obsidian",
+		shape               = TraditionalPortalShape,
+		wormhole_node_name  = "nether:portal",
+		wormhole_node_color = 0,
+		frame_node_name     = "default:obsidian",
+		sound_ambient       = "portal_hum",
+		sound_ignite        = "",
+		sound_extinguish    = "",
+		sound_teleport      = "",
+
 
 		find_realm_anchorPos = function(pos)
 		end,
 
 		find_surface_anchorPos = function(pos)
 		end
+
+		-- on_run_wormhole 
+		-- on_ignite
+		-- on_extinguish
+		-- on_player_teleported
+		-- on_created
 	}
 }
 
@@ -280,7 +295,7 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 
 	-- p1 and p2 are used here to keep maps backwards compatible with earlier versions of this mod
 	-- (p2's value is the opposite corner of the portal frame to p1, according to the fixed portal shape of earlier versions of this mod)
-	local p1, p2 = portal_definition.shape.get_p1_and_p2_from_anchorPos(portal_definition.shape, anchorPos, orientation)
+	local p1, p2 = portal_definition.shape:get_p1_and_p2_from_anchorPos(anchorPos, orientation)
 	local param2 = get_param2_from_orientation(0, orientation)
 
 	local updateFunc = function(pos)
@@ -717,6 +732,8 @@ end
 -- See get_timerPos_from_p1_and_p2() for an explanation of where pos will be
 function run_wormhole(pos, time_elapsed)
 
+	local portal_definition -- will be used inside run_wormhole_node_func()
+
 	local run_wormhole_node_func = function(pos)
 
 		if math.random(2) == 1 then -- lets run only 3 particlespawners instead of 6 per portal
@@ -746,26 +763,13 @@ function run_wormhole(pos, time_elapsed)
 				local local_p1                = minetest.string_to_pos(meta:get_string("p1"))
 				if destination_wormholePos ~= nil and local_p1 ~= nil then
 
-					-- find out what sort of portal we're in
-					local p1_node_name = minetest.get_node(local_p1).name -- todo: use a better way
-					local portal_definition = registered_portals[p1_node_name]
-					if portal_definition == nil then
-						if p1_node_name ~= "ignore" then
-							-- I've seen cases where the p1_node_name temporarily returns "ignore", but it comes right - perhaps it happens when playerPos and anchorPos are in different chunks?
-							if DEBUG then minetest.chat_send_all("Weirdness: No portal with a \"" .. p1_node_name .. "\" frame is registered. Portal metadata at " .. minetest.pos_to_string(pos) .. " claims node ".. minetest.pos_to_string(local_p1) .. " is its portal corner (p1), but that location contains \"" .. p1_node_name .. "\"") end
-						else
-							minetest.log("error", "No portal with a \"" .. p1_node_name .. "\" frame is registered. Portal metadata at " .. minetest.pos_to_string(pos) .. " claims node ".. minetest.pos_to_string(local_p1) .. " is its portal corner (p1), but that location contains \"" .. p1_node_name .. "\"")
-						end
-						return
-					end
-
 					-- force emerge of target area
 					minetest.get_voxel_manip():read_from_map(destination_wormholePos, destination_wormholePos)
 					if not minetest.get_node_or_nil(destination_wormholePos) then
 						minetest.emerge_area(vector.subtract(destination_wormholePos, 4), vector.add(destination_wormholePos, 4))
 					end
 
-					local local_orientation  = get_orientation_from_param2(minetest.get_node(pos).param2)
+					local local_orientation = get_orientation_from_param2(minetest.get_node(pos).param2)
 					minetest.after(
 						3, -- hopefully target area is emerged in 3 seconds
 						function()
@@ -793,7 +797,7 @@ function run_wormhole(pos, time_elapsed)
 	if p1 ~= nil and p2 ~= nil then
 		-- look up the portal shape by what it's built from, so we know where the wormhole nodes will be located
 		if frame_node_name == nil then frame_node_name = minetest.get_node(pos).name end -- pos should be a frame node
-		local portal_definition = registered_portals[frame_node_name]
+		portal_definition = registered_portals[frame_node_name]
 		if portal_definition == nil then
 			minetest.log("error", "No portal with a \"" .. frame_node_name .. "\" frame is registered. run_wormhole" .. minetest.pos_to_string(pos) .. " was invoked but that location contains \"" .. frame_node_name .. "\"")
 		else
