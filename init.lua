@@ -293,19 +293,51 @@ local function get_orientation_from_param2(param2)
 	return param2 * 90
 end
 
+local extinguish_portal -- the function will be assigned to this further down, rather than having to define the function before other functions can use it.
+
 local function set_portal_metadata(portal_definition, anchorPos, orientation, destination_wormholePos, ignite)
 
-	-- p1 and p2 are used here to keep maps backwards compatible with earlier versions of this mod
-	-- (p2's value is the opposite corner of the portal frame to p1, according to the fixed portal shape of earlier versions of this mod)
+
+	-- Portal position is stored in metadata as p1 and p2 to keep maps compatible with earlier versions of this mod.
+	-- p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner, together
+	-- they define the bounding volume for the portal.
 	local p1, p2 = portal_definition.shape:get_p1_and_p2_from_anchorPos(anchorPos, orientation)
+	local p1_string, p2_string = minetest.pos_to_string(p1), minetest.pos_to_string(p2)
 	local param2 = get_param2_from_orientation(0, orientation)
 
+	local update_aborted-- using closures to allow the updateFunc to return extra information - by setting this variable
+
 	local updateFunc = function(pos)
-		if ignite and minetest.get_node(pos).name == "air" then
-			minetest.set_node(pos, {name = portal_definition.wormhole_node_name, param2 = param2})
-		end
 
 		local meta = minetest.get_meta(pos)
+
+		if ignite then
+			local node_name = minetest.get_node(pos).name
+			if node_name == "air" then
+				minetest.set_node(pos, {name = portal_definition.wormhole_node_name, param2 = param2})
+			end
+
+			local existing_p1 = meta:get_string("p1")
+			if existing_p1 ~= "" then
+				local existing_p2 = meta:get_string("p2")
+				if DEBUG then minetest.chat_send_all("existing_p1 " .. existing_p1 .. ", existing_p2" .. existing_p2 .. ", p1 " .. p1_string .. ", p2 " .. p2_string) end
+				if existing_p1 ~= p1_string or existing_p2 ~= p2_string then
+					-- this node is already part of another portal, so extinguish that, because nodes only
+					-- contain a link in the metadata to one portal, and being part of two allows a slew of bugs
+					extinguish_portal(pos, node_name)
+					
+					-- clear the metadata to avoid causing a loop if extinguish_portal() fails on this node (e.g. it only works on frame nodes)
+					meta:set_string("p1",              nil) 
+					meta:set_string("p2",              nil) 
+					meta:set_string("target",          nil) 
+					meta:set_string("frame_node_name", nil)
+		
+					update_aborted = true
+					return true -- short-circuit the update
+				end
+			end
+		end
+
 		meta:set_string("p1",              minetest.pos_to_string(p1))
 		meta:set_string("p2",              minetest.pos_to_string(p2))
 		meta:set_string("target",          minetest.pos_to_string(destination_wormholePos))
@@ -317,8 +349,11 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 		meta:set_string("frame_node_name", portal_definition.frame_node_name)
 	end
 
-	portal_definition.shape.apply_func_to_frame_nodes(anchorPos, orientation, updateFunc)
-	portal_definition.shape.apply_func_to_wormhole_nodes(anchorPos, orientation, updateFunc)
+	repeat
+		update_aborted = false
+		portal_definition.shape.apply_func_to_frame_nodes(anchorPos, orientation, updateFunc)
+		portal_definition.shape.apply_func_to_wormhole_nodes(anchorPos, orientation, updateFunc)
+	until not update_aborted
 
 	local timerPos = get_timerPos_from_p1_and_p2(p1, p2)
 	minetest.get_node_timer(timerPos):start(1)
@@ -632,7 +667,10 @@ end
 
 
 -- WARNING - this is invoked by on_destruct, so you can't assume there's an accesible node at pos
-local function extinguish_portal(pos, node_name)
+extinguish_portal = function(pos, node_name) -- assigned rather than declared because extinguish_portal is already declared, for use by earlier functions in the file.
+
+	-- mesecons seems to invoke action_off() 6 times every time you place a block?
+	if DEBUG then minetest.chat_send_all("extinguish_portal" .. minetest.pos_to_string(pos) .. " " .. node_name) end
 
 	-- find which sort of portals are made from the node that was clicked on
 	local portal_definition = registered_portals[node_name]
