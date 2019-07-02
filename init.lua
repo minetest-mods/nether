@@ -470,8 +470,12 @@ local function volume_is_natural(minp, maxp)
 			local id = data[vi] -- Existing node
 			if id ~= c_air and id ~= c_ignore then -- These are natural
 				local name = minetest.get_name_from_content_id(id)
-				if not minetest.registered_nodes[name].is_ground_content then
-					return false
+				local nodedef = minetest.registered_nodes[name]
+				if not nodedef.is_ground_content then
+					-- trees are natural but not "ground content"
+					if nodedef.groups == nil or (nodedef.groups.tree == nil and nodedef.groups.leaves == nil) then
+						return false
+					end
 				end
 			end
 			vi = vi + 1
@@ -526,7 +530,7 @@ and are exploring the nether. The player will not be trapped.
 
 Note that MC also often places portals embedded in stone.
 
-The code could be altered to first try to find a surface position, but if this surface position is
+The code could be [edit: has been] altered to first try to find a surface position, but if this surface position is
 unsuitable due to being near player builds, the portal will still move downwards into the ground, so this is 
 unavoidable.
 
@@ -548,7 +552,23 @@ searches may happen if there a lot of underground player builds present. So the 
 intensive procedures."
 -- https://github.com/minetest-mods/nether/issues/5#issuecomment-506983676
 ]]
-local function find_surface_target_y(portal_definition, target_x, target_z, start_y)
+local function find_surface_target_y(portal_definition, target_x, target_z)
+
+	-- try to spawn on surface first
+	if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
+		local surface_level = minetest.get_spawn_level(target_x, target_z)
+		if surface_level ~= nil then 
+			-- Check volume for non-natural nodes
+			local minp = {x = target_x - 1, y = surface_level - 1, z = target_z - 2}
+			local maxp = {x = target_x + 2, y = surface_level + 3, z = target_z + 2}
+			if volume_is_natural(minp, maxp) then
+				return surface_level
+			end
+		end
+	end
+
+	-- fallback to underground search
+	local start_y = -16
 	for y = start_y, start_y - 256, -16 do
 		-- Check volume for non-natural nodes
 		local minp = {x = target_x - 1, y = y - 1, z = target_z - 2}
@@ -597,7 +617,7 @@ local function ignite_portal(ignition_pos)
 	-- pick a destination
 	local destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
 	if anchorPos.y < NETHER_DEPTH then
-		destination_wormholePos.y = find_surface_target_y(portal_definition, destination_wormholePos.x, destination_wormholePos.z, -16)
+		destination_wormholePos.y = find_surface_target_y(portal_definition, destination_wormholePos.x, destination_wormholePos.z)
 	else
 		local start_y = NETHER_DEPTH - math.random(500, 1500) -- Search start
 		destination_wormholePos.y = find_nether_target_y(destination_wormholePos.x, destination_wormholePos.z, start_y)
