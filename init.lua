@@ -121,7 +121,7 @@ local TraditionalPortalShape = {
 		end
 	end,
 
-	-- p1 and p2 are used to keep maps backwards compatible with earlier versions of this mod.
+	-- p1 and p2 are used to keep maps compatible with earlier versions of this mod.
 	-- p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner, together
 	-- they define the bounding volume for the portal.
 	get_p1_and_p2_from_anchorPos = function(self, anchorPos, orientation)
@@ -218,6 +218,7 @@ local TraditionalPortalShape = {
 	-- Check for whether the portal is blocked in, and if so then provide a safe way
 	-- on one side for the player to step out of the portal. Suggest including a roof
 	-- incase the portal was blocked with lava flowing from above.
+	-- If portal can appear in mid-air then can also check for that and add a platform.
 	disable_portal_trap = function(anchorPos, orientation)
 		assert(orientation, "no orientation passed")
 
@@ -234,6 +235,7 @@ local TraditionalPortalShape = {
 
 
 local registered_portals = {
+	-- todo: switch to lookup by name, ignite_portal can scan all registered portals
 	["default:obsidian"] = {
 		shape               = TraditionalPortalShape,
 		wormhole_node_name  = "nether:portal",
@@ -511,25 +513,40 @@ end
 
 
 --[[
-The normal realm portal has a particular X, Z, it searches downwards for a suitable Y.
-It can't be placed in mid-air, and for performance the test for a suitable placement position cannot move downwards in 1 node steps, instead it moves downwards in 16 node steps, so it will almost always be placed buried in solid nodes.
-The portal cannot be placed in any volume that contains non-natural nodes (is_ground_content = false) to not grief player builds. This makes it even more likely the portal will be a little way underground.
+"The normal realm portal has a particular X, Z, it searches downwards for a suitable Y.
+It can't be placed in mid-air, and for performance the test for a suitable placement position cannot move downwards in
+1 node steps, instead it moves downwards in 16 node steps, so it will almost always be placed buried in solid nodes.
+
+The portal cannot be placed in any volume that contains non-natural nodes (is_ground_content = false) to not grief
+player builds. This makes it even more likely the portal will be a little way underground.
 
 The portal is placed with air nodes around it to create a space so it isn't embedded in stone.
-It is expected that the player has a pickaxe to dig their way out, this is highly likely if they have built a portal and are exploring the nether. The player will not be trapped.
+It is expected that the player has a pickaxe to dig their way out, this is highly likely if they have built a portal
+and are exploring the nether. The player will not be trapped.
 
 Note that MC also often places portals embedded in stone.
 
-The code could be altered to first try to find a surface position, but if this surface position is unsuitable due to being near player builds, the portal will still move downwards into the ground, so this is unavoidable.
+The code could be altered to first try to find a surface position, but if this surface position is
+unsuitable due to being near player builds, the portal will still move downwards into the ground, so this is 
+unavoidable.
 
-Any search for a suitable resting-on-surface or resting-on-cave-surface position will be somewhat complex, to avoid placement on a tiny floating island or narrow spike etc. which would be impractical or deadly to the player.
+Any search for a suitable resting-on-surface or resting-on-cave-surface position will be somewhat complex, to avoid
+placement on a tiny floating island or narrow spike etc. which would be impractical or deadly to the player.
+
 A portal room embedded underground is the safest and the most accessible for the player.
 
-So i decided to start the placement position search at y = -16 as that, or a little below, is the most likely suitable position: Ground is almost always present there, it's below any lakes or seas, below most player builds.
-Also, the search for non-natural nodes doesn't actually guarantee avoiding player builds, as a player build can be composed of only natural nodes (is_ground_content = true). So even more good reason to start the search a little way underground where player builds are more unlikely. Y = -16 seemed a reasonable compromise between safety and distance from surface.
+So i decided to start the placement position search at y = -16 as that, or a little below, is the most likely suitable
+position: Ground is almost always present there, it's below any lakes or seas, below most player builds.
 
-Each placement position search has to search a volume of nodes for non-natural nodes, this is not lightweight, and many searches may happen if there a lot of underground player builds present. So the code has been written to avoid intensive procedures.
-https://github.com/minetest-mods/nether/issues/5#issuecomment-506983676
+Also, the search for non-natural nodes doesn't actually guarantee avoiding player builds, as a player build can be
+composed of only natural nodes (is_ground_content = true). So even more good reason to start the search a little way
+underground where player builds are more unlikely. Y = -16 seemed a reasonable compromise between safety and distance
+from surface.
+
+Each placement position search has to search a volume of nodes for non-natural nodes, this is not lightweight, and many
+searches may happen if there a lot of underground player builds present. So the code has been written to avoid
+intensive procedures."
+-- https://github.com/minetest-mods/nether/issues/5#issuecomment-506983676
 ]]
 local function find_surface_target_y(portal_definition, target_x, target_z, start_y)
 	for y = start_y, start_y - 256, -16 do
@@ -614,7 +631,7 @@ local function extinguish_portal(pos, node_name)
 		return
 	end
 
-	minetest.get_node_timer(p1):stop(1)
+	minetest.get_node_timer(get_timerPos_from_p1_and_p2(p1, p2)):stop()
 
 	for x = p1.x, p2.x do
 	for y = p1.y, p2.y do
