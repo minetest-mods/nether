@@ -130,7 +130,7 @@ local TraditionalPortalShape = {
 		local p2
 
 		if orientation == 0 then
-			p2 = {x = p1.x + self.size.x - 1, y = p1.y + self.size.y - 1, z = p1.z                          }
+			p2 = {x = p1.x + self.size.x - 1, y = p1.y + self.size.y - 1, z = p1.z                  }
 		else
 			p2 = {x = p1.x,                   y = p1.y + self.size.y - 1, z = p1.z + self.size.x - 1}
 		end
@@ -233,10 +233,9 @@ local TraditionalPortalShape = {
 --=====================================================--
 
 
-
 local registered_portals = {
-	-- todo: switch to lookup by name, ignite_portal can scan all registered portals
-	["default:obsidian"] = {
+	["netherportal"] = {
+		name                = "netherportal",
 		shape               = TraditionalPortalShape,
 		wormhole_node_name  = "nether:portal",
 		wormhole_node_color = 0,
@@ -292,6 +291,40 @@ end
 local function get_orientation_from_param2(param2)
 	return param2 * 90
 end
+
+-- Combining frame_node_name, p1, and p2 will always be enough to uniquely identify a portal_defintion
+-- WITHOUT needing to inspect the world. register_portal() will enforce this.
+-- This function does not require the portal to be in a loaded chunk.
+-- Returns nil if no portal_defintion matches the arguments
+local function get_portal_defintion(frame_node_name, p1, p2)
+	
+	local size = vector.add(vector.subtract(p2, p1), 1)
+	local rotated_size = {x = size.z, y = size.y, z = size.x}
+
+	for _, portal_def in pairs(registered_portals) do 
+		if portal_def.frame_node_name == frame_node_name then 
+			if vector.equals(size, portal_def.shape.size) or vector.equals(rotated_size, portal_def.shape.size) then 
+				return portal_def
+			end
+		end
+	end
+	return nil
+end
+
+-- Returns a list of all portal_defintions with a frame made of frame_node_name.
+-- Ideally no two portal types will be built from the same frame material so this call might be enough
+-- to uniquely identify a portal_defintion without needing to inspect the world, HOWEVER we shouldn't
+-- cramp anyone's style and prohibit non-nether use of obsidian to make portals, so it returns a list.
+-- If the list contains more than one item then routines like ignite_portal() will have to search twice
+-- for a portal and take twice the CPU.
+local function list_portal_definitions_for_frame_node(frame_node_name)
+	local result = {}
+	for _, portal_def in pairs(registered_portals) do 
+		if portal_def.frame_node_name == frame_node_name then table.insert(result, portal_def) end
+	end
+	return result
+end
+
 
 local extinguish_portal -- the function will be assigned to this further down, rather than having to define the function before other functions can use it.
 
@@ -508,7 +541,8 @@ local function volume_is_natural(minp, maxp)
 				local nodedef = minetest.registered_nodes[name]
 				if not nodedef.is_ground_content then
 					-- trees are natural but not "ground content"
-					if nodedef.groups == nil or (nodedef.groups.tree == nil and nodedef.groups.leaves == nil) then
+					local node_groups = nodedef.groups
+					if node_groups == nil or (node_groups.tree == nil and node_groups.leaves == nil) then
 						return false
 					end
 				end
@@ -630,39 +664,43 @@ local function ignite_portal(ignition_pos)
 	local ignition_node_name = minetest.get_node(ignition_pos).name
 
 	-- find which sort of portals are made from the node that was clicked on
-	local portal_definition = registered_portals[ignition_node_name]
-	if portal_definition == nil then
-		return false -- no portals are made from the node at ignition_pos
-	end
+	local portal_definition_list = list_portal_definitions_for_frame_node(ignition_node_name)
 
-	-- check it was a portal frame that the player is trying to ignite
-	local anchorPos, orientation, is_ignited = is_portal_frame(portal_definition, ignition_pos)
-	if anchorPos == nil then
-		if DEBUG then minetest.chat_send_all("No portal frame found at " .. minetest.pos_to_string(ignition_pos)) end
-		return false -- no portal is here
-	elseif is_ignited then
-		if DEBUG then
-			local meta = minetest.get_meta(ignition_pos)
-			if meta ~= nil then minetest.chat_send_all("This portal links to " .. meta:get_string("target") .. ". p1=" .. meta:get_string("p1") .. " p2=" .. meta:get_string("p2")) end
+	for _, portal_definition in ipairs(portal_definition_list) do 
+		local continue = false
+
+		-- check it was a portal frame that the player is trying to ignite
+		local anchorPos, orientation, is_ignited = is_portal_frame(portal_definition, ignition_pos)
+		if anchorPos == nil then
+			if DEBUG then minetest.chat_send_all("No " .. portal_definition.name .. " portal frame found at " .. minetest.pos_to_string(ignition_pos)) end
+			continue = true -- no portal is here, but perhaps there more than one portal type we need to search for
+		elseif is_ignited then
+			if DEBUG then
+				local meta = minetest.get_meta(ignition_pos)
+				if meta ~= nil then minetest.chat_send_all("This portal links to " .. meta:get_string("target") .. ". p1=" .. meta:get_string("p1") .. " p2=" .. meta:get_string("p2")) end
+			end
+			return false -- portal is already ignited
 		end
-		return false -- portal is already ignited
+
+		if continue == false then 
+			if DEBUG then minetest.chat_send_all("Found portal frame. Looked at " .. minetest.pos_to_string(ignition_pos) .. ", found at " .. minetest.pos_to_string(anchorPos) .. " orientation " .. orientation) end
+
+			-- pick a destination
+			local destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
+			if anchorPos.y < NETHER_DEPTH then
+				destination_wormholePos.y = find_surface_target_y(portal_definition, destination_wormholePos.x, destination_wormholePos.z)
+			else
+				local start_y = NETHER_DEPTH - math.random(500, 1500) -- Search start
+				destination_wormholePos.y = find_nether_target_y(destination_wormholePos.x, destination_wormholePos.z, start_y)
+			end
+			if DEBUG then minetest.chat_send_all("Destinaton set to " .. minetest.pos_to_string(destination_wormholePos)) end
+
+			-- ignition/BURN_BABY_BURN
+			set_portal_metadata_and_ignite(portal_definition, anchorPos, orientation, destination_wormholePos)
+
+			return true
+		end
 	end
-	if DEBUG then minetest.chat_send_all("Found portal frame. Looked at " .. minetest.pos_to_string(ignition_pos) .. ", found at " .. minetest.pos_to_string(anchorPos) .. " orientation " .. orientation) end
-
-	-- pick a destination
-	local destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
-	if anchorPos.y < NETHER_DEPTH then
-		destination_wormholePos.y = find_surface_target_y(portal_definition, destination_wormholePos.x, destination_wormholePos.z)
-	else
-		local start_y = NETHER_DEPTH - math.random(500, 1500) -- Search start
-		destination_wormholePos.y = find_nether_target_y(destination_wormholePos.x, destination_wormholePos.z, start_y)
-	end
-	if DEBUG then minetest.chat_send_all("Destinaton set to " .. minetest.pos_to_string(destination_wormholePos)) end
-
-	-- ignition/BURN_BABY_BURN
-	set_portal_metadata_and_ignite(portal_definition, anchorPos, orientation, destination_wormholePos)
-
-	return true
 end
 
 
@@ -672,22 +710,21 @@ extinguish_portal = function(pos, node_name) -- assigned rather than declared be
 	-- mesecons seems to invoke action_off() 6 times every time you place a block?
 	if DEBUG then minetest.chat_send_all("extinguish_portal" .. minetest.pos_to_string(pos) .. " " .. node_name) end
 
-	-- find which sort of portals are made from the node that was clicked on
-	local portal_definition = registered_portals[node_name]
-	if portal_definition == nil then
-		minetest.log("error", "extinguish_portal() invoked on " .. node_name .. " but no registered portal is constructed from " .. node_name)
-		return false -- no portal frames are made from this type of node
-	end
-	local frame_node_name    = portal_definition.frame_node_name
-	local wormhole_node_name = portal_definition.wormhole_node_name
-
 	local meta = minetest.get_meta(pos)
 	local p1 = minetest.string_to_pos(meta:get_string("p1"))
 	local p2 = minetest.string_to_pos(meta:get_string("p2"))
 	local target = minetest.string_to_pos(meta:get_string("target"))
-	if not p1 or not p2 then
+	if p1 == nil or p2 == nil then
 		return
 	end
+
+	local portal_definition = get_portal_defintion(node_name, p1, p2)
+	if portal_definition == nil then
+		minetest.log("error", "extinguish_portal() invoked on " .. node_name .. " but no registered portal is constructed from " .. node_name)
+		return -- no portal frames are made from this type of node
+	end
+	local frame_node_name    = portal_definition.frame_node_name
+	local wormhole_node_name = portal_definition.wormhole_node_name
 
 	minetest.get_node_timer(get_timerPos_from_p1_and_p2(p1, p2)):stop()
 
@@ -872,7 +909,7 @@ function run_wormhole(pos, time_elapsed)
 	if p1 ~= nil and p2 ~= nil then
 		-- look up the portal shape by what it's built from, so we know where the wormhole nodes will be located
 		if frame_node_name == nil then frame_node_name = minetest.get_node(pos).name end -- pos should be a frame node
-		portal_definition = registered_portals[frame_node_name]
+		portal_definition = get_portal_defintion(frame_node_name, p1, p2)
 		if portal_definition == nil then
 			minetest.log("error", "No portal with a \"" .. frame_node_name .. "\" frame is registered. run_wormhole" .. minetest.pos_to_string(pos) .. " was invoked but that location contains \"" .. frame_node_name .. "\"")
 		else
