@@ -1,6 +1,10 @@
 unused_args = false
 allow_defined_top = true
 
+globals = {
+	"nether"
+}
+
 read_globals = {
 	"core",
 	"default",
