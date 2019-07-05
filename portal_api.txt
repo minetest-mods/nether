@@ -1,0 +1,84 @@
+Portal API Reference
+====================
+
+The portal system used to get to the Nether can be used to create portals
+to other realms.
+
+
+
+Helper functions
+----------------
+
+* `nether.volume_is_natural(minp, maxp)`
+    * use this when determining where to spawn a portal, to avoid overwriting 
+      player builds. It checks the area for any nodes that aren't ground or 
+      trees.
+
+* `nether.find_surface_target_y(target_x, target_z, portal_name)`
+    * Can be used to implement custom find_surface_anchorPos() functions
+    * Providing the portal_name allows existing portals on the surface to be reused.
+
+
+
+
+API functions
+-------------
+
+Call these functions only at load time!
+
+* `nether.register_portal(name, portal definition)`
+    * Returns true on success. Can return false if the portal definition 
+      clashes with a portal already registered by another mod, e.g. if the size
+      and frame node is not unique.
+* `nether.unregister_portal(name)`
+    * Unregisters the portal from the engine, and deletes the entry with key
+      `name` from `nether.registered_portals` and associated internal tables.
+    * Returns true on success
+* register_portal_ignition_item(name)
+
+
+
+Portal definition
+-----------------
+
+Used by `nether.register_portal`.
+
+    {
+		shape = PortalShape_Traditional, 
+        -- optional. 
+
+		wormhole_node_name  = "nether:portal",
+        -- optional. Allows a custom wormhole node to be specified.
+        -- Useful if you want the portals to have a different post_effect_color
+        -- or texture.
+
+		wormhole_node_color = 0,
+
+		particle_color      = "#808",
+        -- Optional. Will default to the same colour as wormhole_node_color if
+        -- not specified.
+
+		frame_node_name     = "default:obsidian",
+        -- required 
+
+
+		sound_ambient       = "portal_hum",
+		sound_ignite        = "",
+		sound_extinguish    = "",
+		sound_teleport      = "",
+
+        within_realm = function(pos)
+        end,
+
+		find_realm_anchorPos = function(pos)
+		end,
+
+		find_surface_anchorPos = function(pos)
+		end,
+
+		on_run_wormhole,
+		on_ignite,
+		on_extinguish,
+		on_player_teleported,
+		on_created
+	}
