@@ -214,6 +214,8 @@ nether.PortalShape_Traditional = {
 
 -- list of node names that are used as frame nodes by registered portals
 local is_frame_node = {}
+local S = nether.get_translator
+local ignition_item_name
 
 -- this is a function that will be assigned to further down, allowing functions to use it
 -- that are defined before it is.
@@ -862,29 +864,89 @@ function run_wormhole(pos, time_elapsed)
 end
 
 
-minetest.register_lbm({
-	label = "Start portal timer",
-	name  = "nether:start_portal_timer",
-	nodenames = {"nether:portal"},
-	run_at_every_load = false,
-	action = function(pos, node)
-		local p1, p2
-		local meta = minetest.get_meta(pos)
-		if meta ~= nil then
-			p1 = minetest.string_to_pos(meta:get_string("p1"))
-			p2 = minetest.string_to_pos(meta:get_string("p1"))
-		end
-		if p1 ~= nil and p2 ~= nil then
-			local timerPos = get_timerPos_from_p1_and_p2(p1, p2)
-			local timer = minetest.get_node_timer(timerPos)
-			if timer ~= nil then
-				timer:start(1)
-			elseif DEBUG then
-				minetest.chat_send_all("get_node_timer" .. minetest.pos_to_string(timerPos) .. " returned null")
+local function create_book(item_name, inventory_description, inventory_image, title, author, page1_text, page2_text)
+
+	local display_book = function(itemstack, user, pointed_thing)
+		local player_name = user:get_player_name()
+
+		minetest.sound_play("nether_book_open", {to_player = player_name, gain = 0.25})
+
+		local formspec =
+		"size[18,12.122]" ..
+
+		"label[3.1,0.5;" .. minetest.formspec_escape(title) .. "]" ..
+		"label[3.6,0.9;" .. author .. "]" ..
+
+		"textarea[ 0.9,1.7;7.9,12.0;;" .. minetest.formspec_escape(page1_text) .. ";]" ..
+		"textarea[10.1,0.8;7.9,12.9;;" .. minetest.formspec_escape(page2_text) .. ";]" ..
+
+		"background[0,0;18,11;nether_book_background.png;true]"..
+		"image_button_exit[17.3,0;0.8,0.8;nether_book_close.png;;]"
+
+		minetest.show_formspec(player_name, item_name, formspec)
+	end
+
+	minetest.register_craftitem(item_name, {
+		description     = inventory_description,
+		inventory_image = inventory_image,
+		groups          = {book = 1},
+		on_use          = display_book
+	})
+end
+
+-- Updates nether.book_of_portals
+-- A book the player can read to lean how to build the different portals
+local function create_book_of_portals()
+
+	local page1_text
+	local page2_text = ""
+
+	-- tell the player how many portal types there are
+	local portalCount = 0
+	for _ in pairs(nether.registered_portals) do portalCount = portalCount + 1 end
+	if portalCount == 1 then
+		page1_text = S("In all my travels, and time spent in the Great Libraries, I have encountered no shortage of legends surrounding preternatural doorways said to open into other worlds, yet only one can I confirm as being more than merely a story.")
+	else
+		page1_text = S("In all my travels, and time spent in the Great Libraries, I have encountered no shortage of legends surrounding preternatural doorways said to open into other worlds, yet only @1 can I confirm as being more than merely stories.", portalCount)
+	end
+
+	-- tell the player how to ignite portals
+	local ignition_item_description = "<error - ignition item not set>"
+	if ignition_item_name ~= nil and minetest.registered_items[ignition_item_name] ~= nil then
+		ignition_item_description = minetest.registered_items[ignition_item_name].description
+	end
+	page1_text = page1_text ..
+		S("\n\nThe key to opening such a doorway is to strike the frame with a @1, at which point the very air inside begins to crackle and glow.\n\n\n", string.lower(ignition_item_description))
+
+	-- Describe how to create each type of portal, or perhaps just give clues or flavor text,
+	-- but ensure the Nether is always listed first on the first page so other definitions can
+	-- refer to it (pairs() returns order based on a random hash).
+	local i = 1
+	if nether.registered_portals["nether_portal"] then
+		page1_text = page1_text .. nether.registered_portals["nether_portal"].book_of_portals_pagetext .. "\n\n\n"
+		i = i + 1
+	end
+	for portalName, portalDef in pairs(nether.registered_portals) do
+		if portalName ~= "nether_portal" then
+			if i <= portalCount / 2 then
+				page1_text = page1_text .. portalDef.book_of_portals_pagetext .. "\n\n\n"
+			else
+				page2_text = page2_text .. portalDef.book_of_portals_pagetext .. "\n\n\n"
 			end
+			i = i + 1
 		end
 	end
-})
+
+	create_book(
+		"nether:book_of_portals",
+		S("Book of Portals"),
+		"nether_book_of_portals.png",
+		S("A treatise on Rifts and Portals"),
+		"Riccard F. Burton", -- perhaps a Richard F. Burton of an alternate universe
+		page1_text,
+		page2_text
+	)
+end
 
 
 function register_frame_node(frame_node_name)
@@ -969,6 +1031,61 @@ function test_portaldef_is_valid(portal_definition)
 end
 
 
+minetest.register_lbm({
+	label = "Start portal timer",
+	name  = "nether:start_portal_timer",
+	nodenames = {"nether:portal"},
+	run_at_every_load = false,
+	action = function(pos, node)
+		local p1, p2
+		local meta = minetest.get_meta(pos)
+		if meta ~= nil then
+			p1 = minetest.string_to_pos(meta:get_string("p1"))
+			p2 = minetest.string_to_pos(meta:get_string("p1"))
+		end
+		if p1 ~= nil and p2 ~= nil then
+			local timerPos = get_timerPos_from_p1_and_p2(p1, p2)
+			local timer = minetest.get_node_timer(timerPos)
+			if timer ~= nil then
+				timer:start(1)
+			elseif DEBUG then
+				minetest.chat_send_all("get_node_timer" .. minetest.pos_to_string(timerPos) .. " returned null")
+			end
+		end
+	end
+})
+
+minetest.register_on_mods_loaded(function()
+
+	-- Make the Book of Portals available as treasure/loot
+	if nether.PORTAL_BOOK_LOOT_WEIGHTING > 0 and minetest.registered_items["nether:book_of_portals"] ~= nil then
+
+		-- All portals should be registered now.
+		-- If the Nether is the only registered portal then lower the amount of these books
+		-- found as treasure, since many players already know the shape of a Nether portal
+		-- and what to build one out of, so would probably prefer other treasures.
+		local portalCount = 0
+		for _ in pairs(nether.registered_portals) do portalCount = portalCount + 1 end
+		local weight_adjust = 1
+		if portalCount <= 1 then weight_adjust = 0.5 end
+
+		if minetest.get_modpath("loot") then
+			loot.register_loot({
+				weights = { generic = nether.PORTAL_BOOK_LOOT_WEIGHTING * 1000 * weight_adjust,
+							books   = 100 },
+				payload = { stack = "nether:book_of_portals" }
+			})
+		end
+
+		if minetest.get_modpath("dungeon_loot") then
+			dungeon_loot.register({name = "nether:book_of_portals", chance = nether.PORTAL_BOOK_LOOT_WEIGHTING * weight_adjust})
+		end
+
+		-- todo: add to Treasurer mod TRMP https://github.com/poikilos/trmp_minetest_game
+	end
+end)
+
+
 -- Portal API functions --
 -- ==================== --
 
@@ -1021,11 +1138,13 @@ function nether.register_portal(name, portaldef)
 
 	if test_portaldef_is_valid(portaldef) then
 		nether.registered_portals[portaldef.name] = portaldef
+		create_book_of_portals()
 
 		if not is_frame_node[portaldef.frame_node_name] then
 			register_frame_node(portaldef.frame_node_name)
 			is_frame_node[portaldef.frame_node_name] = true
 		end
+
 		return true
 	end
 end
@@ -1066,4 +1185,5 @@ function nether.register_portal_ignition_item(item_name)
 		end,
 	})
 
+	ignition_item_name = item_name
 end
