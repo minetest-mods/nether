@@ -1,4 +1,4 @@
---[[
+﻿--[[
 
   Nether mod for minetest
 
@@ -19,13 +19,17 @@
 
 ]]--
 
+local S = minetest.get_translator("nether")
+
 -- Global Nether namespace
 nether = {}
 nether.path = minetest.get_modpath("nether")
+nether.get_translator = S
 
 -- Settings
-nether.DEPTH             = -5000
-nether.FASTTRAVEL_FACTOR =     8 -- 10 could be better value for Minetest, since there's no sprint, but ex-Minecraft players will be mathing for 8
+nether.DEPTH                      = -5000
+nether.FASTTRAVEL_FACTOR          =     8 -- 10 could be better value for Minetest, since there's no sprint, but ex-Minecraft players will be mathing for 8
+nether.PORTAL_BOOK_LOOT_WEIGHTING =   0.9 -- Likelyhood of finding the Book of Portals (guide) in dungeon chests. Set to 0 to disable.
 
 
 -- Load files
@@ -44,7 +48,24 @@ nether.register_portal("nether_portal", {
 	shape               = nether.PortalShape_Traditional,
 	frame_node_name     = "default:obsidian",
 	wormhole_node_name  = "nether:portal",
-	wormhole_node_color = 0,
+	wormhole_node_color = 0, -- 0 is magenta
+	-- Warning: "Four per Em" spaces have been used to align the diagram in this text, rather 
+	-- than ASCII spaces. If Minetest changes font this may need to be updated.
+	book_of_portals_pagetext = S([[      ──══♦♦♦◊   The Nether   ◊♦♦♦══──
+
+Requiring 14 blocks of obsidian, which we found deep underground where water had solidified molten rock. The frame must be constructed in the following fashion:
+
+   ┌═╤═╤═╤═╗
+   ├─╥─┴─┼─╢
+   ├─╢         ├─╢
+   ├─╢         ├─╢     four blocks wide
+   ├─╚═╤═╡─╢     five blocks high
+   └─┴─┴─┴─┘     Standing vertically, like a doorway
+
+This opens to a truly hellish place, though for small mercies the air there is still breathable. There is an intriguing dimensional mismatch happening between this realm and ours, as after opening the second portal into it we observed that 10 strides taken in the Nether appear to be an equivalent of @1 in the natural world.
+
+The expedition parties have found no diamonds or gold, and after an experienced search party failed to return from the trail of a missing expedition party, I must conclude this is a dangerous place.
+]], 10 * nether.FASTTRAVEL_FACTOR),
 	sound_ambient       = "nether_portal_hum",
 	sound_ignite        = "",
 	sound_extinguish    = "",
@@ -79,7 +100,3 @@ nether.register_portal("nether_portal", {
 		return destination_pos
 	end
 })
-
-
-
-
