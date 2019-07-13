@@ -9,16 +9,23 @@ to other realms.
 Helper functions
 ----------------
 
-* `nether.volume_is_natural(minp, maxp)`
+* `nether.volume_is_natural(minp, maxp)`: returns a boolean
     * use this when determining where to spawn a portal, to avoid overwriting 
       player builds. It checks the area for any nodes that aren't ground or 
       trees.
 
-* `nether.find_surface_target_y(target_x, target_z, portal_name)`
+* `nether.find_surface_target_y(target_x, target_z, portal_name)`: returns a suitable anchorPos
     * Can be used to implement custom find_surface_anchorPos() functions
-    * Providing the portal_name allows existing portals on the surface to be reused.
+    * portal_name is optional, and providing it allows existing portals on the
+      surface to be reused.
 
-
+* `nether.find_nearest_working_portal(portal_name, anchorPos, distance_limit, y_factor)`: returns 
+  an anchorPos, or nil if no portal was found within the the distance_limit.
+    * A y_factor of 0 means y does not affect the distance_limit, a y_factor
+      of 1 means y is included, and a y_factor of 2 would squash the 
+      search-sphere by a factor of 2 on the y-axis, etc.
+    * Only portals in the same realm as the anchorPos will be returned, even if y_factor is 0.
+    * Pass a nil or negative distance_limit to indicate no distance limit
 
 
 API functions
@@ -53,28 +60,33 @@ Used by `nether.register_portal`.
         -- or texture.
 
 		wormhole_node_color = 0,
+        -- A value from 0 to 7 corresponding to the color of pixels in 
+        -- nether_portals_palette.png
 
 		particle_color      = "#808",
         -- Optional. Will default to the same colour as wormhole_node_color if
         -- not specified.
 
 		frame_node_name     = "default:obsidian",
-        -- required 
+        -- Required. For best results, have your portal constructed of a 
+        -- material nobody else is using.
 
-
-		sound_ambient       = "portal_hum",
+		sound_ambient       = "nether_portal_hum",
 		sound_ignite        = "",
 		sound_extinguish    = "",
 		sound_teleport      = "",
 
-        within_realm = function(pos)
-        end,
+        within_realm = function(pos),
+        -- Required. Return true if a portal at pos is in the realm, rather 
+           than the surface world.
 
-		find_realm_anchorPos = function(pos)
-		end,
+		find_realm_anchorPos = function(surface_anchorPos)
+        -- Required. Return a position in the realm that a portal created at
+        -- surface_anchorPos will link to.
 
-		find_surface_anchorPos = function(pos)
-		end,
+		find_surface_anchorPos = function(realm_anchorPos),
+        -- Optional. If you don't use this then a position near the surface 
+        -- will be picked.
 
 		on_run_wormhole,
 		on_ignite,

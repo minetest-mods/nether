@@ -1,5 +1,5 @@
 -- see portal_api.txt for documentation
-local DEBUG = false
+local DEBUG = true
 
 
 nether.registered_portals = {}
@@ -214,8 +214,9 @@ nether.PortalShape_Traditional = {
 
 -- list of node names that are used as frame nodes by registered portals
 local is_frame_node = {}
-local S = nether.get_translator
 local ignition_item_name
+local S = nether.get_translator
+local mod_storage = minetest.get_mod_storage()
 
 -- this is a function that will be assigned to further down, allowing functions to use it
 -- that are defined before it is.
@@ -231,8 +232,8 @@ local function get_timerPos_from_p1_and_p2(p1, p2)
 	-- makes a cubic portal shape, orientation can be determined from p1 and p2 in the node's
 	-- metadata (frame nodes don't have orientation set in param2 like wormhole nodes do).
 	--
-	-- We shouldn't pick p1 (or p2) as it's possible for two orthogonal portals to share
-	-- the same p1, etc. Or at least it was - there's code to try to stop that now.
+	-- We shouldn't pick p1 or p2 as it's possible for two orthogonal portals to share
+	-- the same p1, etc. - or at least it was - there's code to try to stop that now.
 	--
 	-- I'll pick the bottom center node of the portal, since that works for rectangular portals
 	-- and if someone want to make a circular portal then that positon will still likely be part
@@ -245,7 +246,7 @@ local function get_timerPos_from_p1_and_p2(p1, p2)
 end
 
 -- orientation is the rotation degrees passed to place_schematic: 0, 90, 180, or 270
--- color is a value from 0 to 7 corresponding to the pixels in portals_palette.png
+-- color is a value from 0 to 7 corresponding to the color of pixels in nether_portals_palette.png
 local function get_param2_from_color_and_orientation(color, orientation)
 	assert(orientation, "no orientation passed")
 
@@ -301,8 +302,66 @@ local function list_portal_definitions_for_frame_node(frame_node_name)
 end
 
 
-local function set_portal_metadata(portal_definition, anchorPos, orientation, destination_wormholePos, ignite)
+-- Add portal information to mod storage, so new portals may find existing portals near the target location.
+-- Do this whenever a portal is created or changes its ignition state
+local function store_portal_location_info(portal_name, anchorPos, orientation, ignited)
+	mod_storage:set_string(
+		minetest.pos_to_string(anchorPos) .. " is " .. portal_name, 
+		minetest.serialize({orientation = orientation, active = ignited})
+	)
+end
 
+-- Remove portal information from mod storage.
+-- Do this if a portal frame is destroyed such that it cannot be ignited anymore.
+local function remove_portal_location_info(portal_name, anchorPos)
+	mod_storage:set_string(minetest.pos_to_string(anchorPos) .. " is " .. portal_name, "")
+end
+
+-- Returns a table of the nearest portals to anchorPos indexed by distance, based on mod_storage
+-- data.
+-- Only portals in the same realm as the anchorPos will be returned, even if y_factor is 0.
+-- WARNING: Portals are not checked, and inactive portals especially may have been damaged without
+-- being removed from the mod_storage data. Check these portals still exist before using them, and
+-- invoke remove_portal_location_info() on any found to no longer exist.
+--
+-- A y_factor of 0 means y does not affect the distance_limit, a y_factor of 1 means y is included,
+-- and a y_factor of 2 would squash the search-sphere by a factor of 2 on the y-axis, etc.
+-- Pass a nil or negative distance_limit to indicate no distance limit
+local function list_closest_portals(portal_definition, anchorPos, distance_limit, y_factor)
+
+	local result = {}
+
+	local isRealm = portal_definition.within_realm(anchorPos)
+	if distance_limit == nil then distance_limit = -1 end
+	if       y_factor == nil then       y_factor =  1 end
+
+	for key, value in pairs(mod_storage:to_table().fields) do
+		local closingBrace = key:find(")", 6, true)
+		if closingBrace ~= nil then 
+			local found_anchorPos = minetest.string_to_pos(key:sub(0, closingBrace))
+			if found_anchorPos ~= nil and portal_definition.within_realm(found_anchorPos) == isRealm then
+				local found_name = key:sub(closingBrace + 5)
+				if found_name == portal_definition.name then
+					local x = anchorPos.x - found_anchorPos.x
+					local y = anchorPos.y - found_anchorPos.y
+					local z = anchorPos.z - found_anchorPos.z
+					local distance = math.hypot(y * y_factor, math.hypot(x, z))
+					if distance <= distance_limit or distance_limit < 0 then
+						local info = minetest.deserialize(value) or {}
+						if DEBUG then minetest.chat_send_all("found at distance " .. distance ..  "  from dest " .. minetest.pos_to_string(anchorPos) .. ", found: " .. minetest.pos_to_string(found_anchorPos) .. " orientation " .. info.orientation) end
+						info.anchorPos = found_anchorPos
+						info.distance  = distance
+						result[distance] = info
+					end
+				end
+			end
+		end
+	end
+	return result
+end
+
+
+local function set_portal_metadata(portal_definition, anchorPos, orientation, destination_wormholePos, ignite)
 
 	-- Portal position is stored in metadata as p1 and p2 to keep maps compatible with earlier versions of this mod.
 	-- p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner, together
@@ -363,24 +422,40 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 
 	local timerPos = get_timerPos_from_p1_and_p2(p1, p2)
 	minetest.get_node_timer(timerPos):start(1)
+
+	store_portal_location_info(portal_definition.name, anchorPos, orientation, true)
 end
 
 local function set_portal_metadata_and_ignite(portal_definition, anchorPos, orientation, destination_wormholePos)
 	set_portal_metadata(portal_definition, anchorPos, orientation, destination_wormholePos, true)
 end
 
--- Checks pos, and if it's part of a portal or portal frame then three values are returned: anchorPos, orientation, is_ignited
--- where orientation is 0 or 90 (0 meaning a portal that faces north/south - i.e. obsidian running east/west)
-local function is_portal_frame(portal_definition, pos)
+
+-- this function returns two bools: portal found, portal is lit
+local function is_portal_at_anchorPos(portal_definition, anchorPos, orientation, force_chunk_load)
 
 	local nodes_are_valid   -- using closures to allow the check functions to return extra information - by setting this variable
 	local portal_is_ignited -- using closures to allow the check functions to return extra information - by setting this variable
 
 	local frame_node_name = portal_definition.frame_node_name
 	local check_frame_Func = function(check_pos)
-		if minetest.get_node(check_pos).name ~= frame_node_name then
-			nodes_are_valid = false
-			return true -- short-circuit the search
+		local foundName = minetest.get_node(check_pos).name
+		if foundName ~= frame_node_name then
+
+			if force_chunk_load and foundName == "ignore" then
+				-- area isn't loaded, force loading/emerge of check area
+				minetest.get_voxel_manip():read_from_map(check_pos, check_pos)
+				foundName = minetest.get_node(check_pos).name
+				if DEBUG then minetest.chat_send_all("Forced loading of 'ignore' node at " .. minetest.pos_to_string(check_pos) .. ", got " .. foundName) end
+
+				if foundName ~= frame_node_name then
+					nodes_are_valid = false
+					return true -- short-circuit the search
+				end
+			else
+				nodes_are_valid = false
+				return true -- short-circuit the search
+			end
 		end
 	end
 
@@ -396,20 +471,21 @@ local function is_portal_frame(portal_definition, pos)
 		end
 	end
 
-	-- this function returns two bools: portal found, portal is lit
-	local is_portal_at_anchorPos = function(anchorPos, orientation)
+	nodes_are_valid   = true
+	portal_is_ignited = true
+	portal_definition.shape.apply_func_to_frame_nodes(anchorPos, orientation, check_frame_Func) -- check_frame_Func affects nodes_are_valid, portal_is_ignited
 
-		nodes_are_valid   = true
-		portal_is_ignited = true
-		portal_definition.shape.apply_func_to_frame_nodes(anchorPos, orientation, check_frame_Func) -- check_frame_Func affects nodes_are_valid, portal_is_ignited
-
-		if nodes_are_valid then
-			-- a valid frame exists at anchorPos, check the wormhole is either ignited or unobstructed
-			portal_definition.shape.apply_func_to_wormhole_nodes(anchorPos, orientation, check_wormhole_Func) -- check_wormhole_Func affects nodes_are_valid, portal_is_ignited
-		end
-
-		return nodes_are_valid, portal_is_ignited and nodes_are_valid -- returns two bools: portal was found, portal is lit
+	if nodes_are_valid then
+		-- a valid frame exists at anchorPos, check the wormhole is either ignited or unobstructed
+		portal_definition.shape.apply_func_to_wormhole_nodes(anchorPos, orientation, check_wormhole_Func) -- check_wormhole_Func affects nodes_are_valid, portal_is_ignited
 	end
+
+	return nodes_are_valid, portal_is_ignited and nodes_are_valid -- returns two bools: portal was found, portal is lit
+end
+
+-- Checks pos, and if it's part of a portal or portal frame then three values are returned: anchorPos, orientation, is_ignited
+-- where orientation is 0 or 90 (0 meaning a portal that faces north/south - i.e. obsidian running east/west)
+local function is_portal_frame(portal_definition, pos)
 
 	local width_minus_1  = portal_definition.shape.size.x - 1
 	local height_minus_1 = portal_definition.shape.size.y - 1
@@ -420,14 +496,14 @@ local function is_portal_frame(portal_definition, pos)
 			for y = -height_minus_1, height_minus_1 do
 
 				local testAnchorPos_x = {x = pos.x + w, y = pos.y + y, z = pos.z + d}
-				local portal_found, portal_lit = is_portal_at_anchorPos(testAnchorPos_x, 0)
+				local portal_found, portal_lit = is_portal_at_anchorPos(portal_definition, testAnchorPos_x, 0, true)
 
 				if portal_found then
 					return testAnchorPos_x, 0, portal_lit
 				else
 					-- try orthogonal orientation
 					local testForAnchorPos_z = {x = pos.x + d, y = pos.y + y, z = pos.z + w}
-					portal_found, portal_lit = is_portal_at_anchorPos(testForAnchorPos_z, 90)
+					portal_found, portal_lit = is_portal_at_anchorPos(portal_definition, testForAnchorPos_z, 90, true)
 
 					if portal_found then return testForAnchorPos_z, 90, portal_lit end
 				end
@@ -568,8 +644,20 @@ function nether.find_surface_target_y(target_x, target_z, portal_name)
 
 	-- try to spawn on surface first
 	if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
-		local surface_level = minetest.get_spawn_level(target_x, target_z)
+		local surface_level = minetest.get_spawn_level(target_x, target_z)		
 		if surface_level ~= nil then
+			-- get_spawn_level() seems to err on the side of caution and sometimes spawn the player a 
+			-- block higher than the ground level.
+			local shouldBeGroundPos = {x = target_x, y = surface_level - 1, z = target_z}
+			local groundNode = minetest.get_node(shouldBeGroundPos)
+			if groundNode.Name = 'ignore' then
+				-- force the area to be loaded - it's going to be loaded anyway by volume_is_natural()
+				minetest.get_voxel_manip():read_from_map(shouldBeGroundPos, shouldBeGroundPos)
+				local groundNode = minetest.get_node(shouldBeGroundPos)
+			end
+			if not groundNode.is_ground_content then 
+				surface_level = surface_level - 1 
+			end
 			-- Check volume for non-natural nodes
 			local minp = {x = target_x - 1, y = surface_level - 1, z = target_z - 2}
 			local maxp = {x = target_x + 2, y = surface_level + 3, z = target_z + 2}
@@ -629,14 +717,16 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 		if continue == false then
 			if DEBUG then minetest.chat_send_all("Found portal frame. Looked at " .. minetest.pos_to_string(ignition_pos) .. ", found at " .. minetest.pos_to_string(anchorPos) .. " orientation " .. orientation) end
 
-			local destination_anchorPos
+			local destination_anchorPos, destination_orientation
 			if portal_definition.within_realm(ignition_pos) then
-				destination_anchorPos = portal_definition.find_surface_anchorPos(anchorPos)
+				destination_anchorPos, destination_orientation = portal_definition.find_surface_anchorPos(anchorPos)
 			else
-				destination_anchorPos = portal_definition.find_realm_anchorPos(anchorPos)
+				destination_anchorPos, destination_orientation = portal_definition.find_realm_anchorPos(anchorPos)
 			end
-
-			local destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(destination_anchorPos, orientation)
+			if DEBUG and destination_orientation == nil then minetest.chat_send_all("No destination_orientation given") end
+			if destination_orientation == nil then destination_orientation = orientation end
+			
+			local destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(destination_anchorPos, destination_orientation)
 			if DEBUG then minetest.chat_send_all("Destinaton set to " .. minetest.pos_to_string(destination_anchorPos)) end
 
 			-- ignition/BURN_BABY_BURN
@@ -649,7 +739,7 @@ end
 
 
 -- WARNING - this is invoked by on_destruct, so you can't assume there's an accesible node at pos
-extinguish_portal = function(pos, node_name) -- assigned rather than declared because extinguish_portal is already declared, for use by earlier functions in the file.
+extinguish_portal = function(pos, node_name, frame_was_destroyed) -- assigned rather than declared because extinguish_portal is already declared, for use by earlier functions in the file.
 
 	-- mesecons seems to invoke action_off() 6 times every time you place a block?
 	if DEBUG then minetest.chat_send_all("extinguish_portal" .. minetest.pos_to_string(pos) .. " " .. node_name) end
@@ -667,6 +757,15 @@ extinguish_portal = function(pos, node_name) -- assigned rather than declared be
 		minetest.log("error", "extinguish_portal() invoked on " .. node_name .. " but no registered portal is constructed from " .. node_name)
 		return -- no portal frames are made from this type of node
 	end
+
+	-- update the ignition state in the portal location info
+	local anchorPos, orientation = portal_definition.shape.get_anchorPos_and_orientation_from_p1_and_p2(p1, p2)
+	if frame_was_destroyed then 
+		remove_portal_location_info(portal_definition.name, anchorPos)
+	else
+		store_portal_location_info(portal_definition.name, anchorPos, orientation, false)
+	end
+
 	local frame_node_name    = portal_definition.frame_node_name
 	local wormhole_node_name = portal_definition.wormhole_node_name
 
@@ -698,6 +797,8 @@ end
 -- Make portals immortal for ~20 seconds after creation
 local function remote_portal_checkup(elapsed, portal_definition, anchorPos, orientation, destination_wormholePos)
 
+	if DEBUG then minetest.chat_send_all("portal checkup at " .. elapsed .. " seconds") end
+
 	local wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
 	local wormhole_node = minetest.get_node_or_nil(wormholePos)
 
@@ -711,7 +812,7 @@ local function remote_portal_checkup(elapsed, portal_definition, anchorPos, orie
 		build_portal(portal_definition, anchorPos, orientation, destination_wormholePos)
 	end
 
-	if elapsed < 20 then -- stop checking after 20 seconds
+	if elapsed < 10 then -- stop checking after ~20 seconds
 		local delay = elapsed * 2
 		minetest.after(delay, remote_portal_checkup, elapsed + delay, portal_definition, anchorPos, orientation, destination_wormholePos)
 	end
@@ -970,7 +1071,7 @@ function register_frame_node(frame_node_name)
 	}}
 	extended_node_def.replaced_by_portalapi.on_destruct = extended_node_def.on_destruct
 	extended_node_def.on_destruct = function(pos)
-		extinguish_portal(pos, frame_node_name)
+		extinguish_portal(pos, frame_node_name, true)
 	end
 	extended_node_def.replaced_by_portalapi.on_timer = extended_node_def.on_timer
 	extended_node_def.on_timer = function(pos, elapsed)
@@ -1186,4 +1287,37 @@ function nether.register_portal_ignition_item(item_name)
 	})
 
 	ignition_item_name = item_name
+end
+
+-- Returns the anchorPos, orientation of the nearest portal, or nil.
+-- A y_factor of 0 means y does not affect the distance_limit, a y_factor of 1 means y is included,
+-- and a y_factor of 2 would squash the search-sphere by a factor of 2 on the y-axis, etc.
+-- Pass a negative distance_limit to indicate no distance limit
+function nether.find_nearest_working_portal(portal_name, anchorPos, distance_limit, y_factor)
+
+	local portal_definition = nether.registered_portals[portal_name]
+	assert(portal_definition ~= nil, "find_nearest_working_portal() called with portal_name '" .. portal_name .. "', but no portal is registered with that name.")
+	
+	local contenders = list_closest_portals(portal_definition, anchorPos, distance_limit, y_factor) 
+
+	-- sort by distance
+	local dist_list = {}
+	for dist, _ in pairs(contenders) do table.insert(dist_list, dist) end
+	table.sort(dist_list)
+
+	for _, dist in ipairs(dist_list) do 
+		local portal_info = contenders[dist]
+		if DEBUG then minetest.chat_send_all("checking portal from mod_storage at " .. minetest.pos_to_string(portal_info.anchorPos) .. " orientation " .. portal_info.orientation) end
+
+		local portalFound, portalActive = is_portal_at_anchorPos(portal_definition, portal_info.anchorPos, portal_info.orientation, true)
+
+		if portalFound then
+			return portal_info.anchorPos, portal_info.orientation
+		else
+			if DEBUG then minetest.chat_send_all("removing portal from mod_storage at " .. minetest.pos_to_string(portal_info.anchorPos) .. " orientation " .. portal_info.orientation) end
+			-- The portal at that location must have been destroyed
+			remove_portal_location_info(portal_name, portal_info.anchorPos)
+		end
+	end
+	return nil
 end

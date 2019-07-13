@@ -75,28 +75,42 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 		return pos.y < nether.DEPTH
 	end,
 
-	find_realm_anchorPos = function(surface_pos)
+	find_realm_anchorPos = function(surface_anchorPos)
 		-- divide x and z by a factor of 8 to implement Nether fast-travel
-		local destination_pos = vector.divide(surface_pos, nether.FASTTRAVEL_FACTOR)
+		local destination_pos = vector.divide(surface_anchorPos, nether.FASTTRAVEL_FACTOR)
 		destination_pos.x = math.floor(0.5 + destination_pos.x) -- round to int
 		destination_pos.z = math.floor(0.5 + destination_pos.z) -- round to int
+		destination_pos.y = nether.DEPTH - 1000 -- temp value so find_nearest_working_portal() returns nether portals
 
-		local start_y = nether.DEPTH - math.random(500, 1500) -- Search start
-		destination_pos.y = nether.find_nether_ground_y(destination_pos.x, destination_pos.z, start_y)
-		return destination_pos
+		-- a y_factor of 0 makes the search ignore the altitude of the portals (as long as they are in the Nether)
+		local existing_portal_location, existing_portal_orientation = nether.find_nearest_working_portal("nether_portal", destination_pos, 8, 0)
+		if existing_portal_location ~= nil then
+			return existing_portal_location, existing_portal_orientation
+		else
+			local start_y = nether.DEPTH - math.random(500, 1500) -- Search starting altitude
+			destination_pos.y = nether.find_nether_ground_y(destination_pos.x, destination_pos.z, start_y)
+			return destination_pos
+		end
 	end,
 
-	find_surface_anchorPos = function(realm_pos)
+	find_surface_anchorPos = function(realm_anchorPos)
 		-- A portal definition doesn't normally need to provide a find_surface_anchorPos() function,
 		-- since find_surface_target_y() will be used by default, but Nether portals also scale position
 		-- to create fast-travel:
 
 		-- Multiply x and z by a factor of 8 to implement Nether fast-travel
-		local destination_pos = vector.multiply(realm_pos, nether.FASTTRAVEL_FACTOR)
+		local destination_pos = vector.multiply(realm_anchorPos, nether.FASTTRAVEL_FACTOR)
 		destination_pos.x = math.min(30900, math.max(-30900, destination_pos.x)) -- clip to world boundary
 		destination_pos.z = math.min(30900, math.max(-30900, destination_pos.z)) -- clip to world boundary
+		destination_pos.y = 0 -- temp value so find_nearest_working_portal() doesn't return nether portals
 
-		destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, "nether_portal")
-		return destination_pos
+		-- a y_factor of 0 makes the search ignore the altitude of the portals (as long as they are outside the Nether)
+		local existing_portal_location, existing_portal_orientation = nether.find_nearest_working_portal("nether_portal", destination_pos, 8 * nether.FASTTRAVEL_FACTOR, 0)
+		if existing_portal_location ~= nil then
+			return existing_portal_location, existing_portal_orientation
+		else 
+			destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, "nether_portal")
+			return destination_pos
+		end
 	end
 })
