@@ -528,9 +528,38 @@ local function build_portal(portal_definition, anchorPos, orientation, destinati
 end
 
 
+-- Sometimes after a portal is placed, concurrent mapgen routines overwrite it.
+-- Make portals immortal for ~20 seconds after creation
+local function remote_portal_checkup(elapsed, portal_definition, anchorPos, orientation, destination_wormholePos)
+
+	if DEBUG then minetest.chat_send_all("portal checkup at " .. elapsed .. " seconds") end
+
+	local wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
+	local wormhole_node = minetest.get_node_or_nil(wormholePos)
+
+	if wormhole_node == nil or wormhole_node.name ~= portal_definition.wormhole_node_name then
+		-- ruh roh
+		local message = "Newly created portal at " .. minetest.pos_to_string(anchorPos) .. " was overwritten. Attempting to recreate. Issue spotted after " .. elapsed .. " seconds"
+		minetest.log("warning", message)
+		if DEBUG then minetest.chat_send_all("!!! " .. message) end
+
+		-- A pre-existing portal frame wouldn't have been immediately overwritten, so no need to check for one, just place the portal.
+		build_portal(portal_definition, anchorPos, orientation, destination_wormholePos)
+	end
+
+	if elapsed < 10 then -- stop checking after ~20 seconds
+		local delay = elapsed * 2
+		minetest.after(delay, remote_portal_checkup, elapsed + delay, portal_definition, anchorPos, orientation, destination_wormholePos)
+	end
+end
+
+
 -- Used to find or build the remote twin after a portal is opened.
--- If a portal is found that is already lit then the destination_wormholePos argument is ignored - the anchorPos
--- of the portal that was found will be returned but its destination will be unchanged.
+-- If a portal is found that is already lit then it will be extinguished first and its destination_wormholePos updated,
+-- this is to enforce that portals only link together in mutual pairs. It would be better for gameplay if I didn't apply
+-- that restriction, but it would require maintaining an accurate list of every portal that links to a portal so they 
+-- could all be updated if the portal is destroyed. To keep the code simple I'm going to limit portals to only being 
+-- the destination of a single lit portal at a time.
 -- * suggested_anchorPos indicates where the portal should be built
 -- * destination_wormholePos is the wormholePos of the destination portal this one will be linked to.
 -- * suggested_orientation is the suggested schematic rotation: 0, 90, 180, 270 (0 meaning a portal that faces north/south - i.e. obsidian running east/west)
@@ -539,7 +568,7 @@ end
 -- specified if an existing portal was already found there.
 local function locate_or_build_portal(portal_definition, suggested_anchorPos, suggested_orientation, destination_wormholePos)
 
-	if DEBUG then minetest.chat_send_all("locate_or_build_portal at " .. minetest.pos_to_string(suggested_anchorPos) .. ", targetted to " .. minetest.pos_to_string(destination_wormholePos) .. ", orientation " .. suggested_orientation) end
+	if DEBUG then minetest.chat_send_all("locate_or_build_portal() at " .. minetest.pos_to_string(suggested_anchorPos) .. ", targetted to " .. minetest.pos_to_string(destination_wormholePos) .. ", orientation " .. suggested_orientation) end
 
 	local result_anchorPos   = suggested_anchorPos;
 	local result_orientation = suggested_orientation;
@@ -554,14 +583,18 @@ local function locate_or_build_portal(portal_definition, suggested_anchorPos, su
 		result_orientation = found_orientation
 
 		if is_ignited then
-			if DEBUG then minetest.chat_send_all("Build aborted: already a portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation) end
+			if DEBUG then minetest.chat_send_all("Build unnecessary: already a lit portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation .. ". Extinguishing...") end
+			extinguish_portal(found_anchorPos, portal_definition.frame_node_name, false)
 		else
-			if DEBUG then minetest.chat_send_all("Build aborted: already an unlit portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation) end
-			-- ignite the portal
-			set_portal_metadata_and_ignite(portal_definition, result_anchorPos, result_orientation, destination_wormholePos)
+			if DEBUG then minetest.chat_send_all("Build unnecessary: already an unlit portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation) end
 		end
+		-- ignite the portal
+		set_portal_metadata_and_ignite(portal_definition, result_anchorPos, result_orientation, destination_wormholePos)
+
 	else
 		build_portal(portal_definition, result_anchorPos, result_orientation, destination_wormholePos)
+		-- make sure portal isn't overwritten by ongoing generation/emerge
+		minetest.after(2, remote_portal_checkup, 2, portal_definition, result_anchorPos, result_orientation, destination_wormholePos)
 	end
 	return result_anchorPos, result_orientation
 end
@@ -649,8 +682,8 @@ function nether.find_surface_target_y(target_x, target_z, portal_name)
 			-- get_spawn_level() seems to err on the side of caution and sometimes spawn the player a 
 			-- block higher than the ground level.
 			local shouldBeGroundPos = {x = target_x, y = surface_level - 1, z = target_z}
-			local groundNode = minetest.get_node(shouldBeGroundPos)
-			if groundNode.Name = 'ignore' then
+			local groundNode = minetest.get_node_or_nil(shouldBeGroundPos)
+			if groundNode == nil then
 				-- force the area to be loaded - it's going to be loaded anyway by volume_is_natural()
 				minetest.get_voxel_manip():read_from_map(shouldBeGroundPos, shouldBeGroundPos)
 				local groundNode = minetest.get_node(shouldBeGroundPos)
@@ -793,32 +826,6 @@ extinguish_portal = function(pos, node_name, frame_was_destroyed) -- assigned ra
 end
 
 
--- Sometimes after a portal is placed, concurrent mapgen routines overwrite it.
--- Make portals immortal for ~20 seconds after creation
-local function remote_portal_checkup(elapsed, portal_definition, anchorPos, orientation, destination_wormholePos)
-
-	if DEBUG then minetest.chat_send_all("portal checkup at " .. elapsed .. " seconds") end
-
-	local wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
-	local wormhole_node = minetest.get_node_or_nil(wormholePos)
-
-	if wormhole_node == nil or wormhole_node.name ~= portal_definition.wormhole_node_name then
-		-- ruh roh
-		local message = "Newly created portal at " .. minetest.pos_to_string(anchorPos) .. " was overwritten. Attempting to recreate. Issue spotted after " .. elapsed .. " seconds"
-		minetest.log("warning", message)
-		if DEBUG then minetest.chat_send_all("!!! " .. message) end
-
-		-- A pre-existing portal frame wouldn't have been immediately overwritten, so no need to check for one, just place the portal.
-		build_portal(portal_definition, anchorPos, orientation, destination_wormholePos)
-	end
-
-	if elapsed < 10 then -- stop checking after ~20 seconds
-		local delay = elapsed * 2
-		minetest.after(delay, remote_portal_checkup, elapsed + delay, portal_definition, anchorPos, orientation, destination_wormholePos)
-	end
-end
-
-
 -- invoked when a player is standing in a portal
 local function ensure_remote_portal_then_teleport(player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
 
@@ -877,9 +884,6 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 				)
 			end
 			minetest.after(0.1, ensure_remote_portal_then_teleport, player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
-
-			-- make sure portal isn't overwritten by ongoing generation/emerge
-			minetest.after(2, remote_portal_checkup, 2, portal_definition, new_dest_anchorPos, new_dest_orientation, local_wormholePos)
 		end
 	end
 end
