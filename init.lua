@@ -1,4 +1,4 @@
-
+﻿
 --[[
 
   Nether mod for minetest
@@ -519,13 +519,6 @@ if minetest.get_modpath("moreblocks") then
 			sounds = default.node_sound_stone_defaults(),
 	})
 end
-
-stairs.register_stair_and_slab("brick", "nether:brick",
-	{cracky=3, oddly_breakable_by_hand=1},
-	{"nether_brick.png"},
-	"nether stair",
-	"nether slab",
-	default.node_sound_stone_defaults())
 
 
 -- Craftitems
