@@ -49,7 +49,7 @@ nether.register_portal("nether_portal", {
 	frame_node_name     = "default:obsidian",
 	wormhole_node_name  = "nether:portal",
 	wormhole_node_color = 0, -- 0 is magenta
-	-- Warning: "Four per Em" spaces have been used to align the diagram in this text, rather 
+	-- Warning: "Four per Em" spaces have been used to align the diagram in this text, rather
 	-- than ASCII spaces. If Minetest changes font this may need to be updated.
 	book_of_portals_pagetext = S([[      ──══♦♦♦◊   The Nether   ◊♦♦♦══──
 
@@ -96,7 +96,7 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 	find_surface_anchorPos = function(realm_anchorPos)
 		-- A portal definition doesn't normally need to provide a find_surface_anchorPos() function,
 		-- since find_surface_target_y() will be used by default, but Nether portals also scale position
-		-- to create fast-travel:
+		-- to create fast-travel. Defining a custom function also means we can look for existing nearby portals:
 
 		-- Multiply x and z by a factor of 8 to implement Nether fast-travel
 		local destination_pos = vector.multiply(realm_anchorPos, nether.FASTTRAVEL_FACTOR)

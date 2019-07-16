@@ -559,7 +559,7 @@ end
 -- this is to enforce that portals only link together in mutual pairs. It would be better for gameplay if I didn't apply
 -- that restriction, but it would require maintaining an accurate list of every portal that links to a portal so they 
 -- could all be updated if the portal is destroyed. To keep the code simple I'm going to limit portals to only being 
--- the destination of a single lit portal at a time.
+-- the destination of one lit portal at a time.
 -- * suggested_anchorPos indicates where the portal should be built
 -- * destination_wormholePos is the wormholePos of the destination portal this one will be linked to.
 -- * suggested_orientation is the suggested schematic rotation: 0, 90, 180, 270 (0 meaning a portal that faces north/south - i.e. obsidian running east/west)
@@ -575,7 +575,7 @@ local function locate_or_build_portal(portal_definition, suggested_anchorPos, su
 
 	-- Searching for an existing portal at wormholePos seems better than at anchorPos, though isn't important
 	local suggested_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(suggested_anchorPos, suggested_orientation)
-	local found_anchorPos, found_orientation, is_ignited = is_portal_frame(portal_definition, suggested_wormholePos)
+	local found_anchorPos, found_orientation, is_ignited = is_portal_frame(portal_definition, suggested_wormholePos) -- can be optimized - check for portal at suggested_anchorPos first
 
 	if found_anchorPos ~= nil then
 		-- A portal is already here, we don't have to build one, though we may need to ignite it
@@ -686,7 +686,7 @@ function nether.find_surface_target_y(target_x, target_z, portal_name)
 			if groundNode == nil then
 				-- force the area to be loaded - it's going to be loaded anyway by volume_is_natural()
 				minetest.get_voxel_manip():read_from_map(shouldBeGroundPos, shouldBeGroundPos)
-				local groundNode = minetest.get_node(shouldBeGroundPos)
+				groundNode = minetest.get_node(shouldBeGroundPos)
 			end
 			if not groundNode.is_ground_content then 
 				surface_level = surface_level - 1 
@@ -836,9 +836,10 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 		return -- the player has moved out of the portal
 	end
 
-	-- debounce - check player is still standing in the same portal that called this function
+	-- debounce - check player is still standing in the *same* portal that called this function
 	local meta = minetest.get_meta(playerPos)
-	if not vector.equals(local_anchorPos, minetest.string_to_pos(meta:get_string("p1"))) then
+	local local_p1, local_p2 = portal_definition.shape:get_p1_and_p2_from_anchorPos(local_anchorPos, local_orientation)
+	if not vector.equals(local_p1, minetest.string_to_pos(meta:get_string("p1"))) then
 		if DEBUG then minetest.chat_send_all("the player already teleported from " .. minetest.pos_to_string(local_anchorPos) .. ", and is now standing in a different portal - " .. meta:get_string("p1")) end
 		return -- the player already teleported, and is now standing in a different portal
 	end
@@ -865,7 +866,7 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 			player:setpos(vector.add(destination_wormholePos, rotated_offset))
 			player:set_look_horizontal(player:get_look_horizontal() + rotation_angle)
 		else
-			-- destination portal still needs to be built
+			-- destination portal either needs to be built or ignited
 			if DEBUG then minetest.chat_send_all("ensure_remote_portal_then_teleport() saw " .. dest_wormhole_node.name .. " at " .. minetest.pos_to_string(destination_wormholePos) .. " rather than a wormhole. Calling locate_or_build_portal()") end
 
 			local new_dest_anchorPos, new_dest_orientation = locate_or_build_portal(portal_definition, destination_anchorPos, local_orientation, local_wormholePos)
@@ -925,8 +926,8 @@ function run_wormhole(pos, time_elapsed)
 				if destination_wormholePos ~= nil and local_p1 ~= nil then
 
 					-- force emerge of target area
-					minetest.get_voxel_manip():read_from_map(destination_wormholePos, destination_wormholePos)
-					if not minetest.get_node_or_nil(destination_wormholePos) then
+					minetest.get_voxel_manip():read_from_map(destination_wormholePos, destination_wormholePos) -- force load
+					if minetest.get_node_or_nil(destination_wormholePos) == nil then
 						minetest.emerge_area(vector.subtract(destination_wormholePos, 4), vector.add(destination_wormholePos, 4))
 					end
 
@@ -1070,7 +1071,7 @@ function register_frame_node(frame_node_name)
 			ignite_portal(pos, node.name)
 		end,
 		action_off = function (pos, node)
-			extinguish_portal(pos, node.name)
+			extinguish_portal(pos, node.name, false)
 		end
 	}}
 	extended_node_def.replaced_by_portalapi.on_destruct = extended_node_def.on_destruct
@@ -1187,6 +1188,7 @@ minetest.register_on_mods_loaded(function()
 		end
 
 		-- todo: add to Treasurer mod TRMP https://github.com/poikilos/trmp_minetest_game
+		-- todo: add to help modpack       https://forum.minetest.net/viewtopic.php?t=15912
 	end
 end)
 
@@ -1195,6 +1197,7 @@ end)
 -- ==================== --
 
 
+-- The fallback defaults for registered portaldef tables
 local portaldef_default = {
 	shape               = PortalShape_Traditional,
 	wormhole_node_name  = "nether:portal",
@@ -1206,7 +1209,6 @@ local portaldef_default = {
 	sound_extinguish    = "",
 	sound_teleport      = "",
 }
-
 
 
 function nether.register_portal(name, portaldef)
@@ -1313,6 +1315,8 @@ function nether.find_nearest_working_portal(portal_name, anchorPos, distance_lim
 		local portal_info = contenders[dist]
 		if DEBUG then minetest.chat_send_all("checking portal from mod_storage at " .. minetest.pos_to_string(portal_info.anchorPos) .. " orientation " .. portal_info.orientation) end
 
+		-- the mod_storage list of portals is unreliable - e.g. it won't know if inactive portals have been 
+		-- destroyed, so check the portal is still there
 		local portalFound, portalActive = is_portal_at_anchorPos(portal_definition, portal_info.anchorPos, portal_info.orientation, true)
 
 		if portalFound then
