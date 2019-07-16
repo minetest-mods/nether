@@ -14,7 +14,8 @@ Helper functions
       player builds. It checks the area for any nodes that aren't ground or 
       trees.
 
-* `nether.find_surface_target_y(target_x, target_z, portal_name)`: returns a suitable anchorPos
+* `nether.find_surface_target_y(target_x, target_z, portal_name)`: returns a 
+  suitable anchorPos
     * Can be used to implement custom find_surface_anchorPos() functions
     * portal_name is optional, and providing it allows existing portals on the
       surface to be reused.
@@ -22,10 +23,11 @@ Helper functions
 * `nether.find_nearest_working_portal(portal_name, anchorPos, distance_limit, y_factor)`: returns 
   an anchorPos, or nil if no portal was found within the the distance_limit.
     * A y_factor of 0 means y does not affect the distance_limit, a y_factor
-      of 1 means y is included, and a y_factor of 2 would squash the 
-      search-sphere by a factor of 2 on the y-axis, etc.
-    * Only portals in the same realm as the anchorPos will be returned, even if y_factor is 0.
-    * Pass a nil or negative distance_limit to indicate no distance limit
+      of 1 means y is included (the default if y_factor is nil), and a y_factor
+      of 2 would squash the search-sphere by a factor of 2 on the y-axis, etc.
+    * Only portals in the same realm as the anchorPos will be returned, even if
+      y_factor is 0.
+    * Pass a nil (or negative) distance_limit to indicate no distance limit
 
 
 API functions
@@ -80,13 +82,19 @@ Used by `nether.register_portal`.
         -- Required. Return true if a portal at pos is in the realm, rather 
            than the surface world.
 
-		find_realm_anchorPos = function(surface_anchorPos)
+		find_realm_anchorPos = function(surface_anchorPos),
         -- Required. Return a position in the realm that a portal created at
         -- surface_anchorPos will link to.
+        -- Return an anchorPos or anchorPos, orientation
+        -- If orientation is not specified then the orientation of the surface
+        -- portal will be used. 
 
 		find_surface_anchorPos = function(realm_anchorPos),
         -- Optional. If you don't use this then a position near the surface 
         -- will be picked.
+        -- Return an anchorPos or anchorPos, orientation
+        -- If orientation is not specified then the orientation of the realm
+        -- portal will be used. 
 
 		on_run_wormhole,
 		on_ignite,
