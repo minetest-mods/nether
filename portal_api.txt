@@ -96,9 +96,13 @@ Used by `nether.register_portal`.
         -- If orientation is not specified then the orientation of the realm
         -- portal will be used. 
 
-		on_run_wormhole,
-		on_ignite,
-		on_extinguish,
-		on_player_teleported,
-		on_created
+		on_run_wormhole      = function(portalDef, anochorPos, orientation)
+        -- invoked once per second per portal
+		on_extinguish        = function(portalDef, anochorPos, orientation)
+        -- invoked when a portal is extinguished, including when the portal
+        -- it connected to was extinguished.
+
+		todo: on_ignite            = function(portalDef, anochorPos, orientation)
+		todo: on_player_teleported = function(portalDef, oldPos, newPos)
+		todo: on_created           = function(portalDef, anochorPos, orientation)
 	}

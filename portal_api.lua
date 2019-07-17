@@ -361,7 +361,10 @@ local function list_closest_portals(portal_definition, anchorPos, distance_limit
 end
 
 
+-- Note: will extinguish any portal using the same nodes that are being set
 local function set_portal_metadata(portal_definition, anchorPos, orientation, destination_wormholePos, ignite)
+
+	if DEBUG then minetest.chat_send_all("set_portal_metadata(ignite=" .. tostring(ignite) .. ") at " .. minetest.pos_to_string(anchorPos) .. " orient " .. orientation .. ", setting to target " .. minetest.pos_to_string(destination_wormholePos)) end
 
 	-- Portal position is stored in metadata as p1 and p2 to keep maps compatible with earlier versions of this mod.
 	-- p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner, together
@@ -385,11 +388,11 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 			local existing_p1 = meta:get_string("p1")
 			if existing_p1 ~= "" then
 				local existing_p2 = meta:get_string("p2")
-				if DEBUG then minetest.chat_send_all("existing_p1 " .. existing_p1 .. ", existing_p2" .. existing_p2 .. ", p1 " .. p1_string .. ", p2 " .. p2_string) end
 				if existing_p1 ~= p1_string or existing_p2 ~= p2_string then
+					if DEBUG then minetest.chat_send_all("set_portal_metadata() found existing metadata from another portal: existing_p1 " .. existing_p1 .. ", existing_p2" .. existing_p2 .. ", p1 " .. p1_string .. ", p2 " .. p2_string .. ", will existinguish existing portal...") end
 					-- this node is already part of another portal, so extinguish that, because nodes only
 					-- contain a link in the metadata to one portal, and being part of two allows a slew of bugs
-					extinguish_portal(pos, node_name)
+					extinguish_portal(pos, node_name, false)
 
 					-- clear the metadata to avoid causing a loop if extinguish_portal() fails on this node (e.g. it only works on frame nodes)
 					meta:set_string("p1",              nil)
@@ -727,6 +730,7 @@ end
 local function ignite_portal(ignition_pos, ignition_node_name)
 
 	if ignition_node_name == nil then ignition_node_name = minetest.get_node(ignition_pos).name end
+	if DEBUG then minetest.chat_send_all("IGNITE the " .. ignition_node_name .. " at " .. minetest.pos_to_string(ignition_pos)) end
 
 	-- find which sort of portals are made from the node that was clicked on
 	local portal_definition_list = list_portal_definitions_for_frame_node(ignition_node_name)
@@ -760,7 +764,7 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 			if destination_orientation == nil then destination_orientation = orientation end
 			
 			local destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(destination_anchorPos, destination_orientation)
-			if DEBUG then minetest.chat_send_all("Destinaton set to " .. minetest.pos_to_string(destination_anchorPos)) end
+			if DEBUG then minetest.chat_send_all("Destination set to " .. minetest.pos_to_string(destination_anchorPos)) end
 
 			-- ignition/BURN_BABY_BURN
 			set_portal_metadata_and_ignite(portal_definition, anchorPos, orientation, destination_wormholePos)
@@ -782,6 +786,7 @@ extinguish_portal = function(pos, node_name, frame_was_destroyed) -- assigned ra
 	local p2 = minetest.string_to_pos(meta:get_string("p2"))
 	local target = minetest.string_to_pos(meta:get_string("target"))
 	if p1 == nil or p2 == nil then
+		if DEBUG then minetest.chat_send_all("    no active portal found to extinguish") end
 		return
 	end
 
@@ -822,7 +827,14 @@ extinguish_portal = function(pos, node_name, frame_was_destroyed) -- assigned ra
 	end
 	end
 
-	if target ~= nil then extinguish_portal(target, node_name) end
+	if target ~= nil then
+		if DEBUG then minetest.chat_send_all("    attempting to also extinguish target with wormholePos " .. minetest.pos_to_string(target)) end
+		extinguish_portal(target, node_name) 
+	end
+
+	if portal_definition.on_extinguish ~= nil then 
+		portal_definition.on_extinguish(portal_definition, anchorPos, orientation)
+	end
 end
 
 
@@ -858,6 +870,23 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 			-- portal exists
 			local destination_orientation = get_orientation_from_param2(dest_wormhole_node.param2)
 			portal_definition.shape.disable_portal_trap(destination_anchorPos, destination_orientation)
+
+			-- if the portal is already linked to a different portal then extinguish the other portal and 
+			-- update the target portal to point back at this one
+			local remoteMeta = minetest.get_meta(destination_wormholePos)
+			local remoteTarget = minetest.string_to_pos(remoteMeta:get_string("target"))
+			if remoteTarget == nil then
+				if DEBUG then minetest.chat_send_all("Failed to test whether target portal links back to this one") end
+			elseif not vector.equals(remoteTarget, local_wormholePos) then
+				if DEBUG then minetest.chat_send_all("Target portal is already linked, extinguishing then relighting to point back at this one") end
+				extinguish_portal(remoteTarget, portal_definition.frame_node_name, false)
+				set_portal_metadata_and_ignite(
+					portal_definition,
+					destination_anchorPos,
+					destination_orientation,
+					local_wormholePos
+				)
+			end
 
 			-- rotate the player if the destination portal is a different orientation
 			local rotation_angle = math.rad(destination_orientation - local_orientation)
@@ -965,6 +994,10 @@ function run_wormhole(pos, time_elapsed)
 		else
 			local anchorPos, orientation = portal_definition.shape.get_anchorPos_and_orientation_from_p1_and_p2(p1, p2)
 			portal_definition.shape.apply_func_to_wormhole_nodes(anchorPos, orientation, run_wormhole_node_func)
+
+			if portal_definition.on_run_wormhole ~= nil then 
+				portal_definition.on_run_wormhole(portal_definition, anchorPos, orientation)
+			end
 		end
 	end
 end
@@ -1068,14 +1101,17 @@ function register_frame_node(frame_node_name)
 	extended_node_def.replaced_by_portalapi.mesecons = extended_node_def.mesecons
 	extended_node_def.mesecons = {effector = {
 		action_on = function (pos, node)
+			if DEBUG then minetest.chat_send_all("portal frame material: mesecons action ON") end
 			ignite_portal(pos, node.name)
 		end,
 		action_off = function (pos, node)
+			if DEBUG then minetest.chat_send_all("portal frame material: mesecons action OFF") end
 			extinguish_portal(pos, node.name, false)
 		end
 	}}
 	extended_node_def.replaced_by_portalapi.on_destruct = extended_node_def.on_destruct
 	extended_node_def.on_destruct = function(pos)
+		if DEBUG then minetest.chat_send_all("portal frame material: destruct") end
 		extinguish_portal(pos, frame_node_name, true)
 	end
 	extended_node_def.replaced_by_portalapi.on_timer = extended_node_def.on_timer
