@@ -488,7 +488,7 @@ end
 
 -- Checks pos, and if it's part of a portal or portal frame then three values are returned: anchorPos, orientation, is_ignited
 -- where orientation is 0 or 90 (0 meaning a portal that faces north/south - i.e. obsidian running east/west)
-local function is_portal_frame(portal_definition, pos)
+local function is_within_portal_frame(portal_definition, pos)
 
 	local width_minus_1  = portal_definition.shape.size.x - 1
 	local height_minus_1 = portal_definition.shape.size.y - 1
@@ -561,24 +561,24 @@ end
 -- If a portal is found that is already lit then it will be extinguished first and its destination_wormholePos updated,
 -- this is to enforce that portals only link together in mutual pairs. It would be better for gameplay if I didn't apply
 -- that restriction, but it would require maintaining an accurate list of every portal that links to a portal so they 
--- could all be updated if the portal is destroyed. To keep the code simple I'm going to limit portals to only being 
--- the destination of one lit portal at a time.
--- * suggested_anchorPos indicates where the portal should be built
+-- could be updated if the portal is destroyed. To keep the code simple I'm going to limit portals to only being the
+-- destination of one lit portal at a time.
+-- * suggested_wormholePos indicates where the portal should be built - note this not an anchorPos!
+-- * suggested_orientation is the suggested schematic rotation to use if no useable portal is found at suggested_wormholePos:
+--   0, 90, 180, 270 (0 meaning a portal that faces north/south - i.e. obsidian running east/west)
 -- * destination_wormholePos is the wormholePos of the destination portal this one will be linked to.
--- * suggested_orientation is the suggested schematic rotation: 0, 90, 180, 270 (0 meaning a portal that faces north/south - i.e. obsidian running east/west)
 --
 -- Returns the final (anchorPos, orientation), as they may differ from the anchorPos and orientation that was
 -- specified if an existing portal was already found there.
-local function locate_or_build_portal(portal_definition, suggested_anchorPos, suggested_orientation, destination_wormholePos)
+local function locate_or_build_portal(portal_definition, suggested_wormholePos, suggested_orientation, destination_wormholePos)
 
-	if DEBUG then minetest.chat_send_all("locate_or_build_portal() at " .. minetest.pos_to_string(suggested_anchorPos) .. ", targetted to " .. minetest.pos_to_string(destination_wormholePos) .. ", orientation " .. suggested_orientation) end
+	if DEBUG then minetest.chat_send_all("locate_or_build_portal() called at wormholePos" .. minetest.pos_to_string(suggested_wormholePos) .. " with suggested orient " .. suggested_orientation .. ", targetted to " .. minetest.pos_to_string(destination_wormholePos)) end
 
-	local result_anchorPos   = suggested_anchorPos;
-	local result_orientation = suggested_orientation;
+	local result_anchorPos;
+	local result_orientation;
 
 	-- Searching for an existing portal at wormholePos seems better than at anchorPos, though isn't important
-	local suggested_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(suggested_anchorPos, suggested_orientation)
-	local found_anchorPos, found_orientation, is_ignited = is_portal_frame(portal_definition, suggested_wormholePos) -- can be optimized - check for portal at suggested_anchorPos first
+	local found_anchorPos, found_orientation, is_ignited = is_within_portal_frame(portal_definition, suggested_wormholePos) -- can be optimized - check for portal at exactly suggested_wormholePos first
 
 	if found_anchorPos ~= nil then
 		-- A portal is already here, we don't have to build one, though we may need to ignite it
@@ -586,15 +586,16 @@ local function locate_or_build_portal(portal_definition, suggested_anchorPos, su
 		result_orientation = found_orientation
 
 		if is_ignited then
-			if DEBUG then minetest.chat_send_all("Build unnecessary: already a lit portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation .. ". Extinguishing...") end
+			if DEBUG then minetest.chat_send_all("    Build unnecessary: already a lit portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation .. ". Extinguishing...") end
 			extinguish_portal(found_anchorPos, portal_definition.frame_node_name, false)
 		else
-			if DEBUG then minetest.chat_send_all("Build unnecessary: already an unlit portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation) end
+			if DEBUG then minetest.chat_send_all("    Build unnecessary: already an unlit portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation) end
 		end
 		-- ignite the portal
 		set_portal_metadata_and_ignite(portal_definition, result_anchorPos, result_orientation, destination_wormholePos)
 
 	else
+		result_anchorPos, result_orientation = portal_definition.shape.get_anchorPos_from_wormholePos(suggested_wormholePos, suggested_orientation)
 		build_portal(portal_definition, result_anchorPos, result_orientation, destination_wormholePos)
 		-- make sure portal isn't overwritten by ongoing generation/emerge
 		minetest.after(2, remote_portal_checkup, 2, portal_definition, result_anchorPos, result_orientation, destination_wormholePos)
@@ -714,7 +715,7 @@ function nether.find_surface_target_y(target_x, target_z, portal_name)
 		elseif portal_name ~= nil and nether.registered_portals[portal_name] ~= nil then
 			-- players have built here - don't grief.
 			-- but reigniting existing portals in portal rooms is fine - desirable even.
-			local anchorPos, orientation, is_ignited = is_portal_frame(nether.registered_portals[portal_name], {x = target_x, y = y, z = target_z})
+			local anchorPos, orientation, is_ignited = is_within_portal_frame(nether.registered_portals[portal_name], {x = target_x, y = y, z = target_z})
 			if anchorPos ~= nil then
 				return y
 			end
@@ -739,7 +740,7 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 		local continue = false
 
 		-- check it was a portal frame that the player is trying to ignite
-		local anchorPos, orientation, is_ignited = is_portal_frame(portal_definition, ignition_pos)
+		local anchorPos, orientation, is_ignited = is_within_portal_frame(portal_definition, ignition_pos)
 		if anchorPos == nil then
 			if DEBUG then minetest.chat_send_all("No " .. portal_definition.name .. " portal frame found at " .. minetest.pos_to_string(ignition_pos)) end
 			continue = true -- no portal is here, but perhaps there more than one portal type we need to search for
@@ -856,7 +857,6 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 		return -- the player already teleported, and is now standing in a different portal
 	end
 
-	local destination_anchorPos = portal_definition.shape.get_anchorPos_from_wormholePos(destination_wormholePos, local_orientation)
 	local dest_wormhole_node = minetest.get_node_or_nil(destination_wormholePos)
 
 	if dest_wormhole_node == nil then
@@ -869,10 +869,11 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 		if dest_wormhole_node.name == portal_definition.wormhole_node_name then
 			-- portal exists
 			local destination_orientation = get_orientation_from_param2(dest_wormhole_node.param2)
+			local destination_anchorPos = portal_definition.shape.get_anchorPos_from_wormholePos(destination_wormholePos, destination_orientation)
 			portal_definition.shape.disable_portal_trap(destination_anchorPos, destination_orientation)
 
 			-- if the portal is already linked to a different portal then extinguish the other portal and 
-			-- update the target portal to point back at this one
+			-- update the target portal to point back at this one.
 			local remoteMeta = minetest.get_meta(destination_wormholePos)
 			local remoteTarget = minetest.string_to_pos(remoteMeta:get_string("target"))
 			if remoteTarget == nil then
@@ -888,6 +889,8 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 				)
 			end
 
+			if DEBUG then minetest.chat_send_all("Teleporting player from wormholePos" .. minetest.pos_to_string(local_wormholePos) .. " to wormholePos" .. minetest.pos_to_string(destination_wormholePos)) end
+
 			-- rotate the player if the destination portal is a different orientation
 			local rotation_angle = math.rad(destination_orientation - local_orientation)
 			local offset = vector.subtract(playerPos, local_wormholePos) -- preserve player's position in the portal
@@ -895,16 +898,23 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 			player:setpos(vector.add(destination_wormholePos, rotated_offset))
 			player:set_look_horizontal(player:get_look_horizontal() + rotation_angle)
 		else
-			-- destination portal either needs to be built or ignited
+			-- no wormhole node at destination - destination portal either needs to be built or ignited
+			-- A very rare edge-case that takes time to set up: 
+			--   If the destination portal is unlit and shares a node with a lit portal that is linked to this 
+			--   portal (but has not been travelled through, thus not linking this portal back to it), then igniting
+			--   the destination portal will extinguish the portal it's touching, which will extinguish this portal
+			--   which will leave a confused player.
+			--   I don't think this is worth preventing, but I document it incase someone describes entering a portal 
+			--   and then the portal turning off.
 			if DEBUG then minetest.chat_send_all("ensure_remote_portal_then_teleport() saw " .. dest_wormhole_node.name .. " at " .. minetest.pos_to_string(destination_wormholePos) .. " rather than a wormhole. Calling locate_or_build_portal()") end
 
-			local new_dest_anchorPos, new_dest_orientation = locate_or_build_portal(portal_definition, destination_anchorPos, local_orientation, local_wormholePos)
+			local new_dest_anchorPos, new_dest_orientation = locate_or_build_portal(portal_definition, destination_wormholePos, local_orientation, local_wormholePos)
+			local new_dest_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(new_dest_anchorPos, new_dest_orientation)
 
-			if local_orientation ~= new_dest_orientation or not vector.equals(destination_anchorPos, new_dest_anchorPos) then
+			if not vector.equals(destination_wormholePos, new_dest_wormholePos) then
 				-- Update the local portal's target to match where the existing remote portal was found
-				destination_anchorPos   = new_dest_anchorPos
-				destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(new_dest_anchorPos, new_dest_orientation)
-				if DEBUG then minetest.chat_send_all("update target to " .. minetest.pos_to_string(destination_wormholePos)) end
+				destination_wormholePos = new_dest_wormholePos
+				if DEBUG then minetest.chat_send_all("    updating target to where remote portal was found - " .. minetest.pos_to_string(destination_wormholePos)) end
 
 				set_portal_metadata(
 					portal_definition,
