@@ -367,7 +367,7 @@ function ambient_sound_play(portal_definition, soundPos, timerNodeMeta)
 
 		-- Using "os.time() % soundLength == 0" is lightweight but means delayed starts, so trying a stored lastPlayed
 		if os.time() >= lastPlayed + soundLength then
-			local soundHandle = minetest.sound_play(portal_definition.sounds.ambient, {pos = soundPos, max_hear_distance = 6})
+			local soundHandle = minetest.sound_play(portal_definition.sounds.ambient, {pos = soundPos, max_hear_distance = 8})
 			if timerNodeMeta ~= nil then 
 				timerNodeMeta:set_int("ambient_sound_handle", soundHandle)
 				timerNodeMeta:set_int("ambient_sound_last_played", os.time())
@@ -440,7 +440,7 @@ function extinguish_portal(pos, node_name, frame_was_destroyed)
 			m:set_string("p1", "")
 			m:set_string("p2", "")
 			m:set_string("target", "")
-			m:set_string("frame_node_name", "")
+			m:set_string("portal_type", "")
 		end
 	end
 	end
@@ -493,10 +493,10 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 					extinguish_portal(pos, node_name, false)
 
 					-- clear the metadata to avoid causing a loop if extinguish_portal() fails on this node (e.g. it only works on frame nodes)
-					meta:set_string("p1",              nil)
-					meta:set_string("p2",              nil)
-					meta:set_string("target",          nil)
-					meta:set_string("frame_node_name", nil)
+					meta:set_string("p1",          nil)
+					meta:set_string("p2",          nil)
+					meta:set_string("target",      nil)
+					meta:set_string("portal_type", nil)
 
 					update_aborted = true
 					return true -- short-circuit the update
@@ -507,12 +507,16 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 		meta:set_string("p1",              minetest.pos_to_string(p1))
 		meta:set_string("p2",              minetest.pos_to_string(p2))
 		meta:set_string("target",          minetest.pos_to_string(destination_wormholePos))
-		-- including "frame_node_name" in the metadata lets us know which kind of portal this is.
-		-- It's not strictly necessary for PortalShape_Traditional as we know that p1 is part of
-		-- the frame, and legacy portals don't have this extra metadata - indicating obsidian,
-		-- but p1 isn't always loaded so reading this from the metadata saves an extra call to
-		-- minetest.getnode().
-		meta:set_string("frame_node_name", portal_definition.frame_node_name)
+
+		if portal_definition.name ~= "nether_portal" then
+			-- Legacy portals won't have this extra metadata, so don't rely on it.
+			-- It's not strictly necessary for PortalShape_Traditional as we know that p1 is part of
+			-- the frame and we can look up the portal type from p1, p2, and frame node name.
+			-- Being able to read this from the metadata means other portal shapes needn't have their
+			-- frame at the timerPos, it may handle unloaded nodes better, and it saves an extra call
+			-- to minetest.getnode().
+			meta:set_string("portal_type", portal_definition.name)
+		end
 	end
 
 	repeat
@@ -927,14 +931,19 @@ function run_wormhole(timerPos, time_elapsed)
 	local p1, p2, frame_node_name
 	local meta = minetest.get_meta(timerPos)
 	if meta ~= nil then
-		p1              = minetest.string_to_pos(meta:get_string("p1"))
-		p2              = minetest.string_to_pos(meta:get_string("p2"))
-		--frame_node_name = minetest.string_to_pos(meta:get_string("frame_node_name")) don't rely on this yet until you're sure everything works with old portals that don't have this set
+		p1          = minetest.string_to_pos(meta:get_string("p1"))
+		p2          = minetest.string_to_pos(meta:get_string("p2"))
+		portal_name = minetest.string_to_pos(meta:get_string("portal_type")) -- don't rely on this yet until you're sure everything works with old portals that don't have this set
 	end
 	if p1 ~= nil and p2 ~= nil then
-		-- look up the portal shape by what it's built from, so we know where the wormhole nodes will be located
-		if frame_node_name == nil then frame_node_name = minetest.get_node(timerPos).name end -- timerPos should be a frame node if the shape is traditionalPortalShape
-		portal_definition = get_portal_definition(frame_node_name, p1, p2)
+		-- figure out the portal shape so we know where the wormhole nodes will be located
+		if portal_name ~= nil and nether.registered_portals[portal_name] ~= nil then
+			portal_definition = nether.registered_portals[portal_name]
+		else
+			local frame_node_name = minetest.get_node(timerPos).name -- timerPos should be a frame node if the shape is traditionalPortalShape
+			portal_definition = get_portal_definition(frame_node_name, p1, p2)
+		end
+
 		if portal_definition == nil then
 			minetest.log("error", "No portal with a \"" .. frame_node_name .. "\" frame is registered. run_wormhole" .. minetest.pos_to_string(timerPos) .. " was invoked but that location contains \"" .. frame_node_name .. "\"")
 		else
