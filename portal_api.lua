@@ -218,10 +218,6 @@ local ignition_item_name
 local S = nether.get_translator
 local mod_storage = minetest.get_mod_storage()
 
--- this is a function that will be assigned to further down, allowing functions to use it
--- that are defined before it is.
-local extinguish_portal
-
 
 local function get_timerPos_from_p1_and_p2(p1, p2)
 	-- Pick a frame node for the portal's timer.
@@ -359,6 +355,108 @@ local function list_closest_portals(portal_definition, anchorPos, distance_limit
 	end
 	return result
 end
+
+
+-- the timerNode is used to keep the metadata as that node already needs to be known any time a portal is stopped or run
+-- see also ambient_sound_stop()
+function ambient_sound_play(portal_definition, soundPos, timerNodeMeta)
+	if portal_definition.sounds.ambient ~= nil then
+		local soundLength = portal_definition.sounds.ambient.length
+		if soundLength == nil then soundLength = 3 end
+		local lastPlayed = timerNodeMeta:get_int("ambient_sound_last_played")
+
+		-- Using "os.time() % soundLength == 0" is lightweight but means delayed starts, so trying a stored lastPlayed
+		if os.time() >= lastPlayed + soundLength then
+			local soundHandle = minetest.sound_play(portal_definition.sounds.ambient, {pos = soundPos, max_hear_distance = 6})
+			if timerNodeMeta ~= nil then 
+				timerNodeMeta:set_int("ambient_sound_handle", soundHandle)
+				timerNodeMeta:set_int("ambient_sound_last_played", os.time())
+			end
+		end
+	end
+end
+
+-- the timerNode is used to keep the metadata as that node already needs to be known any time a portal is stopped or run
+-- see also ambient_sound_play()
+function ambient_sound_stop(timerNodeMeta)
+	if timerNodeMeta ~= nil then
+		local soundHandle = timerNodeMeta:get_int("ambient_sound_handle")
+		minetest.sound_stop(soundHandle)
+	end
+end
+
+
+-- WARNING - this is invoked by on_destruct, so you can't assume there's an accesible node at pos
+function extinguish_portal(pos, node_name, frame_was_destroyed)
+
+	-- mesecons seems to invoke action_off() 6 times every time you place a block?
+	if DEBUG then minetest.chat_send_all("extinguish_portal" .. minetest.pos_to_string(pos) .. " " .. node_name) end
+
+	local meta = minetest.get_meta(pos)
+	local p1 = minetest.string_to_pos(meta:get_string("p1"))
+	local p2 = minetest.string_to_pos(meta:get_string("p2"))
+	local target = minetest.string_to_pos(meta:get_string("target"))
+	if p1 == nil or p2 == nil then
+		if DEBUG then minetest.chat_send_all("    no active portal found to extinguish") end
+		return
+	end
+
+	local portal_definition = get_portal_definition(node_name, p1, p2)
+	if portal_definition == nil then
+		minetest.log("error", "extinguish_portal() invoked on " .. node_name .. " but no registered portal is constructed from " .. node_name)
+		return -- no portal frames are made from this type of node
+	end
+	
+	if portal_definition.sounds.extinguish ~= nil then
+		minetest.sound_play(portal_definition.sounds.extinguish, {pos = p1})
+	end
+
+	-- stop timer and ambient sound
+	local timerPos = get_timerPos_from_p1_and_p2(p1, p2)
+	minetest.get_node_timer(timerPos):stop()
+	ambient_sound_stop(minetest.get_meta(timerPos))
+
+	-- update the ignition state in the portal location info
+	local anchorPos, orientation = portal_definition.shape.get_anchorPos_and_orientation_from_p1_and_p2(p1, p2)
+	if frame_was_destroyed then 
+		remove_portal_location_info(portal_definition.name, anchorPos)
+	else
+		store_portal_location_info(portal_definition.name, anchorPos, orientation, false)
+	end
+
+	local frame_node_name    = portal_definition.frame_node_name
+	local wormhole_node_name = portal_definition.wormhole_node_name
+
+
+	for x = p1.x, p2.x do
+	for y = p1.y, p2.y do
+	for z = p1.z, p2.z do
+		local nn = minetest.get_node({x = x, y = y, z = z}).name
+		if nn == frame_node_name or nn == wormhole_node_name then
+			if nn == wormhole_node_name then
+				minetest.remove_node({x = x, y = y, z = z})
+			end
+			local m = minetest.get_meta({x = x, y = y, z = z})
+			m:set_string("p1", "")
+			m:set_string("p2", "")
+			m:set_string("target", "")
+			m:set_string("frame_node_name", "")
+		end
+	end
+	end
+	end
+
+	if target ~= nil then
+		if DEBUG then minetest.chat_send_all("    attempting to also extinguish target with wormholePos " .. minetest.pos_to_string(target)) end
+		extinguish_portal(target, node_name) 
+	end
+
+	if portal_definition.on_extinguish ~= nil then 
+		portal_definition.on_extinguish(portal_definition, anchorPos, orientation)
+	end
+end
+
+
 
 
 -- Note: will extinguish any portal using the same nodes that are being set
@@ -608,128 +706,6 @@ local function locate_or_build_portal(portal_definition, suggested_wormholePos, 
 end
 
 
--- use this when determining where to spawn a portal, to avoid overwriting player builds
-function nether.volume_is_natural(minp, maxp)
-	local c_air = minetest.get_content_id("air")
-	local c_ignore = minetest.get_content_id("ignore")
-
-	local vm = minetest.get_voxel_manip()
-	local pos1 = {x = minp.x, y = minp.y, z = minp.z}
-	local pos2 = {x = maxp.x, y = maxp.y, z = maxp.z}
-	local emin, emax = vm:read_from_map(pos1, pos2)
-	local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
-	local data = vm:get_data()
-
-	for z = pos1.z, pos2.z do
-	for y = pos1.y, pos2.y do
-		local vi = area:index(pos1.x, y, z)
-		for x = pos1.x, pos2.x do
-			local id = data[vi] -- Existing node
-			if id ~= c_air and id ~= c_ignore then -- These are natural
-				local name = minetest.get_name_from_content_id(id)
-				local nodedef = minetest.registered_nodes[name]
-				if not nodedef.is_ground_content then
-					-- trees are natural but not "ground content"
-					local node_groups = nodedef.groups
-					if node_groups == nil or (node_groups.tree == nil and node_groups.leaves == nil) then
-						return false
-					end
-				end
-			end
-			vi = vi + 1
-		end
-	end
-	end
-
-	return true
-end
-
-
---[[
-"The normal realm portal has a particular X, Z, it searches downwards for a suitable Y.
-It can't be placed in mid-air, and for performance the test for a suitable placement position cannot move downwards in
-1 node steps, instead it moves downwards in 16 node steps, so it will almost always be placed buried in solid nodes.
-
-The portal cannot be placed in any volume that contains non-natural nodes (is_ground_content = false) to not grief
-player builds. This makes it even more likely the portal will be a little way underground.
-
-The portal is placed with air nodes around it to create a space so it isn't embedded in stone.
-It is expected that the player has a pickaxe to dig their way out, this is highly likely if they have built a portal
-and are exploring the nether. The player will not be trapped.
-
-Note that MC also often places portals embedded in stone.
-
-The code could be [edit: has been] altered to first try to find a surface position, but if this surface position is
-unsuitable due to being near player builds, the portal will still move downwards into the ground, so this is
-unavoidable.
-
-Any search for a suitable resting-on-surface or resting-on-cave-surface position will be somewhat complex, to avoid
-placement on a tiny floating island or narrow spike etc. which would be impractical or deadly to the player.
-
-A portal room embedded underground is the safest and the most accessible for the player.
-
-So i decided to start the placement position search at y = -16 as that, or a little below, is the most likely suitable
-position: Ground is almost always present there, it's below any lakes or seas, below most player builds.
-
-Also, the search for non-natural nodes doesn't actually guarantee avoiding player builds, as a player build can be
-composed of only natural nodes (is_ground_content = true). So even more good reason to start the search a little way
-underground where player builds are more unlikely. Y = -16 seemed a reasonable compromise between safety and distance
-from surface.
-
-Each placement position search has to search a volume of nodes for non-natural nodes, this is not lightweight, and many
-searches may happen if there a lot of underground player builds present. So the code has been written to avoid
-intensive procedures."
--- https://github.com/minetest-mods/nether/issues/5#issuecomment-506983676
-]]
-function nether.find_surface_target_y(target_x, target_z, portal_name)
-
-	-- try to spawn on surface first
-	if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
-		local surface_level = minetest.get_spawn_level(target_x, target_z)		
-		if surface_level ~= nil then
-			-- get_spawn_level() seems to err on the side of caution and sometimes spawn the player a 
-			-- block higher than the ground level.
-			local shouldBeGroundPos = {x = target_x, y = surface_level - 1, z = target_z}
-			local groundNode = minetest.get_node_or_nil(shouldBeGroundPos)
-			if groundNode == nil then
-				-- force the area to be loaded - it's going to be loaded anyway by volume_is_natural()
-				minetest.get_voxel_manip():read_from_map(shouldBeGroundPos, shouldBeGroundPos)
-				groundNode = minetest.get_node(shouldBeGroundPos)
-			end
-			if not groundNode.is_ground_content then 
-				surface_level = surface_level - 1 
-			end
-			-- Check volume for non-natural nodes
-			local minp = {x = target_x - 1, y = surface_level - 1, z = target_z - 2}
-			local maxp = {x = target_x + 2, y = surface_level + 3, z = target_z + 2}
-			if nether.volume_is_natural(minp, maxp) then
-				return surface_level
-			end
-		end
-	end
-
-	-- fallback to underground search
-	local start_y = -16
-	for y = start_y, start_y - 256, -16 do
-		-- Check volume for non-natural nodes
-		local minp = {x = target_x - 1, y = y - 1, z = target_z - 2}
-		local maxp = {x = target_x + 2, y = y + 3, z = target_z + 2}
-		if nether.volume_is_natural(minp, maxp) then
-			return y
-		elseif portal_name ~= nil and nether.registered_portals[portal_name] ~= nil then
-			-- players have built here - don't grief.
-			-- but reigniting existing portals in portal rooms is fine - desirable even.
-			local anchorPos, orientation, is_ignited = is_within_portal_frame(nether.registered_portals[portal_name], {x = target_x, y = y, z = target_z})
-			if anchorPos ~= nil then
-				return y
-			end
-		end
-	end
-
-	return start_y - 256 -- Fallback
-end
-
-
 -- invoked when a player attempts to turn obsidian nodes into an open portal
 -- ignition_node_name is optional
 local function ignite_portal(ignition_pos, ignition_node_name)
@@ -788,106 +764,6 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 	end
 end
 
--- the timerNode is used to keep the metadata as that node already needs to be known any time a portal is stopped or run
--- see also ambient_sound_stop()
-function ambient_sound_play(portal_definition, soundPos, timerNodeMeta)
-	if portal_definition.sounds.ambient ~= nil then
-		local soundLength = portal_definition.sounds.ambient.length
-		if soundLength == nil then soundLength = 3 end
-		local lastPlayed = timerNodeMeta:get_int("ambient_sound_last_played")
-
-		-- Using "os.time() % soundLength == 0" is lightweight but means delayed starts, so trying a stored lastPlayed
-		if os.time() >= lastPlayed + soundLength then
-			local soundHandle = minetest.sound_play(portal_definition.sounds.ambient, {pos = soundPos, max_hear_distance = 6})
-			if timerNodeMeta ~= nil then 
-				timerNodeMeta:set_int("ambient_sound_handle", soundHandle)
-				timerNodeMeta:set_int("ambient_sound_last_played", os.time())
-			end
-		end
-	end
-end
-
--- the timerNode is used to keep the metadata as that node already needs to be known any time a portal is stopped or run
--- see also ambient_sound_play()
-function ambient_sound_stop(timerNodeMeta)
-	if timerNodeMeta ~= nil then
-		local soundHandle = timerNodeMeta:get_int("ambient_sound_handle")
-		minetest.sound_stop(soundHandle)
-	end
-end
-
-
--- WARNING - this is invoked by on_destruct, so you can't assume there's an accesible node at pos
-extinguish_portal = function(pos, node_name, frame_was_destroyed) -- assigned rather than declared because extinguish_portal is already declared, for use by earlier functions in the file.
-
-	-- mesecons seems to invoke action_off() 6 times every time you place a block?
-	if DEBUG then minetest.chat_send_all("extinguish_portal" .. minetest.pos_to_string(pos) .. " " .. node_name) end
-
-	local meta = minetest.get_meta(pos)
-	local p1 = minetest.string_to_pos(meta:get_string("p1"))
-	local p2 = minetest.string_to_pos(meta:get_string("p2"))
-	local target = minetest.string_to_pos(meta:get_string("target"))
-	if p1 == nil or p2 == nil then
-		if DEBUG then minetest.chat_send_all("    no active portal found to extinguish") end
-		return
-	end
-
-	local portal_definition = get_portal_definition(node_name, p1, p2)
-	if portal_definition == nil then
-		minetest.log("error", "extinguish_portal() invoked on " .. node_name .. " but no registered portal is constructed from " .. node_name)
-		return -- no portal frames are made from this type of node
-	end
-	
-	if portal_definition.sounds.extinguish ~= nil then
-		minetest.sound_play(portal_definition.sounds.extinguish, {pos = p1})
-	end
-
-	-- stop timer and ambient sound
-	local timerPos = get_timerPos_from_p1_and_p2(p1, p2)
-	minetest.get_node_timer(timerPos):stop()
-	ambient_sound_stop(minetest.get_meta(timerPos))
-
-	-- update the ignition state in the portal location info
-	local anchorPos, orientation = portal_definition.shape.get_anchorPos_and_orientation_from_p1_and_p2(p1, p2)
-	if frame_was_destroyed then 
-		remove_portal_location_info(portal_definition.name, anchorPos)
-	else
-		store_portal_location_info(portal_definition.name, anchorPos, orientation, false)
-	end
-
-	local frame_node_name    = portal_definition.frame_node_name
-	local wormhole_node_name = portal_definition.wormhole_node_name
-
-
-	for x = p1.x, p2.x do
-	for y = p1.y, p2.y do
-	for z = p1.z, p2.z do
-		local nn = minetest.get_node({x = x, y = y, z = z}).name
-		if nn == frame_node_name or nn == wormhole_node_name then
-			if nn == wormhole_node_name then
-				minetest.remove_node({x = x, y = y, z = z})
-			end
-			local m = minetest.get_meta({x = x, y = y, z = z})
-			m:set_string("p1", "")
-			m:set_string("p2", "")
-			m:set_string("target", "")
-			m:set_string("frame_node_name", "")
-		end
-	end
-	end
-	end
-
-	if target ~= nil then
-		if DEBUG then minetest.chat_send_all("    attempting to also extinguish target with wormholePos " .. minetest.pos_to_string(target)) end
-		extinguish_portal(target, node_name) 
-	end
-
-	if portal_definition.on_extinguish ~= nil then 
-		portal_definition.on_extinguish(portal_definition, anchorPos, orientation)
-	end
-end
-
-
 -- invoked when a player is standing in a portal
 local function ensure_remote_portal_then_teleport(player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
 
@@ -917,6 +793,7 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 
 		if dest_wormhole_node.name == portal_definition.wormhole_node_name then
 			-- portal exists
+
 			local destination_orientation = get_orientation_from_param2(dest_wormhole_node.param2)
 			local destination_anchorPos = portal_definition.shape.get_anchorPos_from_wormholePos(destination_wormholePos, destination_orientation)
 			portal_definition.shape.disable_portal_trap(destination_anchorPos, destination_orientation)
@@ -957,9 +834,9 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 				portal_definition.on_player_teleported(portal_definition, player, playerPos, new_playerPos)
 			end
 		else
-			-- no wormhole node at destination - destination portal either needs to be built or ignited
-			-- A very rare edge-case that takes time to set up: 
-			--   If the destination portal is unlit and shares a node with a lit portal that is linked to this 
+			-- no wormhole node at destination - destination portal either needs to be built or ignited.
+			-- Note: A very rare edge-case that is difficult to set up: 
+			--   If the destination portal is unlit and its frame shares a node with a lit portal that is linked to this 
 			--   portal (but has not been travelled through, thus not linking this portal back to it), then igniting
 			--   the destination portal will extinguish the portal it's touching, which will extinguish this portal
 			--   which will leave a confused player.
@@ -1230,7 +1107,6 @@ function test_shapedef_is_valid(shape_defintion)
 end
 
 
-
 -- check for mistakes people might make in portal definitions
 function test_portaldef_is_valid(portal_definition)
 
@@ -1245,6 +1121,7 @@ function test_portaldef_is_valid(portal_definition)
 end
 
 
+-- convert portals made with old ABM version of nether mod to use the timer instead
 minetest.register_lbm({
 	label = "Start portal timer",
 	name  = "nether:start_portal_timer",
@@ -1405,6 +1282,94 @@ function nether.register_portal_ignition_item(item_name)
 
 	ignition_item_name = item_name
 end
+
+-- use this when determining where to spawn a portal, to avoid overwriting player builds
+-- It checks the area for any nodes that aren't ground or trees.
+function nether.volume_is_natural(minp, maxp)
+	local c_air = minetest.get_content_id("air")
+	local c_ignore = minetest.get_content_id("ignore")
+
+	local vm = minetest.get_voxel_manip()
+	local pos1 = {x = minp.x, y = minp.y, z = minp.z}
+	local pos2 = {x = maxp.x, y = maxp.y, z = maxp.z}
+	local emin, emax = vm:read_from_map(pos1, pos2)
+	local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
+	local data = vm:get_data()
+
+	for z = pos1.z, pos2.z do
+	for y = pos1.y, pos2.y do
+		local vi = area:index(pos1.x, y, z)
+		for x = pos1.x, pos2.x do
+			local id = data[vi] -- Existing node
+			if id ~= c_air and id ~= c_ignore then -- These are natural
+				local name = minetest.get_name_from_content_id(id)
+				local nodedef = minetest.registered_nodes[name]
+				if not nodedef.is_ground_content then
+					-- trees are natural but not "ground content"
+					local node_groups = nodedef.groups
+					if node_groups == nil or (node_groups.tree == nil and node_groups.leaves == nil) then
+						return false
+					end
+				end
+			end
+			vi = vi + 1
+		end
+	end
+	end
+
+	return true
+end
+
+-- Can be used when implementing custom find_surface_anchorPos() functions
+-- portal_name is optional, providing it allows existing portals on the surface to be reused.
+function nether.find_surface_target_y(target_x, target_z, portal_name)
+
+	-- try to spawn on surface first
+	if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
+		local surface_level = minetest.get_spawn_level(target_x, target_z)		
+		if surface_level ~= nil then
+			-- get_spawn_level() seems to err on the side of caution and sometimes spawn the player a 
+			-- block higher than the ground level.
+			local shouldBeGroundPos = {x = target_x, y = surface_level - 1, z = target_z}
+			local groundNode = minetest.get_node_or_nil(shouldBeGroundPos)
+			if groundNode == nil then
+				-- force the area to be loaded - it's going to be loaded anyway by volume_is_natural()
+				minetest.get_voxel_manip():read_from_map(shouldBeGroundPos, shouldBeGroundPos)
+				groundNode = minetest.get_node(shouldBeGroundPos)
+			end
+			if not groundNode.is_ground_content then 
+				surface_level = surface_level - 1 
+			end
+			-- Check volume for non-natural nodes
+			local minp = {x = target_x - 1, y = surface_level - 1, z = target_z - 2}
+			local maxp = {x = target_x + 2, y = surface_level + 3, z = target_z + 2}
+			if nether.volume_is_natural(minp, maxp) then
+				return surface_level
+			end
+		end
+	end
+
+	-- fallback to underground search
+	local start_y = -16
+	for y = start_y, start_y - 256, -16 do
+		-- Check volume for non-natural nodes
+		local minp = {x = target_x - 1, y = y - 1, z = target_z - 2}
+		local maxp = {x = target_x + 2, y = y + 3, z = target_z + 2}
+		if nether.volume_is_natural(minp, maxp) then
+			return y
+		elseif portal_name ~= nil and nether.registered_portals[portal_name] ~= nil then
+			-- players have built here - don't grief.
+			-- but reigniting existing portals in portal rooms is fine - desirable even.
+			local anchorPos, orientation, is_ignited = is_within_portal_frame(nether.registered_portals[portal_name], {x = target_x, y = y, z = target_z})
+			if anchorPos ~= nil then
+				return y
+			end
+		end
+	end
+
+	return start_y - 256 -- Fallback
+end
+
 
 -- Returns the anchorPos, orientation of the nearest portal, or nil.
 -- A y_factor of 0 means y does not affect the distance_limit, a y_factor of 1 means y is included,
