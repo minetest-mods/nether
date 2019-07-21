@@ -528,6 +528,10 @@ local function build_portal(portal_definition, anchorPos, orientation, destinati
 	if DEBUG then minetest.chat_send_all("Placed portal schematic at " ..  minetest.pos_to_string(portal_definition.shape.get_schematicPos_from_anchorPos(anchorPos, orientation)) .. ", orientation " .. orientation) end
 
 	set_portal_metadata(portal_definition, anchorPos, orientation, destination_wormholePos)
+
+	if portal_definition.on_created ~= nil then
+		portal_definition.on_created(portal_definition, anchorPos, orientation)
+	end
 end
 
 
@@ -770,8 +774,45 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 			-- ignition/BURN_BABY_BURN
 			set_portal_metadata_and_ignite(portal_definition, anchorPos, orientation, destination_wormholePos)
 
+			if portal_definition.sounds.ignite ~= nil then
+				local local_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
+				minetest.sound_play(portal_definition.sounds.ignite, {pos = local_wormholePos, max_hear_distance = 20})
+			end
+
+			if portal_definition.on_ignite ~= nil then
+				portal_definition.on_ignite(portal_definition, anchorPos, orientation)
+			end
+			
 			return true
 		end
+	end
+end
+
+-- the timerNode is used to keep the metadata as that node already needs to be known any time a portal is stopped or run
+-- see also ambient_sound_stop()
+function ambient_sound_play(portal_definition, soundPos, timerNodeMeta)
+	if portal_definition.sounds.ambient ~= nil then
+		local soundLength = portal_definition.sounds.ambient.length
+		if soundLength == nil then soundLength = 3 end
+		local lastPlayed = timerNodeMeta:get_int("ambient_sound_last_played")
+
+		-- Using "os.time() % soundLength == 0" is lightweight but means delayed starts, so trying a stored lastPlayed
+		if os.time() >= lastPlayed + soundLength then
+			local soundHandle = minetest.sound_play(portal_definition.sounds.ambient, {pos = soundPos, max_hear_distance = 6})
+			if timerNodeMeta ~= nil then 
+				timerNodeMeta:set_int("ambient_sound_handle", soundHandle)
+				timerNodeMeta:set_int("ambient_sound_last_played", os.time())
+			end
+		end
+	end
+end
+
+-- the timerNode is used to keep the metadata as that node already needs to be known any time a portal is stopped or run
+-- see also ambient_sound_play()
+function ambient_sound_stop(timerNodeMeta)
+	if timerNodeMeta ~= nil then
+		local soundHandle = timerNodeMeta:get_int("ambient_sound_handle")
+		minetest.sound_stop(soundHandle)
 	end
 end
 
@@ -796,6 +837,15 @@ extinguish_portal = function(pos, node_name, frame_was_destroyed) -- assigned ra
 		minetest.log("error", "extinguish_portal() invoked on " .. node_name .. " but no registered portal is constructed from " .. node_name)
 		return -- no portal frames are made from this type of node
 	end
+	
+	if portal_definition.sounds.extinguish ~= nil then
+		minetest.sound_play(portal_definition.sounds.extinguish, {pos = p1})
+	end
+
+	-- stop timer and ambient sound
+	local timerPos = get_timerPos_from_p1_and_p2(p1, p2)
+	minetest.get_node_timer(timerPos):stop()
+	ambient_sound_stop(minetest.get_meta(timerPos))
 
 	-- update the ignition state in the portal location info
 	local anchorPos, orientation = portal_definition.shape.get_anchorPos_and_orientation_from_p1_and_p2(p1, p2)
@@ -808,7 +858,6 @@ extinguish_portal = function(pos, node_name, frame_was_destroyed) -- assigned ra
 	local frame_node_name    = portal_definition.frame_node_name
 	local wormhole_node_name = portal_definition.wormhole_node_name
 
-	minetest.get_node_timer(get_timerPos_from_p1_and_p2(p1, p2)):stop()
 
 	for x = p1.x, p2.x do
 	for y = p1.y, p2.y do
@@ -891,12 +940,22 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 
 			if DEBUG then minetest.chat_send_all("Teleporting player from wormholePos" .. minetest.pos_to_string(local_wormholePos) .. " to wormholePos" .. minetest.pos_to_string(destination_wormholePos)) end
 
+			-- play the teleport sound
+			if portal_definition.sounds.teleport ~= nil then
+				minetest.sound_play(portal_definition.sounds.teleport, {to_player = player.name})
+			end
+
 			-- rotate the player if the destination portal is a different orientation
 			local rotation_angle = math.rad(destination_orientation - local_orientation)
 			local offset = vector.subtract(playerPos, local_wormholePos) -- preserve player's position in the portal
 			local rotated_offset = {x = math.cos(rotation_angle) * offset.x - math.sin(rotation_angle) * offset.z, y = offset.y, z = math.sin(rotation_angle) * offset.x + math.cos(rotation_angle) * offset.z}
-			player:setpos(vector.add(destination_wormholePos, rotated_offset))
+			local new_playerPos = vector.add(destination_wormholePos, rotated_offset)
+			player:setpos(new_playerPos)
 			player:set_look_horizontal(player:get_look_horizontal() + rotation_angle)
+
+			if portal_definition.on_player_teleported ~= nil then
+				portal_definition.on_player_teleported(portal_definition, player, playerPos, new_playerPos)
+			end
 		else
 			-- no wormhole node at destination - destination portal either needs to be built or ignited
 			-- A very rare edge-case that takes time to set up: 
@@ -930,8 +989,8 @@ end
 
 
 -- run_wormhole() is invoked once per second per portal, handling teleportation and particle effects.
--- See get_timerPos_from_p1_and_p2() for an explanation of where pos will be
-function run_wormhole(pos, time_elapsed)
+-- See get_timerPos_from_p1_and_p2() for an explanation of the timerPos location
+function run_wormhole(timerPos, time_elapsed)
 
 	local portal_definition -- will be used inside run_wormhole_node_func()
 
@@ -989,7 +1048,7 @@ function run_wormhole(pos, time_elapsed)
 	end
 
 	local p1, p2, frame_node_name
-	local meta = minetest.get_meta(pos)
+	local meta = minetest.get_meta(timerPos)
 	if meta ~= nil then
 		p1              = minetest.string_to_pos(meta:get_string("p1"))
 		p2              = minetest.string_to_pos(meta:get_string("p2"))
@@ -997,10 +1056,10 @@ function run_wormhole(pos, time_elapsed)
 	end
 	if p1 ~= nil and p2 ~= nil then
 		-- look up the portal shape by what it's built from, so we know where the wormhole nodes will be located
-		if frame_node_name == nil then frame_node_name = minetest.get_node(pos).name end -- pos should be a frame node
+		if frame_node_name == nil then frame_node_name = minetest.get_node(timerPos).name end -- timerPos should be a frame node if the shape is traditionalPortalShape
 		portal_definition = get_portal_definition(frame_node_name, p1, p2)
 		if portal_definition == nil then
-			minetest.log("error", "No portal with a \"" .. frame_node_name .. "\" frame is registered. run_wormhole" .. minetest.pos_to_string(pos) .. " was invoked but that location contains \"" .. frame_node_name .. "\"")
+			minetest.log("error", "No portal with a \"" .. frame_node_name .. "\" frame is registered. run_wormhole" .. minetest.pos_to_string(timerPos) .. " was invoked but that location contains \"" .. frame_node_name .. "\"")
 		else
 			local anchorPos, orientation = portal_definition.shape.get_anchorPos_and_orientation_from_p1_and_p2(p1, p2)
 			portal_definition.shape.apply_func_to_wormhole_nodes(anchorPos, orientation, run_wormhole_node_func)
@@ -1008,6 +1067,9 @@ function run_wormhole(pos, time_elapsed)
 			if portal_definition.on_run_wormhole ~= nil then 
 				portal_definition.on_run_wormhole(portal_definition, anchorPos, orientation)
 			end
+
+			local wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
+			ambient_sound_play(portal_definition, wormholePos, meta)
 		end
 	end
 end
@@ -1250,10 +1312,12 @@ local portaldef_default = {
 	wormhole_node_color = 0,
 	frame_node_name     = "default:obsidian",
 	particle_texture    = "nether_particle.png",
-	sound_ambient       = "nether_portal_hum",
-	sound_ignite        = "",
-	sound_extinguish    = "",
-	sound_teleport      = "",
+	sounds = {
+		ambient    = {name = "nether_portal_ambient",    gain = 0.6, length = 3},
+		ignite     = {name = "nether_portal_ignite",     gain = 0.3},
+		extinguish = {name = "nether_portal_extinguish", gain = 0.3},
+		teleport   = {name = "nether_portal_teleport",   gain = 0.3}
+	}
 }
 
 
@@ -1268,7 +1332,8 @@ function nether.register_portal(name, portaldef)
 
 	portaldef.name = name
 
-	-- use portaldef_default for any values missing from portaldef
+	-- use portaldef_default for any values missing from portaldef or portaldef.sounds
+	if portaldef.sounds ~= nil then setmetatable(portaldef.sounds, {__index = portaldef_default.sounds}) end
 	setmetatable(portaldef, {__index = portaldef_default})
 
 	if portaldef.particle_color == nil then

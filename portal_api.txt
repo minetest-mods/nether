@@ -4,6 +4,11 @@ Portal API Reference
 The portal system used to get to the Nether can be used to create portals
 to other realms.
 
+Portal code is more efficient when each type of portal uses a different type
+of node to build its frame out of, however it is possible to register more than
+one kind of portal with the same frame material — such as obsidian — provided 
+the size of the PortalShape is distinct from any other type of portal that is
+using the same node as its frame.
 
 
 Helper functions
@@ -16,8 +21,8 @@ Helper functions
 
 * `nether.find_surface_target_y(target_x, target_z, portal_name)`: returns a 
   suitable anchorPos
-    * Can be used to implement custom find_surface_anchorPos() functions
-    * portal_name is optional, and providing it allows existing portals on the
+    * Can be used when implementing custom find_surface_anchorPos() functions
+    * portal_name is optional, providing it allows existing portals on the
       surface to be reused.
 
 * `nether.find_nearest_working_portal(portal_name, anchorPos, distance_limit, y_factor)`: returns 
@@ -33,9 +38,9 @@ Helper functions
 API functions
 -------------
 
-Call these functions only at load time!
+Call these functions only at load time:
 
-* `nether.register_portal(name, portal definition)`
+* `nether.register_portal(name, portal_definition)`
     * Returns true on success. Can return false if the portal definition 
       clashes with a portal already registered by another mod, e.g. if the size
       and frame node is not unique.
@@ -73,10 +78,15 @@ Used by `nether.register_portal`.
         -- Required. For best results, have your portal constructed of a 
         -- material nobody else is using.
 
-		sound_ambient       = "nether_portal_hum",
-		sound_ignite        = "",
-		sound_extinguish    = "",
-		sound_teleport      = "",
+        sounds = {
+            ambient    = <SimpleSoundSpec>, 
+            -- if the ambient SimpleSoundSpec is a table it can also contain a 
+            -- "length" int, which is the number of seconds to wait before 
+            -- repeating the ambient sound. Default is 3.
+            ignite     = <SimpleSoundSpec>,
+            extinguish = <SimpleSoundSpec>,
+            teleport   = <SimpleSoundSpec>,
+        }
 
         within_realm = function(pos),
         -- Required. Return true if a portal at pos is in the realm, rather 
@@ -90,19 +100,22 @@ Used by `nether.register_portal`.
         -- portal will be used. 
 
 		find_surface_anchorPos = function(realm_anchorPos),
-        -- Optional. If you don't use this then a position near the surface 
-        -- will be picked.
-        -- Return an anchorPos or anchorPos, orientation
+        -- Optional. If you don't implement this then a position near the
+        -- surface will be picked.
+        -- Return an anchorPos or (anchorPos, orientation)
         -- If orientation is not specified then the orientation of the realm
         -- portal will be used. 
 
-		on_run_wormhole      = function(portalDef, anochorPos, orientation)
+		on_run_wormhole      = function(portalDef, anochorPos, orientation),
         -- invoked once per second per portal
-		on_extinguish        = function(portalDef, anochorPos, orientation)
+		on_extinguish        = function(portalDef, anochorPos, orientation),
         -- invoked when a portal is extinguished, including when the portal
         -- it connected to was extinguished.
-
-		todo: on_ignite            = function(portalDef, anochorPos, orientation)
-		todo: on_player_teleported = function(portalDef, oldPos, newPos)
-		todo: on_created           = function(portalDef, anochorPos, orientation)
+        on_player_teleported = function(portalDef, player, oldPos, newPos),
+        -- invoked immediately after a player is teleported
+        on_ignite            = function(portalDef, anochorPos, orientation)
+        -- invoked when a player or mesecon ignites a portal
+		on_created           = function(portalDef, anochorPos, orientation)
+        -- invoked when a portal's remote twin is created, usually when a
+        -- player travels through a portal for the first time.
 	}

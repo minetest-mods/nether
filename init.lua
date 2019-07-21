@@ -47,8 +47,8 @@ nether.register_portal_ignition_item("default:mese_crystal_fragment")
 nether.register_portal("nether_portal", {
 	shape               = nether.PortalShape_Traditional,
 	frame_node_name     = "default:obsidian",
-	wormhole_node_name  = "nether:portal",
 	wormhole_node_color = 0, -- 0 is magenta
+
 	-- Warning: "Four per Em" spaces have been used to align the diagram in this text, rather
 	-- than ASCII spaces. If Minetest changes font this may need to be updated.
 	book_of_portals_pagetext = S([[      ──══♦♦♦◊   The Nether   ◊♦♦♦══──
@@ -66,10 +66,6 @@ This opens to a truly hellish place, though for small mercies the air there is s
 
 The expedition parties have found no diamonds or gold, and after an experienced search party failed to return from the trail of a missing expedition party, I must conclude this is a dangerous place.
 ]], 10 * nether.FASTTRAVEL_FACTOR),
-	sound_ambient       = "nether_portal_hum",
-	sound_ignite        = "",
-	sound_extinguish    = "",
-	sound_teleport      = "",
 
 	within_realm = function(pos) -- return true if pos is inside the Nether
 		return pos.y < nether.DEPTH
