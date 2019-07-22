@@ -22,8 +22,9 @@
 local S = minetest.get_translator("nether")
 
 -- Global Nether namespace
-nether = {}
-nether.path = minetest.get_modpath("nether")
+nether                = {}
+nether.modname        = minetest.get_current_modname()
+nether.path           = minetest.get_modpath(nether.modname)
 nether.get_translator = S
 
 -- Settings
@@ -108,5 +109,31 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 			destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, "nether_portal")
 			return destination_pos
 		end
+	end,
+
+	on_ignite = function(portalDef, anochorPos, orientation)
+
+		local make_sparks_fly = function(pos)
+			minetest.add_particlespawner({
+				amount = 14,
+				time   = 0.1,
+				minpos = {x = pos.x - 0.25, y = pos.y - 0.25, z = pos.z - 0.25},
+				maxpos = {x = pos.x + 0.25, y = pos.y + 0.25, z = pos.z + 0.25},
+				minvel = {x = -5, y = -1, z = -5},
+				maxvel = {x =  5, y =  1, z =  5},
+				minacc = {x =  0, y =  0, z =  0},
+				maxacc = {x =  0, y =  0, z =  0},
+				minexptime = 0.1,
+				maxexptime = 0.5,
+				minsize = 0.2,
+				maxsize = 0.8,
+				collisiondetection = false,
+				texture = portalDef.particle_texture .. "^[colorize:#F4F:alpha",
+				glow = 8
+			})
+		end
+
+		portalDef.shape.apply_func_to_wormhole_nodes(anochorPos, orientation, make_sparks_fly)
 	end
+	
 })
