@@ -68,11 +68,19 @@ Used by `nether.register_portal`.
 
 		wormhole_node_color = 0,
         -- A value from 0 to 7 corresponding to the color of pixels in 
-        -- nether_portals_palette.png
+        -- nether_portals_palette.png:
+	    --     0 traditional/magenta
+	    --     1 black
+	    --     2 blue
+	    --     3 green
+	    --     4 cyan
+	    --     5 red
+	    --     6 yellow
+	    --     7 white
 
 		particle_color      = "#808",
-        -- Optional. Will default to the same colour as wormhole_node_color if
-        -- not specified.
+        -- Optional. Will default to a colour matching the wormhole_node_color
+        -- if not specified.
 
 		frame_node_name     = "default:obsidian",
         -- Required. For best results, have your portal constructed of a 
@@ -97,7 +105,10 @@ Used by `nether.register_portal`.
         -- surface_anchorPos will link to.
         -- Return an anchorPos or anchorPos, orientation
         -- If orientation is not specified then the orientation of the surface
-        -- portal will be used. 
+        -- portal will be used.
+        -- If the location of an existing portal is returned then include the
+        -- orientation, otherwise the existing portal could be overwritten by
+        -- a new one with the orientation of the surface portal.
 
 		find_surface_anchorPos = function(realm_anchorPos),
         -- Optional. If you don't implement this then a position near the
@@ -105,6 +116,9 @@ Used by `nether.register_portal`.
         -- Return an anchorPos or (anchorPos, orientation)
         -- If orientation is not specified then the orientation of the realm
         -- portal will be used. 
+        -- If the location of an existing portal is returned then include the
+        -- orientation, otherwise the existing portal could be overwritten by
+        -- a new one with the orientation of the realm portal.
 
 		on_run_wormhole      = function(portalDef, anochorPos, orientation),
         -- invoked once per second per portal
