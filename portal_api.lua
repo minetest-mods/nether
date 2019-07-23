@@ -63,7 +63,7 @@ east/west.
 nether.PortalShape_Traditional = {
 	size = vector.new(4, 5, 1), -- size of the portal, and not necessarily the size of the schematic,
 	                            -- which may clear area around the portal.
-	schematic_filename = minetest.get_modpath("nether") .. "/schematics/nether_portal.mts",
+	schematic_filename = nether.path .. "/schematics/nether_portal.mts",
 
 	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
 	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
@@ -217,6 +217,7 @@ local is_frame_node = {}
 local ignition_item_name
 local S = nether.get_translator
 local mod_storage = minetest.get_mod_storage()
+local malleated_filenames = {}
 
 
 local function get_timerPos_from_p1_and_p2(p1, p2)
@@ -344,7 +345,7 @@ local function list_closest_portals(portal_definition, anchorPos, distance_limit
 					local distance = math.hypot(y * y_factor, math.hypot(x, z))
 					if distance <= distance_limit or distance_limit < 0 then
 						local info = minetest.deserialize(value) or {}
-						if DEBUG then minetest.chat_send_all("found at distance " .. distance ..  "  from dest " .. minetest.pos_to_string(anchorPos) .. ", found: " .. minetest.pos_to_string(found_anchorPos) .. " orientation " .. info.orientation) end
+						if DEBUG then minetest.chat_send_all("found " .. found_name .. " listed at distance " .. distance ..  "  from dest " .. minetest.pos_to_string(anchorPos) .. ", found: " .. minetest.pos_to_string(found_anchorPos) .. " orientation " .. info.orientation) end
 						info.anchorPos = found_anchorPos
 						info.distance  = distance
 						result[distance] = info
@@ -381,7 +382,7 @@ end
 function ambient_sound_stop(timerNodeMeta)
 	if timerNodeMeta ~= nil then
 		local soundHandle = timerNodeMeta:get_int("ambient_sound_handle")
-		minetest.sound_stop(soundHandle)
+		minetest.sound_fade(soundHandle, -3, 0)
 	end
 end
 
@@ -622,12 +623,26 @@ local function build_portal(portal_definition, anchorPos, orientation, destinati
 
 	minetest.place_schematic(
 		portal_definition.shape.get_schematicPos_from_anchorPos(anchorPos, orientation),
-		portal_definition.shape.schematic_filename,
+		portal_definition.schematic_filename,
 		orientation,
-		nil,
+		{ -- node replacements
+			["default:obsidian"] = portal_definition.frame_node_name, 
+			["nether:portal"]    = portal_definition.wormhole_node_name
+		},
 		true
 	)
-	if DEBUG then minetest.chat_send_all("Placed portal schematic at " ..  minetest.pos_to_string(portal_definition.shape.get_schematicPos_from_anchorPos(anchorPos, orientation)) .. ", orientation " .. orientation) end
+	-- set the param2 on wormhole nodes to ensure they are the right color
+	local wormholeNode = {
+		name = portal_definition.wormhole_node_name,
+		param2 = get_param2_from_color_and_orientation(portal_definition.wormhole_node_color, orientation)
+	}
+	portal_definition.shape.apply_func_to_wormhole_nodes(
+		anchorPos, 
+		orientation,
+		function(pos) minetest.swap_node(pos, wormholeNode) end
+	)
+
+	if DEBUG then minetest.chat_send_all("Placed " .. portal_definition.name .. " portal schematic at " ..  minetest.pos_to_string(portal_definition.shape.get_schematicPos_from_anchorPos(anchorPos, orientation)) .. ", orientation " .. orientation) end
 
 	set_portal_metadata(portal_definition, anchorPos, orientation, destination_wormholePos)
 
@@ -701,7 +716,8 @@ local function locate_or_build_portal(portal_definition, suggested_wormholePos, 
 		set_portal_metadata_and_ignite(portal_definition, result_anchorPos, result_orientation, destination_wormholePos)
 
 	else
-		result_anchorPos, result_orientation = portal_definition.shape.get_anchorPos_from_wormholePos(suggested_wormholePos, suggested_orientation)
+		result_orientation = suggested_orientation
+		result_anchorPos = portal_definition.shape.get_anchorPos_from_wormholePos(suggested_wormholePos, result_orientation)
 		build_portal(portal_definition, result_anchorPos, result_orientation, destination_wormholePos)
 		-- make sure portal isn't overwritten by ongoing generation/emerge
 		minetest.after(2, remote_portal_checkup, 2, portal_definition, result_anchorPos, result_orientation, destination_wormholePos)
@@ -781,7 +797,8 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 	-- debounce - check player is still standing in the *same* portal that called this function
 	local meta = minetest.get_meta(playerPos)
 	local local_p1, local_p2 = portal_definition.shape:get_p1_and_p2_from_anchorPos(local_anchorPos, local_orientation)
-	if not vector.equals(local_p1, minetest.string_to_pos(meta:get_string("p1"))) then
+	local p1_at_playerPos = minetest.string_to_pos(meta:get_string("p1"))
+	if p1_at_playerPos == nil or not vector.equals(local_p1, p1_at_playerPos) then
 		if DEBUG then minetest.chat_send_all("the player already teleported from " .. minetest.pos_to_string(local_anchorPos) .. ", and is now standing in a different portal - " .. meta:get_string("p1")) end
 		return -- the player already teleported, and is now standing in a different portal
 	end
@@ -991,7 +1008,7 @@ local function create_book(item_name, inventory_description, inventory_image, ti
 	})
 end
 
--- Updates nether.book_of_portals
+-- Updates nether:book_of_portals
 -- A book the player can read to lean how to build the different portals
 local function create_book_of_portals()
 
@@ -1045,6 +1062,46 @@ local function create_book_of_portals()
 	)
 end
 
+-- This is hack to work around how place_schematic() never invalidates its cache.
+-- A unique schematic filename is generated for each unique set of node replacements
+function get_malleated_schematic_filename(portal_definition)
+
+	local result
+
+	if portal_definition.shape ~= nil and portal_definition.shape.schematic_filename ~= nil then
+		
+		local schematicFileName = portal_definition.shape.schematic_filename
+		local uniqueId = portal_definition.frame_node_name .. " " .. portal_definition.wormhole_node_name
+
+		if malleated_filenames[schematicFileName] == nil then malleated_filenames[schematicFileName] = {} end
+		local filenamesForSchematic = malleated_filenames[schematicFileName]
+
+		-- Split the schematic's filename into the path and filename
+		local lastSlashPos,     _ = schematicFileName:find("/[^/]+$")   -- find the rightmost slash
+		local lastBackslashPos, _ = schematicFileName:find("\\[^\\]+$") -- find the rightmost backslash
+		if lastSlashPos     == nil then lastSlashPos = -1 end
+		if lastBackslashPos ~= nil then lastSlashPos = math.max(lastSlashPos, lastBackslashPos) end
+		local part_path     = schematicFileName:sub(0, math.max(0, lastSlashPos - 1))
+		local part_filename = schematicFileName:sub(lastSlashPos + 1)
+
+		if filenamesForSchematic[uniqueId] == nil then
+
+			local malleationCount = 0
+			for _ in pairs(filenamesForSchematic) do malleationCount = malleationCount + 1 end
+
+			local malleatedFilename = part_path .. DIR_DELIM
+			for i = 1, malleationCount do
+				malleatedFilename = malleatedFilename .. '.' .. DIR_DELIM -- should work on both Linux and Windows
+			end
+			malleatedFilename = malleatedFilename .. part_filename
+			filenamesForSchematic[uniqueId] = malleatedFilename
+		end
+		result = filenamesForSchematic[uniqueId]
+	end
+
+	return result
+end
+
 
 function register_frame_node(frame_node_name)
 
@@ -1053,7 +1110,7 @@ function register_frame_node(frame_node_name)
 	local extended_node_def = {}
 	for key, value in pairs(node) do extended_node_def[key] = value end
 
-	extended_node_def.replaced_by_portalapi = {}
+	extended_node_def.replaced_by_portalapi = {} -- allows chaining or restoration of original functions, if necessary
 
 	-- add portal portal functionality
 	extended_node_def.replaced_by_portalapi.mesecons = extended_node_def.mesecons
@@ -1200,7 +1257,7 @@ local portaldef_default = {
 	particle_texture    = "nether_particle.png",
 	sounds = {
 		ambient    = {name = "nether_portal_ambient",    gain = 0.6, length = 3},
-		ignite     = {name = "nether_portal_ignite",     gain = 0.3},
+		ignite     = {name = "nether_portal_ignite",     gain = 0.5},
 		extinguish = {name = "nether_portal_extinguish", gain = 0.3},
 		teleport   = {name = "nether_portal_teleport",   gain = 0.3}
 	}
@@ -1221,6 +1278,8 @@ function nether.register_portal(name, portaldef)
 	-- use portaldef_default for any values missing from portaldef or portaldef.sounds
 	if portaldef.sounds ~= nil then setmetatable(portaldef.sounds, {__index = portaldef_default.sounds}) end
 	setmetatable(portaldef, {__index = portaldef_default})
+
+	portaldef.schematic_filename = get_malleated_schematic_filename(portaldef)
 
 	if portaldef.particle_color == nil then
 		-- default the particle colours to be the same as the wormhole colour
