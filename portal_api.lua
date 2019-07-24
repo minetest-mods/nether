@@ -20,11 +20,31 @@ nether.portals_palette = {
 
 --[[
 
+Positions
+=========
+
+p1 & p2       p1 and p2 is the system used by earlier versions of the nether mod, which the portal_api
+              is forwards and backwards compatible with.
+	          p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner, together
+			  they define the bounding volume for the portal.
+			  The value of p1 and p2 is kept in the metadata of every node in the portal
+
+WormholePos   The location of the node a portal's target is set to, and a player is teleported 
+              to. It can also be used to test whether a portal is active.
+
+AnchorPos     Introduced by the portal_api, this should 
+			  Usually an orientation is required with an AnchorPos
+			  
+TimerPos      The portal_api replaces ABMs with a single node timer per portal, and the TimerPos is the 
+              node in which that timer is located. Extra metadata is also kept in the TimerNode.
+
+
 Portal shapes
 =============
 
 
-  For this PortalShape_Traditional implementation, anchorPos and wormholdPos are defined as follows:
+  For the PortalShape_Traditional implementation, anchorPos, wormholdPos and TimerPos are defined 
+  as follows:
                                           .
     +--------+--------+--------+--------+
     |        |      Frame      |        |
@@ -58,9 +78,11 @@ east/west.
 
 -- This object defines a portal's shape, segregating the shape logic code from portal behaviour code.
 -- You can create a new "PortalShape" definition object which implements the same
--- functions if you wish to register a custom shaped portal in register_portal().
+-- functions if you wish to register a custom shaped portal in register_portal(). Examples follow
+-- after PortalShape_Traditional.
 -- Since it's symmetric, this PortalShape definition has only implemented orientations of 0 and 90
 nether.PortalShape_Traditional = {
+	name = "Traditional",
 	size = vector.new(4, 5, 1), -- size of the portal, and not necessarily the size of the schematic,
 	                            -- which may clear area around the portal.
 	schematic_filename = nether.path .. "/schematics/nether_portal.mts",
@@ -98,6 +120,7 @@ nether.PortalShape_Traditional = {
 	-- they define the bounding volume for the portal.
 	get_p1_and_p2_from_anchorPos = function(self, anchorPos, orientation)
 		assert(orientation, "no orientation passed")
+		assert(self ~= nil and self.name == nether.PortalShape_Traditional.name, "Must pass self as first argument, or use shape:func() instead of shape.func()")
 		local p1 = anchorPos -- PortalShape_Traditional puts the anchorPos at p1 for backwards&forwards compatibility
 		local p2
 
@@ -120,6 +143,7 @@ nether.PortalShape_Traditional = {
 		end
 	end,
 
+	-- returns true if function was applied to all frame nodes
 	apply_func_to_frame_nodes = function(anchorPos, orientation, func)
 		-- a 4x5 portal is small enough that hardcoded positions is simpler that procedural code
 		local shortCircuited
@@ -162,6 +186,7 @@ nether.PortalShape_Traditional = {
 		return not shortCircuited
 	end,
 
+	-- returns true if function was applied to all wormhole nodes
 	apply_func_to_wormhole_nodes = function(anchorPos, orientation, func)
 		local shortCircuited
 		if orientation == 0 then
@@ -200,6 +225,136 @@ nether.PortalShape_Traditional = {
 		-- quite extreme.
 	end
 } -- End of PortalShape_Traditional class
+
+
+-- Example alternative PortalShape
+nether.PortalShape_Circular = {
+	name = "Circular",
+	size = vector.new(7, 7, 1), -- size of the portal, and not necessarily the size of the schematic,
+	                            -- which may clear area around the portal.
+	schematic_filename = nether.path .. "/schematics/nether_portal_circular.mts",
+
+	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
+	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
+		assert(orientation, "no orientation passed")
+		if orientation == 0 then
+			return {x = anchorPos.x - 3,     y = anchorPos.y, z = anchorPos.z - 3}
+		else
+			return {x = anchorPos.x - 3, y = anchorPos.y, z = anchorPos.z - 3   }
+		end
+	end,
+
+	get_wormholePos_from_anchorPos = function(anchorPos, orientation)
+		-- wormholePos is the node above anchorPos
+		return {x = anchorPos.x, y = anchorPos.y + 1, z = anchorPos.z}
+	end,
+
+	get_anchorPos_from_wormholePos = function(wormholePos, orientation)
+		-- wormholePos is the node above anchorPos
+		return {x = wormholePos.x, y = wormholePos.y - 1, z = wormholePos.z}
+	end,
+
+	-- p1 and p2 are used to keep maps compatible with earlier versions of this mod.
+	-- p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner, together
+	-- they define the bounding volume for the portal.
+	get_p1_and_p2_from_anchorPos = function(self, anchorPos, orientation)
+		assert(orientation, "no orientation passed")
+		assert(self ~= nil and self.name == nether.PortalShape_Circular.name, "Must pass self as first argument, or use shape:func() instead of shape.func()")
+		local p1 = anchorPos -- PortalShape_Traditional puts the anchorPos at p1 for backwards&forwards compatibility
+		local p2
+
+		if orientation == 0 then
+			p1 = {x = anchorPos.x - 3,        y = anchorPos.y,            z = anchorPos.z           }
+			p2 = {x = p1.x + self.size.x - 1, y = p1.y + self.size.y - 1, z = p1.z                  }
+		else
+			p1 = {x = anchorPos.x,            y = anchorPos.y,            z = anchorPos.z - 3       }
+			p2 = {x = p1.x,                   y = p1.y + self.size.y - 1, z = p1.z + self.size.x - 1}
+		end
+		return p1, p2
+	end,
+
+	get_anchorPos_and_orientation_from_p1_and_p2 = function(p1, p2)
+		if p1.z == p2.z then
+			return {x= p1.x + 3, y = p1.y, z = p1.z    },  0
+		elseif p1.x == p2.x then
+			return {x= p1.x,     y = p1.y, z = p1.z + 3}, 90
+		end
+	end,
+
+	apply_func_to_frame_nodes = function(anchorPos, orientation, func)
+		local shortCircuited
+		if orientation == 0 then
+			-- use short-circuiting of boolean evaluation to allow func() to cause an abort by returning true
+			shortCircuited =
+				func({x = anchorPos.x + 0, y = anchorPos.y + 0, z = anchorPos.z}) or
+				func({x = anchorPos.x + 1, y = anchorPos.y + 0, z = anchorPos.z}) or func({x = anchorPos.x - 1, y = anchorPos.y + 0, z = anchorPos.z}) or
+				func({x = anchorPos.x + 2, y = anchorPos.y + 1, z = anchorPos.z}) or func({x = anchorPos.x - 2, y = anchorPos.y + 1, z = anchorPos.z}) or
+				func({x = anchorPos.x + 3, y = anchorPos.y + 2, z = anchorPos.z}) or func({x = anchorPos.x - 3, y = anchorPos.y + 2, z = anchorPos.z}) or
+				func({x = anchorPos.x + 3, y = anchorPos.y + 3, z = anchorPos.z}) or func({x = anchorPos.x - 3, y = anchorPos.y + 3, z = anchorPos.z}) or
+				func({x = anchorPos.x + 3, y = anchorPos.y + 4, z = anchorPos.z}) or func({x = anchorPos.x - 3, y = anchorPos.y + 4, z = anchorPos.z}) or
+				func({x = anchorPos.x + 2, y = anchorPos.y + 5, z = anchorPos.z}) or func({x = anchorPos.x - 2, y = anchorPos.y + 5, z = anchorPos.z}) or
+				func({x = anchorPos.x + 1, y = anchorPos.y + 6, z = anchorPos.z}) or func({x = anchorPos.x - 1, y = anchorPos.y + 6, z = anchorPos.z}) or
+				func({x = anchorPos.x + 0, y = anchorPos.y + 6, z = anchorPos.z})
+		else
+			shortCircuited =
+				func({x = anchorPos.x, y = anchorPos.y + 0, z = anchorPos.z + 0}) or
+				func({x = anchorPos.x, y = anchorPos.y + 0, z = anchorPos.z + 1}) or func({x = anchorPos.x, y = anchorPos.y + 0, z = anchorPos.z - 1}) or
+				func({x = anchorPos.x, y = anchorPos.y + 1, z = anchorPos.z + 2}) or func({x = anchorPos.x, y = anchorPos.y + 1, z = anchorPos.z - 2}) or
+				func({x = anchorPos.x, y = anchorPos.y + 2, z = anchorPos.z + 3}) or func({x = anchorPos.x, y = anchorPos.y + 2, z = anchorPos.z - 3}) or
+				func({x = anchorPos.x, y = anchorPos.y + 3, z = anchorPos.z + 3}) or func({x = anchorPos.x, y = anchorPos.y + 3, z = anchorPos.z - 3}) or
+				func({x = anchorPos.x, y = anchorPos.y + 4, z = anchorPos.z + 3}) or func({x = anchorPos.x, y = anchorPos.y + 4, z = anchorPos.z - 3}) or
+				func({x = anchorPos.x, y = anchorPos.y + 5, z = anchorPos.z + 2}) or func({x = anchorPos.x, y = anchorPos.y + 5, z = anchorPos.z - 2}) or
+				func({x = anchorPos.x, y = anchorPos.y + 6, z = anchorPos.z + 1}) or func({x = anchorPos.x, y = anchorPos.y + 6, z = anchorPos.z - 1}) or
+				func({x = anchorPos.x, y = anchorPos.y + 6, z = anchorPos.z + 0})
+		end
+		return not shortCircuited
+	end,
+
+	-- returns true if function was applied to all wormhole nodes
+	apply_func_to_wormhole_nodes = function(anchorPos, orientation, func)
+		local xRange = 2
+		local zRange = 0
+		if orientation ~= 0 then
+			xRange = 0
+			zRange = 2	
+		end
+		
+		local xEdge, yEdge, zEdge
+		local pos = {}
+		for x = -xRange, xRange do
+			pos.x = anchorPos.x + x
+			xEdge = x == -xRange or x == xRange
+			for z = -zRange, zRange do
+				zEdge = z == -zRange or z == zRange
+				pos.z = anchorPos.z + z
+				for y = 1, 5 do
+					yEdge = y == 1 or y == 5			
+					if not (yEdge and xEdge and zEdge) then
+						pos.y = anchorPos.y + y
+						if func(pos) then
+							-- func() caused an abort by returning true
+							return false
+						end
+					end
+				end
+			end
+		end
+
+		return true
+	end,
+
+	-- Check for whether the portal is blocked in, and if so then provide a safe way
+	-- on one side for the player to step out of the portal. Suggest including a roof
+	-- incase the portal was blocked with lava flowing from above.
+	-- If portal can appear in mid-air then can also check for that and add a platform.
+	disable_portal_trap = function(anchorPos, orientation)
+		assert(orientation, "no orientation passed")
+
+		-- Not implemented.
+	end
+} -- End of PortalShape_Circular class
+
+
 
 
 --====================================================--
@@ -383,6 +538,10 @@ function ambient_sound_stop(timerNodeMeta)
 	if timerNodeMeta ~= nil then
 		local soundHandle = timerNodeMeta:get_int("ambient_sound_handle")
 		minetest.sound_fade(soundHandle, -3, 0)
+		
+		-- clear the metadata
+		timerNodeMeta:set_string("ambient_sound_handle", "")
+		timerNodeMeta:set_string("ambient_sound_last_played", "")
 	end
 end
 
@@ -919,7 +1078,8 @@ function run_wormhole(timerPos, time_elapsed)
 				local meta = minetest.get_meta(pos)
 				local destination_wormholePos = minetest.string_to_pos(meta:get_string("target"))
 				local local_p1                = minetest.string_to_pos(meta:get_string("p1"))
-				if destination_wormholePos ~= nil and local_p1 ~= nil then
+				local local_p2                = minetest.string_to_pos(meta:get_string("p2"))
+				if destination_wormholePos ~= nil and local_p1 ~= nil and local_p2 ~= nil then
 
 					-- force emerge of target area
 					minetest.get_voxel_manip():read_from_map(destination_wormholePos, destination_wormholePos) -- force load
@@ -927,14 +1087,14 @@ function run_wormhole(timerPos, time_elapsed)
 						minetest.emerge_area(vector.subtract(destination_wormholePos, 4), vector.add(destination_wormholePos, 4))
 					end
 
-					local local_orientation = get_orientation_from_param2(minetest.get_node(pos).param2)
+					local local_anchorPos, local_orientation = portal_definition.shape.get_anchorPos_and_orientation_from_p1_and_p2(local_p1, local_p2)
 					minetest.after(
 						3, -- hopefully target area is emerged in 3 seconds
 						function()
 							ensure_remote_portal_then_teleport(
 								obj,
 								portal_definition,
-								local_p1,
+								local_anchorPos,
 								local_orientation,
 								destination_wormholePos
 							)
@@ -954,10 +1114,11 @@ function run_wormhole(timerPos, time_elapsed)
 	end
 	if p1 ~= nil and p2 ~= nil then
 		-- figure out the portal shape so we know where the wormhole nodes will be located
+		local frame_node_name
 		if portal_name ~= nil and nether.registered_portals[portal_name] ~= nil then
 			portal_definition = nether.registered_portals[portal_name]
 		else
-			local frame_node_name = minetest.get_node(timerPos).name -- timerPos should be a frame node if the shape is traditionalPortalShape
+			frame_node_name = minetest.get_node(timerPos).name -- timerPos should be a frame node if the shape is traditionalPortalShape
 			portal_definition = get_portal_definition(frame_node_name, p1, p2)
 		end
 
@@ -1163,9 +1324,14 @@ end
 
 -- check for mistakes people might make in custom shape definitions
 function test_shapedef_is_valid(shape_defintion)
-	assert(shape_defintion ~= nil, "shape definition cannot be nil")
+	assert(shape_defintion      ~= nil, "shape definition cannot be nil")
+	assert(shape_defintion.name ~= nil, "shape definition must have a name")
 
 	local result = true
+
+	local origin = vector.new()
+	local p1, p2 = shape_defintion:get_p1_and_p2_from_anchorPos(origin, 0)
+	assert(vector.equals(shape_defintion.size, vector.add(vector.subtract(p2, p1), 1)), "p1 and p2 of shape definition '" .. shape_defintion.name .. "' don't match shapeDef.size")
 
 	-- todo
 
@@ -1258,7 +1424,7 @@ local portaldef_default = {
 	sounds = {
 		ambient    = {name = "nether_portal_ambient",    gain = 0.6, length = 3},
 		ignite     = {name = "nether_portal_ignite",     gain = 0.5},
-		extinguish = {name = "nether_portal_extinguish", gain = 0.3},
+		extinguish = {name = "nether_portal_extinguish", gain = 0.5},
 		teleport   = {name = "nether_portal_teleport",   gain = 0.3}
 	}
 }

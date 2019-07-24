@@ -8,7 +8,7 @@ Portal code is more efficient when each type of portal uses a different type
 of node to build its frame out of, however it is possible to register more than
 one kind of portal with the same frame material — such as obsidian — provided 
 the size of the PortalShape is distinct from any other type of portal that is
-using the same node as its frame.
+using the same node as its frame, and portal sizes remain small.
 
 
 Helper functions
