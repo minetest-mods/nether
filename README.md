@@ -1,4 +1,6 @@
-Nether Mod for Minetest
+Nether Mod for Minetest, with Portal API.
+
+See portal_api.txt for how to create custom portals to your own realms.
 
 ## License of source code:
 
