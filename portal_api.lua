@@ -1064,11 +1064,12 @@ function run_wormhole(timerPos, time_elapsed)
 				minacc = {x = 0, y = 0, z = 0},
 				maxacc = {x = 0, y = 0, z = 0},
 				minexptime = 0.5,
-				maxexptime = 1.5,
-				minsize = 0.5,
-				maxsize = 1.5,
+				maxexptime = 1.7,
+				minsize = 0.5 * portal_definition.particle_texture_scale,
+				maxsize = 1.5 * portal_definition.particle_texture_scale,
 				collisiondetection = false,
-				texture = portal_definition.particle_texture_colored,
+				texture   = portal_definition.particle_texture_colored,
+				animation = portal_definition.particle_texture_animation,
 				glow = 5
 			})
 		end
@@ -1416,15 +1417,17 @@ end)
 
 -- The fallback defaults for registered portaldef tables
 local portaldef_default = {
-	shape               = PortalShape_Traditional,
-	wormhole_node_name  = "nether:portal",
-	wormhole_node_color = 0,
-	frame_node_name     = "default:obsidian",
-	particle_texture    = "nether_particle.png",
+	shape                      = PortalShape_Traditional,
+	wormhole_node_name         = "nether:portal",
+	wormhole_node_color        = 0,
+	frame_node_name            = "default:obsidian",
+	particle_texture           = "nether_particle.png",
+	particle_texture_animation = nil,
+	particle_texture_scale     = 1,
 	sounds = {
 		ambient    = {name = "nether_portal_ambient",    gain = 0.6, length = 3},
-		ignite     = {name = "nether_portal_ignite",     gain = 0.5},
-		extinguish = {name = "nether_portal_extinguish", gain = 0.5},
+		ignite     = {name = "nether_portal_ignite",     gain = 0.7},
+		extinguish = {name = "nether_portal_extinguish", gain = 0.6},
 		teleport   = {name = "nether_portal_teleport",   gain = 0.3}
 	}
 }
@@ -1454,8 +1457,14 @@ function nether.register_portal(name, portaldef)
 		portaldef.particle_color = minetest.rgba(rgb.r, rgb.g, rgb.b)
 	end
 	if portaldef.particle_texture_colored == nil then
-		-- Combine the particle texture with the particle color unless a colored particle texture was specified.
-		portaldef.particle_texture_colored = portaldef.particle_texture .. "^[colorize:" .. portaldef.particle_color .. ":alpha"
+		-- Combine the particle texture with the particle color unless a particle_texture_colored was specified.
+		if type(portaldef.particle_texture) == "table" and portaldef.particle_texture.animation ~= nil then
+			portaldef.particle_texture_colored   = portaldef.particle_texture.name .. "^[colorize:" .. portaldef.particle_color .. ":alpha"
+			portaldef.particle_texture_animation = portaldef.particle_texture.animation
+			portaldef.particle_texture_scale     = portaldef.particle_texture.scale or 1
+		else
+			portaldef.particle_texture_colored   = portaldef.particle_texture .. "^[colorize:" .. portaldef.particle_color .. ":alpha"
+		end
 	end
 
 	if portaldef.find_surface_anchorPos == nil then	-- default to using find_surface_target_y()
@@ -1499,16 +1508,21 @@ function nether.unregister_portal(name)
 	return result
 end
 
-function nether.register_portal_ignition_item(item_name)
+function nether.register_portal_ignition_item(item_name, ignition_failure_sound)
 
 	minetest.override_item(item_name, {
 		on_place = function(stack, _, pt)
+			local done = false
 			if pt.under and is_frame_node[minetest.get_node(pt.under).name] then
-				local done = ignite_portal(pt.under)
+				done = ignite_portal(pt.under)
 				if done and not minetest.settings:get_bool("creative_mode") then
 					stack:take_item()
 				end
 			end
+			if not done and ignition_failure_sound ~= nil then
+				minetest.sound_play(ignition_failure_sound, {pos = pt.under, max_hear_distance = 10})
+			end
+
 
 			return stack
 		end,
