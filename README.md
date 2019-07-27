@@ -32,6 +32,7 @@ SOFTWARE.
 ### [Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/)
  * `nether_book_`* (files starting with "nether_book"): Treer, 2019
  * `nether_portal_ignition_failure.ogg`: Treer, 2019
+ * `nether_particle_anim`* (files starting with "nether_particle_anim"): Treer, 2019
 
 ### [Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)](http://creativecommons.org/licenses/by-sa/3.0/)
  * `nether_rack.png`: Zeg9
