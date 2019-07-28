@@ -4,6 +4,20 @@ Portal API Reference
 The portal system used to get to the Nether can be used to create portals
 to other realms.
 
+Pick a node type to have your portals built from, a shape in which the
+portals must be built, and provide 3 functions for portals to find their 
+destination with: 
+ * `find_realm_anchorPos(surface_anchorPos)`
+ * `find_surface_anchorPos(realm_anchorPos)`
+ * `is_within_realm(pos)`
+
+Optionally decorate by choosing portal colors, particles, media etc.
+
+See `init.lua` and `portal_examples.lua` for examples of 3 different portals.
+
+and perhaps a backup 
+node-type incase another mod is already using that node)
+
 Portal code is more efficient when each type of portal uses a different type
 of node to build its frame out of, however it is possible to register more than
 one kind of portal with the same frame material — such as obsidian — provided 
@@ -44,6 +58,11 @@ Call these functions only at load time:
     * Returns true on success. Can return false if the portal definition 
       clashes with a portal already registered by another mod, e.g. if the size
       and frame node is not unique.
+      A false return value should be handled, you could:
+          * Fall back to using a secondary material for portals to be built with.
+          * Use error() to exit lua with a message explaining how two mods are
+            clashing and how it can be resolved.
+          * Continue without a portal (the reason will be logged for the user).
 * `nether.unregister_portal(name)`
     * Unregisters the portal from the engine, and deletes the entry with key
       `name` from `nether.registered_portals` and associated internal tables.

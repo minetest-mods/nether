@@ -483,7 +483,7 @@ local function list_closest_portals(portal_definition, anchorPos, distance_limit
 
 	local result = {}
 
-	local isRealm = portal_definition.within_realm(anchorPos)
+	local isRealm = portal_definition.is_within_realm(anchorPos)
 	if distance_limit == nil then distance_limit = -1 end
 	if       y_factor == nil then       y_factor =  1 end
 
@@ -491,7 +491,7 @@ local function list_closest_portals(portal_definition, anchorPos, distance_limit
 		local closingBrace = key:find(")", 6, true)
 		if closingBrace ~= nil then 
 			local found_anchorPos = minetest.string_to_pos(key:sub(0, closingBrace))
-			if found_anchorPos ~= nil and portal_definition.within_realm(found_anchorPos) == isRealm then
+			if found_anchorPos ~= nil and portal_definition.is_within_realm(found_anchorPos) == isRealm then
 				local found_name = key:sub(closingBrace + 5)
 				if found_name == portal_definition.name then
 					local x = anchorPos.x - found_anchorPos.x
@@ -915,7 +915,7 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 			if DEBUG then minetest.chat_send_all("Found portal frame. Looked at " .. minetest.pos_to_string(ignition_pos) .. ", found at " .. minetest.pos_to_string(anchorPos) .. " orientation " .. orientation) end
 
 			local destination_anchorPos, destination_orientation
-			if portal_definition.within_realm(ignition_pos) then
+			if portal_definition.is_within_realm(ignition_pos) then
 				destination_anchorPos, destination_orientation = portal_definition.find_surface_anchorPos(anchorPos)
 			else
 				destination_anchorPos, destination_orientation = portal_definition.find_realm_anchorPos(anchorPos)
@@ -1346,7 +1346,7 @@ function test_portaldef_is_valid(portal_definition)
 	local result = test_shapedef_is_valid(portal_definition.shape)
 
 	assert(portal_definition.wormhole_node_color >= 0 and portal_definition.wormhole_node_color < 8, "portaldef.wormhole_node_color must be between 0 and 7 (inclusive)")
-	assert(portal_definition.within_realm         ~= nil, "portaldef.within_realm() must be implemented")
+	assert(portal_definition.is_within_realm      ~= nil, "portaldef.is_within_realm() must be implemented")
 	assert(portal_definition.find_realm_anchorPos ~= nil, "portaldef.find_realm_anchorPos() must be implemented")
 	-- todo
 
@@ -1442,7 +1442,8 @@ function nether.register_portal(name, portaldef)
 		return false;
 	end
 
-	portaldef.name = name
+	portaldef.name     = name
+	portaldef.mod_name = minetest.get_current_modname()
 
 	-- use portaldef_default for any values missing from portaldef or portaldef.sounds
 	if portaldef.sounds ~= nil then setmetatable(portaldef.sounds, {__index = portaldef_default.sounds}) end
@@ -1475,16 +1476,31 @@ function nether.register_portal(name, portaldef)
 	end
 
 	if test_portaldef_is_valid(portaldef) then
-		nether.registered_portals[portaldef.name] = portaldef
-		create_book_of_portals()
 
-		if not is_frame_node[portaldef.frame_node_name] then
-			register_frame_node(portaldef.frame_node_name)
-			is_frame_node[portaldef.frame_node_name] = true
+		-- check whether the portal definition clashes with anyone else's portal
+		local p1, p2 = portaldef.shape:get_p1_and_p2_from_anchorPos(vector.new(), 0)
+		local existing_portaldef = get_portal_definition(portaldef.frame_node_name, p1, p2)
+		if existing_portaldef ~= nil then
+			minetest.log("error", 
+				portaldef.mod_name .." tried to register a portal '" .. portaldef.name .. "' made of " .. portaldef.frame_node_name .. 
+				", but it is the same material and shape as the portal '" .. existing_portaldef.name .. "' already registered by " .. existing_portaldef.mod_name ..
+				". Edit the values one of those mods uses in its call to nether.register_portal() if you wish to resolve this clash.")
+		else
+			-- the new portaldef is good
+			nether.registered_portals[portaldef.name] = portaldef
+			create_book_of_portals()
+
+			if not is_frame_node[portaldef.frame_node_name] then
+				-- add portal functions to the nodedef being used for the portal frame
+				register_frame_node(portaldef.frame_node_name)
+				is_frame_node[portaldef.frame_node_name] = true
+			end
+
+			return true
 		end
-
-		return true
 	end
+
+	return false
 end
 
 function nether.unregister_portal(name)
