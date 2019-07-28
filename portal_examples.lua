@@ -52,7 +52,7 @@ Requiring 14 blocks of ice, but otherwise constructed the same as the portal to 
 
 ]] .. "\u{25A9}"),
 
-	within_realm = function(pos) -- return true if pos is inside the Nether
+	is_within_realm = function(pos) -- return true if pos is inside the Nether
 		return pos.y < nether.DEPTH
 	end,
 
@@ -114,7 +114,7 @@ nether.register_portal("stargate_portal", {
 
 ]] .. "\u{25A9}"),
 
-	within_realm = function(pos) -- return true if pos is inside the Nether
+	is_within_realm = function(pos) -- return true if pos is inside the Nether
 		return pos.y < nether.DEPTH
 	end,
 

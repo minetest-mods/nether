@@ -27,7 +27,7 @@ SOFTWARE.
 
 ### [Attribution 3.0 Unported (CC BY 3.0)](https://creativecommons.org/licenses/by/3.0/)
  
- * `nether_portal_ambient.ogg` & `nether_portal_ambient.0.ogg` are extractions from "Deep Cinematic Rumble Stereo" by [Patrick Lieberkind](http://www.lieberkindvisuals.dk)
+ * `nether_portal_ambient.ogg` & `nether_portal_ambient.0.ogg` are extractions from "Deep Cinematic Rumble Stereo" by [Patrick Lieberkind](http://www.lieberkindvisuals.dk), used under CC BY 3.0
  * `nether_portal_extinguish.ogg` is an extraction from "Tight Laser Weapon Hit Scifi" by damjancd (https://freesound.org/people/damjancd), used under CC BY 3.0
  * `nether_portal_ignite.ogg` is a derivative of "Flame Ignition" by hykenfreak (https://freesound.org/people/hykenfreak), used under CC BY 3.0. "Nether Portal ignite" is licensed under CC BY 3.0 by Treer.
 
