@@ -15,14 +15,23 @@ Optionally decorate by choosing portal colors, particles, media etc.
 
 See `init.lua` and `portal_examples.lua` for examples of 3 different portals.
 
-and perhaps a backup 
-node-type incase another mod is already using that node)
-
 Portal code is more efficient when each type of portal uses a different type
 of node to build its frame out of, however it is possible to register more than
 one kind of portal with the same frame material — such as obsidian — provided 
 the size of the PortalShape is distinct from any other type of portal that is
 using the same node as its frame, and portal sizes remain small.
+
+Realms
+------
+
+This API uses the concept of a "realm" for each type of portal. If a portal is 
+outside its realm then it links to a portal inside the realm, if a portal is 
+inside its realm then it links to the outside.
+
+You get to decide what consitutes your realm by implementing the function
+`is_within_realm(position)`.
+
+The Nether realm, for example, is defined as existing at a certain depth.
 
 
 Helper functions
@@ -80,14 +89,15 @@ Used by `nether.register_portal`.
 
     {
         shape = PortalShape_Traditional, 
-        -- optional. 
+        -- Optional. Defaults to PortalShape_Traditional
 
         wormhole_node_name  = "nether:portal",
-        -- optional. Allows a custom wormhole node to be specified.
+        -- Optional. Allows a custom wormhole node to be specified.
         -- Useful if you want the portals to have a different post_effect_color
         -- or texture.
 
         wormhole_node_color = 0,
+        -- Optional. Defaults to 0/magenta.
         -- A value from 0 to 7 corresponding to the color of pixels in 
         -- nether_portals_palette.png:
         --     0 traditional/magenta
@@ -104,7 +114,10 @@ Used by `nether.register_portal`.
         -- if not specified.
 
         particle_texture    = "image.png",
-        -- Optional. Animation and particle scale may also be specified, e.g:
+        -- Optional. Hardware colouring (i.e. particle_color) is applied to 
+        -- this texture, use particle_texture_colored instead if you want to 
+        -- use the colors of the image.
+        -- Animation and particle scale may also be specified, e.g:
         -- particle_texture = {
         --      name = "nether_particle_anim1.png",
         --      animation = {
@@ -130,6 +143,7 @@ Used by `nether.register_portal`.
             extinguish = <SimpleSoundSpec>,
             teleport   = <SimpleSoundSpec>,
         }
+        -- sounds is optional
 
         within_realm = function(pos),
         -- Required. Return true if a portal at pos is in the realm, rather 
@@ -165,6 +179,6 @@ Used by `nether.register_portal`.
         on_ignite            = function(portalDef, anochorPos, orientation)
         -- invoked when a player or mesecon ignites a portal
         on_created           = function(portalDef, anochorPos, orientation)
-        -- invoked when a portal's remote twin is created, usually when a
+        -- invoked when a portal creates a remote twin, usually when a
         -- player travels through a portal for the first time.
     }
