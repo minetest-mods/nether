@@ -1,4 +1,3 @@
-﻿
 --[[
 
   Nether mod for minetest
