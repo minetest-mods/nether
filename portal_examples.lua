@@ -1,4 +1,4 @@
-﻿--[[
+--[[
 
   Nether mod portal examples for Minetest
 
