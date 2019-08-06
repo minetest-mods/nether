@@ -1,5 +1,5 @@
 -- see portal_api.txt for documentation
-local DEBUG = true
+local DEBUG = false
 
 
 nether.registered_portals = {}
