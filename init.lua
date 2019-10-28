@@ -296,13 +296,13 @@ minetest.register_abm({
 					end
 					-- teleport the player
 					minetest.after(3, function(o, p, t)
-						local objpos = o:getpos()
+						local objpos = o:get_pos()
 						objpos.y = objpos.y + 0.1 -- Fix some glitches at -8000
 						if minetest.get_node(objpos).name ~= "nether:portal" then
 							return
 						end
 
-						o:setpos(t)
+						o:set_pos(t)
 
 						local function check_and_build_portal(pp, tt)
 							local n = minetest.get_node_or_nil(tt)
