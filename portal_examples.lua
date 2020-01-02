@@ -2,8 +2,8 @@
 
   Nether mod portal examples for Minetest
 
-  To use this file, add the following line to init.lua:
-    dofile(nether.path .. "/portal_examples.lua")
+  These portal API examples are independent of the Nether. 
+  To use this file, set nether.ENABLE_EXAMPLE_PORTALS to true in init.lua
 
 
   Copyright (C) 2019 Treer
@@ -23,12 +23,20 @@
 
 ]]--
 
+-- Sets how far a Surface Portal will travel, measured in cells along the Moore curve,
+-- which are about 117 nodes square each. Larger numbers will generally mean further distance 
+-- as-the-crow-flies, but for small adjustments this will not always be true due to the how 
+-- the Moore curve frequently doubles back upon itself.
+local SURFACE_TRAVEL_DISTANCE = 15
+
+
 local S = nether.get_translator
 
 nether.register_portal("floatlands_portal", {
-	shape               = nether.PortalShape_Traditional,
+	shape               = nether.PortalShape_Platform,
 	frame_node_name     = "default:ice",
 	wormhole_node_color = 7, -- 2 is blue
+	wormhole_node_is_horizontal = true, -- indicate the wormhole surface is horizontal
 	particle_texture    = {
 		name      = "nether_particle_anim1.png",
 		animation = {
@@ -97,12 +105,12 @@ Requiring 14 blocks of ice, but otherwise constructed the same as the portal to 
 })
 
 
--- These Moore Curve functions requred by circular_portal's find_surface_anchorPos() will 
+-- These Moore Curve functions requred by surface_portal's find_surface_anchorPos() will 
 -- be assigned later in this file.
 local get_moore_distance -- will be function get_moore_distance(cell_count, x, y): integer
 local get_moore_coords   -- will be function get_moore_coords(cell_count, distance): pos2d
 
-nether.register_portal("circular_portal", {
+nether.register_portal("surface_portal", {
 	shape               = nether.PortalShape_Circular,
 	frame_node_name     = "default:cobble",
 	wormhole_node_color = 4, -- 4 is cyan
@@ -117,7 +125,7 @@ nether.register_portal("circular_portal", {
 	      └─╚═╤═╤═┼─┘
 	            └─┴─┴─┘
 
-
+These
 ]] .. "\u{25A9}"),
 
 	is_within_realm = function(pos) 
@@ -138,7 +146,6 @@ nether.register_portal("circular_portal", {
 		-- surface (following a Moore curve) so will be using a different x and z to realm_anchorPos. 
 
 		local cellCount = 512
-		local travelDistanceInCells = 10
 		local maxDistFromOrigin = 30000 -- the world edges are at X=30927, X=−30912, Z=30927 and Z=−30912
 
 		-- clip realm_anchorPos to maxDistFromOrigin, and move the origin so that all values are positive 
@@ -147,40 +154,44 @@ nether.register_portal("circular_portal", {
 
 		local divisor = math.ceil(maxDistFromOrigin * 2 / cellCount)
 		local distance = get_moore_distance(cellCount, math.floor(x / divisor + 0.5), math.floor(z / divisor + 0.5))
-		local destination_distance = (distance + travelDistanceInCells) % (cellCount * cellCount)
+		local destination_distance = (distance + SURFACE_TRAVEL_DISTANCE) % (cellCount * cellCount)
 		local moore_pos = get_moore_coords(cellCount, destination_distance)
 
-		-- deterministically look for a location where get_spawn_level() gives us a height
 		local target_x = moore_pos.x * divisor - maxDistFromOrigin
 		local target_z = moore_pos.y * divisor - maxDistFromOrigin
+		local adj_x, adj_z = 0, 0
 
-		local prng = PcgRandom( -- seed the prng so that all portals for these Moore Curve coords will use the same random location
-			moore_pos.x * 65732 +
-			moore_pos.y * 729   +
-			minetest.get_mapgen_setting("seed") * 3
-		)
+		if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
+			-- Deterministically look for a location in the cell where get_spawn_level() can give 
+			-- us a surface height, since nether.find_surface_target_y() works much better when 
+			-- it can use get_spawn_level()
+			local prng = PcgRandom( -- seed the prng so that all portals for these Moore Curve coords will use the same random location
+				moore_pos.x * 65732 +
+				moore_pos.y * 729   +
+				minetest.get_mapgen_setting("seed") * 3
+			)
 
-		local radius = divisor / 2 - 2
-		local attemptLimit = 10
-		local adj_x, adj_z
-		for attempt = 1, attemptLimit do
-			adj_x = math.floor(prng:rand_normal_dist(-radius, radius, 2) + 0.5)
-			adj_z = math.floor(prng:rand_normal_dist(-radius, radius, 2) + 0.5)
-			minetest.chat_send_all(attempt .. ": x " .. target_x + adj_x .. ", z " .. target_z + adj_z)
-			if minetest.get_spawn_level(target_x + adj_x, target_z + adj_z)	~= nil then
-				-- found a location which will be at ground level (unless a player has built there)
-				minetest.chat_send_all("x " .. target_x + adj_x .. ", z " .. target_z + adj_z .. " is suitable")
-				break
+			local radius = divisor / 2 - 5
+			local attemptLimit = 10 -- how many attempts we'll make to find a good location
+			for attempt = 1, attemptLimit do
+				adj_x = math.floor(prng:rand_normal_dist(-radius, radius, 2) + 0.5)
+				adj_z = math.floor(prng:rand_normal_dist(-radius, radius, 2) + 0.5)
+				minetest.chat_send_all(attempt .. ": x " .. target_x + adj_x .. ", z " .. target_z + adj_z)
+				if minetest.get_spawn_level(target_x + adj_x, target_z + adj_z)	~= nil then
+					-- found a location which will be at ground level (unless a player has built there)
+					minetest.chat_send_all("x " .. target_x + adj_x .. ", z " .. target_z + adj_z .. " is suitable")
+					break
+				end
 			end
 		end
 
 		local destination_pos = {x = target_x + adj_x, y = 0, z = target_z + adj_z}
 		-- a y_factor of 0 makes the search ignore the altitude of the portals
-		local existing_portal_location, existing_portal_orientation = nether.find_nearest_working_portal("circular_portal", destination_pos, radius, 0)
+		local existing_portal_location, existing_portal_orientation = nether.find_nearest_working_portal("surface_portal", destination_pos, radius, 0)
 		if existing_portal_location ~= nil then
 			return existing_portal_location, existing_portal_orientation
 		else 
-			destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, "circular_portal")
+			destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, "surface_portal")
 			return destination_pos
 		end
 	end
@@ -192,7 +203,7 @@ nether.register_portal("circular_portal", {
 -- Hilbert curve and Moore curve functions --
 --=========================================--
 
--- These are space-filling curves, used by the circular_portal example as a way to determine where 
+-- These are space-filling curves, used by the surface_portal example as a way to determine where 
 -- to place portals. https://en.wikipedia.org/wiki/Moore_curve
 
 
