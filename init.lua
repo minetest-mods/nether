@@ -31,13 +31,16 @@ nether.get_translator = S
 nether.DEPTH                      = -5000
 nether.FASTTRAVEL_FACTOR          =     8 -- 10 could be better value for Minetest, since there's no sprint, but ex-Minecraft players will be mathing for 8
 nether.PORTAL_BOOK_LOOT_WEIGHTING =   0.9 -- Likelyhood of finding the Book of Portals (guide) in dungeon chests. Set to 0 to disable.
-
+nether.ENABLE_EXAMPLE_PORTALS     = false -- Enables extra portal types - examples of how to create your own portal types using the Nether's portal API. Once enabled, their shapes will be shown in the book of portals.
 
 -- Load files
 dofile(nether.path .. "/portal_api.lua")
 dofile(nether.path .. "/nodes.lua")
 dofile(nether.path .. "/mapgen.lua")
 
+if nether.ENABLE_EXAMPLE_PORTALS then
+	dofile(nether.path .. "/portal_examples.lua")
+end
 
 -- Portals are ignited by right-clicking with a mese crystal fragment
 nether.register_portal_ignition_item(

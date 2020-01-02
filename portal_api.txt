@@ -21,6 +21,12 @@ one kind of portal with the same frame material — such as obsidian — provide
 the size of the PortalShape is distinct from any other type of portal that is
 using the same node as its frame, and portal sizes remain small.
 
+Stone is not a good choice for portal frame nodes as the Minetest engine may 
+convert it into terrain nodes if the biome-pass happens after the portal is
+created. Similarly, avoid using nodes which may be replaced by ABMs etc. in the
+game without the node's on_destruct being triggered.
+
+
 Realms
 ------
 
@@ -152,7 +158,7 @@ Used by `nether.register_portal`.
         find_realm_anchorPos = function(surface_anchorPos),
         -- Required. Return a position in the realm that a portal created at
         -- surface_anchorPos will link to.
-        -- Return an anchorPos or anchorPos, orientation
+        -- Return an anchorPos or (anchorPos, orientation)
         -- If orientation is not specified then the orientation of the surface
         -- portal will be used.
         -- If the location of an existing portal is returned then include the
@@ -179,6 +185,6 @@ Used by `nether.register_portal`.
         on_ignite            = function(portalDef, anochorPos, orientation)
         -- invoked when a player or mesecon ignites a portal
         on_created           = function(portalDef, anochorPos, orientation)
-        -- invoked when a portal creates a remote twin, usually when a
-        -- player travels through a portal for the first time.
+        -- invoked when a portal creates a remote twin, this is usually when
+        -- a player travels through a portal for the first time.
     }

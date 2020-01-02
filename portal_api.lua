@@ -25,25 +25,29 @@ Positions
 
 p1 & p2       p1 and p2 is the system used by earlier versions of the nether mod, which the portal_api
               is forwards and backwards compatible with.
-	          p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner, together
-			  they define the bounding volume for the portal.
-			  The value of p1 and p2 is kept in the metadata of every node in the portal
+              p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner, together
+              they define the bounding volume for the portal.
+              The value of p1 and p2 is kept in the metadata of every node in the portal
 
-WormholePos   The location of the node a portal's target is set to, and a player is teleported 
+WormholePos   The location of the node that a portal's target is set to, and a player is teleported 
               to. It can also be used to test whether a portal is active.
 
-AnchorPos     Introduced by the portal_api, this should 
-			  Usually an orientation is required with an AnchorPos
-			  
+AnchorPos     Introduced by the portal_api. Coordinates for portals are normally given in terms of 
+              the AnchorPos. The AnchorPos does not change with portal orientation - portals rotate
+              around the AnchorPos. Ideally an AnchorPos would be near the bottom center of a portal
+              shape, but this is not the case with PortalShape_Traditional to keep comptaibility with 
+              earlier versions of the nether mod.
+              Usually an orientation is required with an AnchorPos.
+
 TimerPos      The portal_api replaces ABMs with a single node timer per portal, and the TimerPos is the 
-              node in which that timer is located. Extra metadata is also kept in the TimerNode.
+              node in which that timer is located. Extra metadata is also kept in the TimerPos node.
 
 
 Portal shapes
 =============
 
 
-  For the PortalShape_Traditional implementation, anchorPos, wormholdPos and TimerPos are defined 
+  For the PortalShape_Traditional implementation, p1, p2, anchorPos, wormholdPos and TimerPos are defined 
   as follows:
                                           .
     +--------+--------+--------+--------+
@@ -59,8 +63,8 @@ Portal shapes
     |        |Wormhole         |        |
     |        |  Pos            |        |
     +--------+--------+--------+--------+
-    AnchorPos|  Node  |        |        |
-    |   p1   | Timer  |        |        |
+    AnchorPos|TimerPos|        |        |
+    |   p1   |        |        |        |
     +--------+--------+--------+--------+
 
     +X/East or +Z/North ----->
@@ -71,15 +75,15 @@ or vice-versa, however AnchorPos is in the bottom/south/west-corner to keep comp
 with earlier versions of nether mod (which only records portal corners p1 & p2 in the node
 metadata).
 
-Orientation is 0 or 90, 0 meaning a portal that faces north/south - i.e. obsidian running
-east/west.
+Orientation is yaw, either 0 or 90, 0 meaning a portal that faces north/south - i.e. obsidian 
+running east/west.
 ]]
 
 
 -- This object defines a portal's shape, segregating the shape logic code from portal behaviour code.
 -- You can create a new "PortalShape" definition object which implements the same
--- functions if you wish to register a custom shaped portal in register_portal(). Examples follow
--- after PortalShape_Traditional.
+-- functions if you wish to register a custom shaped portal in register_portal(). Examples of other
+-- shapes follow after PortalShape_Traditional.
 -- Since it's symmetric, this PortalShape definition has only implemented orientations of 0 and 90
 nether.PortalShape_Traditional = {
 	name = "Traditional",
@@ -355,6 +359,92 @@ nether.PortalShape_Circular = {
 } -- End of PortalShape_Circular class
 
 
+-- Example alternative PortalShape
+-- This platform shape is symmetrical around the y-axis, so the orientation value never matters.
+nether.PortalShape_Platform = {
+	name = "Platform",
+	size = vector.new(5, 2, 5), -- size of the portal, and not necessarily the size of the schematic,
+	                            -- which may clear area around the portal.
+	schematic_filename = nether.path .. "/schematics/nether_portal_platform.mts",
+
+	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
+	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
+		return {x = anchorPos.x - 2, y = anchorPos.y, z = anchorPos.z - 2}
+	end,
+
+	get_wormholePos_from_anchorPos = function(anchorPos, orientation)
+		-- wormholePos is the node above anchorPos
+		return {x = anchorPos.x, y = anchorPos.y + 1, z = anchorPos.z}
+	end,
+
+	get_anchorPos_from_wormholePos = function(wormholePos, orientation)
+		-- wormholePos is the node above anchorPos
+		return {x = wormholePos.x, y = wormholePos.y - 1, z = wormholePos.z}
+	end,
+
+	-- p1 and p2 are used to keep maps compatible with earlier versions of this mod.
+	-- p1 is the bottom/west/south corner of the portal, and p2 is the opposite corner, together
+	-- they define the bounding volume for the portal.
+	get_p1_and_p2_from_anchorPos = function(self, anchorPos, orientation)
+		assert(self ~= nil and self.name == nether.PortalShape_Platform.name, "Must pass self as first argument, or use shape:func() instead of shape.func()")
+		local p1 = {x = anchorPos.x - 2, y = anchorPos.y,     z = anchorPos.z - 2}
+		local p2 = {x = anchorPos.x + 2, y = anchorPos.y + 1, z = anchorPos.z + 2}
+		return p1, p2
+	end,
+
+	get_anchorPos_and_orientation_from_p1_and_p2 = function(p1, p2)
+		return {x= p1.x + 2, y = p1.y, z = p1.z + 2},  0
+	end,
+
+	apply_func_to_frame_nodes = function(anchorPos, orientation, func)
+		local shortCircuited
+		local yPlus1 = anchorPos.y + 1
+		-- use short-circuiting of boolean evaluation to allow func() to cause an abort by returning true
+		shortCircuited =
+			func({x = anchorPos.x - 2, y = yPlus1, z = anchorPos.z - 1}) or func({x = anchorPos.x + 2, y = yPlus1, z = anchorPos.z - 1}) or
+			func({x = anchorPos.x - 2, y = yPlus1, z = anchorPos.z    }) or func({x = anchorPos.x + 2, y = yPlus1, z = anchorPos.z    }) or
+			func({x = anchorPos.x - 2, y = yPlus1, z = anchorPos.z + 1}) or func({x = anchorPos.x + 2, y = yPlus1, z = anchorPos.z + 1}) or
+
+			func({x = anchorPos.x - 1, y = yPlus1, z = anchorPos.z - 2}) or func({x = anchorPos.x - 1, y = yPlus1, z = anchorPos.z + 2}) or
+			func({x = anchorPos.x    , y = yPlus1, z = anchorPos.z - 2}) or func({x = anchorPos.x    , y = yPlus1, z = anchorPos.z + 2}) or
+			func({x = anchorPos.x + 1, y = yPlus1, z = anchorPos.z - 2}) or func({x = anchorPos.x + 1, y = yPlus1, z = anchorPos.z + 2}) or
+
+			func({x = anchorPos.x - 1, y = anchorPos.y, z = anchorPos.z - 1}) or
+			func({x = anchorPos.x - 1, y = anchorPos.y, z = anchorPos.z    }) or
+			func({x = anchorPos.x - 1, y = anchorPos.y, z = anchorPos.z + 1}) or
+			func({x = anchorPos.x    , y = anchorPos.y, z = anchorPos.z - 1}) or
+			func({x = anchorPos.x    , y = anchorPos.y, z = anchorPos.z    }) or
+			func({x = anchorPos.x    , y = anchorPos.y, z = anchorPos.z + 1}) or
+			func({x = anchorPos.x + 1, y = anchorPos.y, z = anchorPos.z - 1}) or
+			func({x = anchorPos.x + 1, y = anchorPos.y, z = anchorPos.z    }) or
+			func({x = anchorPos.x + 1, y = anchorPos.y, z = anchorPos.z + 1})
+		return not shortCircuited
+	end,
+
+	-- returns true if function was applied to all wormhole nodes
+	apply_func_to_wormhole_nodes = function(anchorPos, orientation, func)
+		local shortCircuited
+		local yPlus1 = anchorPos.y + 1
+		-- use short-circuiting of boolean evaluation to allow func() to cause an abort by returning true
+		shortCircuited =
+			func({x = anchorPos.x - 1, y = yPlus1, z = anchorPos.z - 1}) or
+			func({x = anchorPos.x - 1, y = yPlus1, z = anchorPos.z    }) or
+			func({x = anchorPos.x - 1, y = yPlus1, z = anchorPos.z + 1}) or
+			func({x = anchorPos.x    , y = yPlus1, z = anchorPos.z - 1}) or
+			func({x = anchorPos.x    , y = yPlus1, z = anchorPos.z    }) or
+			func({x = anchorPos.x    , y = yPlus1, z = anchorPos.z + 1}) or
+			func({x = anchorPos.x + 1, y = yPlus1, z = anchorPos.z - 1}) or
+			func({x = anchorPos.x + 1, y = yPlus1, z = anchorPos.z    }) or
+			func({x = anchorPos.x + 1, y = yPlus1, z = anchorPos.z + 1})
+		return not shortCircuited
+	end,
+
+	-- Check for suffocation
+	disable_portal_trap = function(anchorPos, orientation)
+
+		-- Not implemented.
+	end
+} -- End of PortalShape_Platform class
 
 
 --====================================================--
@@ -397,27 +487,61 @@ local function get_timerPos_from_p1_and_p2(p1, p2)
 	}
 end
 
--- orientation is the rotation degrees passed to place_schematic: 0, 90, 180, or 270
+-- orientation is the yaw rotation degrees passed to place_schematic: 0, 90, 180, or 270
 -- color is a value from 0 to 7 corresponding to the color of pixels in nether_portals_palette.png
-local function get_param2_from_color_and_orientation(color, orientation)
+-- portal_is_horizontal is a bool indicating whether the portal lies flat or stands vertically
+local function get_colorfacedir_from_color_and_orientation(color, orientation, portal_is_horizontal)
 	assert(orientation, "no orientation passed")
 
+	local axis_direction, rotation
+	local dir = math.floor((orientation % 360) / 90 + 0.5)
+
+	-- if the portal is vertical then node axis direction will be +Y (up) and portal orientation
+	-- will set the node's rotation.
+	-- if the portal is horizontal then the node axis direction reflects the yaw orientation and
+	-- the node's rotation will be whatever's needed to keep the texture horizontal (either 0 or 1)
+	if portal_is_horizontal then
+		if dir == 0 then axis_direction = 1 end -- North
+		if dir == 1 then axis_direction = 3 end -- East
+		if dir == 2 then axis_direction = 2 end -- South
+		if dir == 3 then axis_direction = 4 end -- West
+		rotation = math.floor(axis_direction / 2); -- a rotation is only needed if axis_direction is east or west
+	else
+		axis_direction = 0 -- 0 is up, or +Y
+		rotation = dir
+	end
+	
 	-- wormhole nodes have a paramtype2 of colorfacedir, which means the
 	-- high 3 bits are palette, followed by 3 direction bits and 2 rotation bits.
 	-- We set the palette bits and rotation
-	return (orientation / 90) + color * 32
+	return rotation + axis_direction * 4 + color * 32
 end
 
-local function get_orientation_from_param2(param2)
-	-- Strip off the top 6 bits, unfortunately MT lua has no bitwise '&'
+local function get_orientation_from_colorfacedir(param2)
+
+	local axis_direction = 0
+	-- Strip off the top 6 bits to leave the 2 rotation bits, unfortunately MT lua has no bitwise '&'
 	-- (high 3 bits are palette, followed by 3 direction bits then 2 rotation bits)
 	if param2 >= 128 then param2 = param2 - 128 end
 	if param2 >=  64 then param2 = param2 -  64 end
 	if param2 >=  32 then param2 = param2 -  32 end
-	if param2 >=  16 then param2 = param2 -  16 end
-	if param2 >=   8 then param2 = param2 -   8 end
+	if param2 >=  16 then param2 = param2 -  16; axis_direction = axis_direction + 4 end
+	if param2 >=   8 then param2 = param2 -   8; axis_direction = axis_direction + 2 end
+	if param2 >=   4 then param2 = param2 -   4; axis_direction = axis_direction + 1 end
 
-	return param2 * 90
+	-- if the portal is vertical then node axis direction will be +Y (up) and portal orientation
+	-- will set the node's rotation.
+	-- if the portal is horizontal then the node axis direction reflects the yaw orientation and
+	-- the node's rotation will be whatever's needed to keep the texture horizontal (either 0 or 1)
+	if axis_direction == 0 or axis_direction == 5 then
+		-- portal is vertical
+		return param2 * 90
+	else
+		if axis_direction == 1 then return   0 end
+		if axis_direction == 3 then return  90 end
+		if axis_direction == 2 then return 180 end
+		if axis_direction == 4 then return 270 end
+	end
 end
 
 -- Combining frame_node_name, p1, and p2 will always be enough to uniquely identify a portal_definition
@@ -629,7 +753,7 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 	-- they define the bounding volume for the portal.
 	local p1, p2 = portal_definition.shape:get_p1_and_p2_from_anchorPos(anchorPos, orientation)
 	local p1_string, p2_string = minetest.pos_to_string(p1), minetest.pos_to_string(p2)
-	local param2 = get_param2_from_color_and_orientation(portal_definition.wormhole_node_color, orientation)
+	local param2 = get_colorfacedir_from_color_and_orientation(portal_definition.wormhole_node_color, orientation, portal_definition.wormhole_node_is_horizontal)
 
 	local update_aborted-- using closures to allow the updateFunc to return extra information - by setting this variable
 
@@ -793,7 +917,7 @@ local function build_portal(portal_definition, anchorPos, orientation, destinati
 	-- set the param2 on wormhole nodes to ensure they are the right color
 	local wormholeNode = {
 		name = portal_definition.wormhole_node_name,
-		param2 = get_param2_from_color_and_orientation(portal_definition.wormhole_node_color, orientation)
+		param2 = get_colorfacedir_from_color_and_orientation(portal_definition.wormhole_node_color, orientation, portal_definition.wormhole_node_is_horizontal)
 	}
 	portal_definition.shape.apply_func_to_wormhole_nodes(
 		anchorPos, 
@@ -974,7 +1098,7 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 		if dest_wormhole_node.name == portal_definition.wormhole_node_name then
 			-- portal exists
 
-			local destination_orientation = get_orientation_from_param2(dest_wormhole_node.param2)
+			local destination_orientation = get_orientation_from_colorfacedir(dest_wormhole_node.param2)
 			local destination_anchorPos = portal_definition.shape.get_anchorPos_from_wormholePos(destination_wormholePos, destination_orientation)
 			portal_definition.shape.disable_portal_trap(destination_anchorPos, destination_orientation)
 
@@ -1417,13 +1541,14 @@ end)
 
 -- The fallback defaults for registered portaldef tables
 local portaldef_default = {
-	shape                      = PortalShape_Traditional,
-	wormhole_node_name         = "nether:portal",
-	wormhole_node_color        = 0,
-	frame_node_name            = "default:obsidian",
-	particle_texture           = "nether_particle.png",
-	particle_texture_animation = nil,
-	particle_texture_scale     = 1,
+	shape                        = PortalShape_Traditional,
+	wormhole_node_name           = "nether:portal",
+	wormhole_node_color          = 0,
+	wormhole_node_is_horizontal  = false,
+	frame_node_name              = "default:obsidian",
+	particle_texture             = "nether_particle.png",
+	particle_texture_animation   = nil,
+	particle_texture_scale       = 1,
 	sounds = {
 		ambient    = {name = "nether_portal_ambient",    gain = 0.6, length = 3},
 		ignite     = {name = "nether_portal_ignite",     gain = 0.7},
@@ -1565,13 +1690,14 @@ function nether.volume_is_natural(minp, maxp)
 		local vi = area:index(pos1.x, y, z)
 		for x = pos1.x, pos2.x do
 			local id = data[vi] -- Existing node
-			if id ~= c_air and id ~= c_ignore then -- These are natural
+			if DEBUG and id == nil then minetest.chat_send_all("nil block at index " .. vi) end
+			if id ~= c_air and id ~= c_ignore and id ~= nil then -- These are natural or not emerged
 				local name = minetest.get_name_from_content_id(id)
 				local nodedef = minetest.registered_nodes[name]
 				if not nodedef.is_ground_content then
 					-- trees are natural but not "ground content"
 					local node_groups = nodedef.groups
-					if node_groups == nil or (node_groups.tree == nil and node_groups.leaves == nil) then
+					if node_groups == nil or (node_groups.tree == nil and node_groups.leaves == nil and node_groups.leafdecay == nil) then
 						return false
 					end
 				end
@@ -1602,7 +1728,15 @@ function nether.find_surface_target_y(target_x, target_z, portal_name)
 				groundNode = minetest.get_node(shouldBeGroundPos)
 			end
 			if not groundNode.is_ground_content then 
-				surface_level = surface_level - 1 
+				if DEBUG then minetest.chat_send_all("find_surface_target_y dropped spawn_level by 1") end
+				surface_level = surface_level - 1
+
+				shouldBeGroundPos.y = shouldBeGroundPos.y - 1
+				groundNode = minetest.get_node_or_nil(shouldBeGroundPos)
+				if groundNode ~= nil and not groundNode.is_ground_content then 
+					if DEBUG then minetest.chat_send_all("find_surface_target_y dropped spawn_level by 2") end
+					surface_level = surface_level - 1
+				end
 			end
 			-- Check volume for non-natural nodes
 			local minp = {x = target_x - 1, y = surface_level - 1, z = target_z - 2}
@@ -1662,7 +1796,7 @@ function nether.find_nearest_working_portal(portal_name, anchorPos, distance_lim
 		if portalFound then
 			return portal_info.anchorPos, portal_info.orientation
 		else
-			if DEBUG then minetest.chat_send_all("removing portal from mod_storage at " .. minetest.pos_to_string(portal_info.anchorPos) .. " orientation " .. portal_info.orientation) end
+			if DEBUG then minetest.chat_send_all("Portal wasn't found, removing portal from mod_storage at " .. minetest.pos_to_string(portal_info.anchorPos) .. " orientation " .. portal_info.orientation) end
 			-- The portal at that location must have been destroyed
 			remove_portal_location_info(portal_name, portal_info.anchorPos)
 		end
