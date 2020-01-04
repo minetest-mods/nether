@@ -1,10 +1,11 @@
 --[[
-
   Nether mod portal examples for Minetest
 
-  These portal API examples are independent of the Nether. 
-  To use this file, set nether.ENABLE_EXAMPLE_PORTALS to true in init.lua
+  These portal API examples work independently of the Nether realm and Nether portal. 
+  To try these examples, enable them in Mintest -> Settings -> All settings -> Mods -> nether
+  Once enabled, their shapes/plans will be shown in the book of portals.
 
+  --
 
   Copyright (C) 2019 Treer
 
@@ -24,6 +25,10 @@
 ]]--
 local S = nether.get_translator
 
+
+local ENABLE_PORTAL_EXAMPLE_FLOATLANDS    = false
+local ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL = false
+
 -- Sets how far a Surface Portal will travel, measured in cells along the Moore curve,
 -- which are about 117 nodes square each. Larger numbers will generally mean further distance 
 -- as-the-crow-flies, but for small adjustments this will not always be true due to the how 
@@ -33,175 +38,189 @@ local S = nether.get_translator
 local SURFACE_TRAVEL_DISTANCE = 26
 
 
+--=================================================--
+-- Portal to the Floatlands, playable code example --
+--==================================================--
 local FLOATLANDS_ENABLED = false
 local FLOATLAND_LEVEL    = 1280
-local floatlands_flavortext = ""
-if minetest.get_mapgen_setting("mg_name") == "v7" then
-	local mgv7_spflags = minetest.get_mapgen_setting("mgv7_spflags")
-	FLOATLANDS_ENABLED = mgv7_spflags ~= nil and mgv7_spflags:find("floatlands") ~= nil and mgv7_spflags:find("nofloatlands") == nil
-	FLOATLAND_LEVEL = minetest.get_mapgen_setting("mgv7_floatland_level") or 1280	
 
-	if FLOATLANDS_ENABLED then 
-		floatlands_flavortext = "There is a floating land of hills and lakes and forests up there, the edges of which lead to a drop all the way back down to the surface. We have not found how far these strange lands extend. One day I may retire here." 
+if  minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_PORTAL_EXAMPLE_FLOATLANDS) then
+
+	local floatlands_flavortext = ""
+	if minetest.get_mapgen_setting("mg_name") == "v7" then
+		local mgv7_spflags = minetest.get_mapgen_setting("mgv7_spflags")
+		FLOATLANDS_ENABLED = mgv7_spflags ~= nil and mgv7_spflags:find("floatlands") ~= nil and mgv7_spflags:find("nofloatlands") == nil
+		FLOATLAND_LEVEL = minetest.get_mapgen_setting("mgv7_floatland_level") or 1280	
+
+		if FLOATLANDS_ENABLED then 
+			floatlands_flavortext = "There is a floating land of hills and lakes and forests up there, the edges of which lead to a drop all the way back down to the surface. We have not found how far these strange lands extend. One day I may retire here." 
+		end
 	end
+
+
+	nether.register_portal("floatlands_portal", {
+		shape               = nether.PortalShape_Platform,
+		frame_node_name     = "default:ice",
+		wormhole_node_color = 7, -- 2 is blue
+		wormhole_node_is_horizontal = true, -- indicate the wormhole surface is horizontal
+		particle_texture    = {
+			name      = "nether_particle_anim1.png",
+			animation = {
+				type = "vertical_frames",
+				aspect_w = 7,
+				aspect_h = 7,
+				length = 1,
+			},
+			scale = 1.5
+		},
+		book_of_portals_pagetext = S([[      ──══♦♦♦◊   The Floatlands   ◊♦♦♦══──
+
+	Requiring 21 blocks of ice, and constructed in the shape of a 3 × 3 platform with walls, or like a bowl:
+
+	      ┌─┬─┬─┐
+	┌─┼─┴─┴─┼─┐    Plan view (looking down from above)
+	├─┤               ├─┤
+	├─┤               ├─┤    five blocks wide
+	└─┼─┬─┬─┼─┘    in both directions
+	      └─┴─┴─┘
+
+	┌─┬─┬─┬─┬─┐    Side view (looking from either side)
+	└─┼─┼─┼─┼─┘
+	      └─┴─┴─┘          two blocks deep
+
+	This portal is different to the others, rather than acting akin to a doorway it appears to the eye more like a small pool of water which can be stepped into. Upon setting foot in the portal we found ourselves at a great altitude.
+
+	@1
+	]], floatlands_flavortext),
+
+		is_within_realm = function(pos) -- return true if pos is inside the Nether
+			return pos.y > FLOATLAND_LEVEL - 200
+		end,
+
+		find_realm_anchorPos = function(surface_anchorPos)
+			-- TODO: Once paramat finishes adjusting the floatlands, implement a surface algorithm that finds land
+			local destination_pos = {x = surface_anchorPos.x ,y = FLOATLAND_LEVEL + 2, z = surface_anchorPos.z}
+
+			-- a y_factor of 0 makes the search ignore the altitude of the portals (as long as they are in the Floatlands)
+			local existing_portal_location, existing_portal_orientation = nether.find_nearest_working_portal("floatlands_portal", destination_pos, 10, 0)
+			if existing_portal_location ~= nil then
+				return existing_portal_location, existing_portal_orientation
+			else
+				return destination_pos
+			end
+		end
+	})
+
 end
 
 
-nether.register_portal("floatlands_portal", {
-	shape               = nether.PortalShape_Platform,
-	frame_node_name     = "default:ice",
-	wormhole_node_color = 7, -- 2 is blue
-	wormhole_node_is_horizontal = true, -- indicate the wormhole surface is horizontal
-	particle_texture    = {
-		name      = "nether_particle_anim1.png",
-		animation = {
-			type = "vertical_frames",
-			aspect_w = 7,
-			aspect_h = 7,
-			length = 1,
-		},
-		scale = 1.5
-	},
-	book_of_portals_pagetext = S([[      ──══♦♦♦◊   The Floatlands   ◊♦♦♦══──
-
-Requiring 21 blocks of ice, and constructed in the shape of a 3 × 3 platform with walls, or like a bowl:
-
-      ┌─┬─┬─┐
-┌─┼─┴─┴─┼─┐    Plan view (looking down from above)
-├─┤               ├─┤
-├─┤               ├─┤    five blocks wide
-└─┼─┬─┬─┼─┘    in both directions
-      └─┴─┴─┘
-
-┌─┬─┬─┬─┬─┐    Side view (looking from either side)
-└─┼─┼─┼─┼─┘
-      └─┴─┴─┘          two blocks deep
-
-This portal is different to the others, rather than acting akin to a doorway it appears to the eye more like a small pool of water which can be stepped into. Upon setting foot in the portal we found ourselves at a great altitude.
-
-@1
-]], floatlands_flavortext),
-
-	is_within_realm = function(pos) -- return true if pos is inside the Nether
-		return pos.y > FLOATLAND_LEVEL - 200
-	end,
-
-	find_realm_anchorPos = function(surface_anchorPos)
-		-- TODO: Once paramat finishes adjusting the floatlands, implement a surface algorithm that finds land
-		local destination_pos = {x = surface_anchorPos.x ,y = FLOATLAND_LEVEL + 2, z = surface_anchorPos.z}
-
-		-- a y_factor of 0 makes the search ignore the altitude of the portals (as long as they are in the Floatlands)
-		local existing_portal_location, existing_portal_orientation = nether.find_nearest_working_portal("floatlands_portal", destination_pos, 20, 0)
-		if existing_portal_location ~= nil then
-			return existing_portal_location, existing_portal_orientation
-		else
-			return destination_pos
-		end
-	end
-})
-
+--==============================================--
+-- Surface-travel portal, playable code example --
+--==============================================--
 
 -- These Moore Curve functions requred by surface_portal's find_surface_anchorPos() will 
 -- be assigned later in this file.
 local get_moore_distance -- will be function get_moore_distance(cell_count, x, y): integer
 local get_moore_coords   -- will be function get_moore_coords(cell_count, distance): pos2d
 
-nether.register_portal("surface_portal", {
-	shape               = nether.PortalShape_Circular,
-	frame_node_name     = "default:tinblock",
-	wormhole_node_color = 4, -- 4 is cyan
-	book_of_portals_pagetext = S([[      ──══♦♦♦◊   Surface portal   ◊♦♦♦══──
+if  minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL) then
 
-Requiring 16 blocks of tin, the frame must be constructed in the following fashion:
+	nether.register_portal("surface_portal", {
+		shape               = nether.PortalShape_Circular,
+		frame_node_name     = "default:tinblock",
+		wormhole_node_color = 4, -- 4 is cyan
+		book_of_portals_pagetext = S([[      ──══♦♦♦◊   Surface portal   ◊♦♦♦══──
 
-	            ┌═╤═╤═╗
-	      ┌═┼─┴─┴─┼═╗
-	┌═┼─┘               └─┼═╗
-	├─╢                           ├─╢
-	├─╢                           ├─╢    seven blocks wide
-	└─╚═╗               ┌═╡─┘    seven blocks high
-	      └─╚═╤═╤═┼─┘          in a circular shape
-	            └─┴─┴─┘                standing vertically, like a doorway
+	Requiring 16 blocks of tin, the frame must be constructed in the following fashion:
 
-These travel a distance along the ground, and even when constructed deep underground they link back up to the surface, but we were never able to predict where the matching twin portal would appear. Coudreau believes it works in epicycles, but I am not convinced.
-]]),
+		            ┌═╤═╤═╗
+		      ┌═┼─┴─┴─┼═╗
+		┌═┼─┘               └─┼═╗
+		├─╢                           ├─╢
+		├─╢                           ├─╢    seven blocks wide
+		└─╚═╗               ┌═╡─┘    seven blocks high
+		      └─╚═╤═╤═┼─┘          in a circular shape
+		            └─┴─┴─┘                standing vertically, like a doorway
 
-	is_within_realm = function(pos) 
-		-- Always return true, because these portals always just take you around the surface
-		-- rather than taking you to a realm
-		return true
-	end,
+	These travel a distance along the ground, and even when constructed deep underground they link back up to the surface, but we were never able to predict where the matching twin portal would appear. Coudreau believes it works in epicycles, but I am not convinced.
+	]]),
 
-	find_realm_anchorPos = function(surface_anchorPos)
-		-- This function isn't needed, since this type of portal always goes to the surface
-		minecraft.log("error" , "find_realm_anchorPos called for surface portal")
-		return {x=0, y=0, z=0}
-	end,
+		is_within_realm = function(pos) 
+			-- Always return true, because these portals always just take you around the surface
+			-- rather than taking you to a realm
+			return true
+		end,
 
-	find_surface_anchorPos = function(realm_anchorPos)
-		-- A portal definition doesn't normally need to provide a find_surface_anchorPos() function,
-		-- since find_surface_target_y() will be used by default, but these portals travel around the
-		-- surface (following a Moore curve) so will be using a different x and z to realm_anchorPos. 
+		find_realm_anchorPos = function(surface_anchorPos)
+			-- This function isn't needed, since this type of portal always goes to the surface
+			minecraft.log("error" , "find_realm_anchorPos called for surface portal")
+			return {x=0, y=0, z=0}
+		end,
 
-		local cellCount = 512
-		local maxDistFromOrigin = 30000 -- the world edges are at X=30927, X=−30912, Z=30927 and Z=−30912
+		find_surface_anchorPos = function(realm_anchorPos)
+			-- A portal definition doesn't normally need to provide a find_surface_anchorPos() function,
+			-- since find_surface_target_y() will be used by default, but these portals travel around the
+			-- surface (following a Moore curve) so will be calculating a different x and z to realm_anchorPos. 
 
-		-- clip realm_anchorPos to maxDistFromOrigin, and move the origin so that all values are positive 
-		local x = math.min(maxDistFromOrigin, math.max(-maxDistFromOrigin, realm_anchorPos.x)) + maxDistFromOrigin
-		local z = math.min(maxDistFromOrigin, math.max(-maxDistFromOrigin, realm_anchorPos.z)) + maxDistFromOrigin
+			local cellCount = 512
+			local maxDistFromOrigin = 30000 -- the world edges are at X=30927, X=−30912, Z=30927 and Z=−30912
 
-		local divisor = math.ceil(maxDistFromOrigin * 2 / cellCount)
-		local distance = get_moore_distance(cellCount, math.floor(x / divisor + 0.5), math.floor(z / divisor + 0.5))
-		local destination_distance = (distance + SURFACE_TRAVEL_DISTANCE) % (cellCount * cellCount)
-		local moore_pos = get_moore_coords(cellCount, destination_distance)
-		local target_x = moore_pos.x * divisor - maxDistFromOrigin
-		local target_z = moore_pos.y * divisor - maxDistFromOrigin
+			-- clip realm_anchorPos to maxDistFromOrigin, and move the origin so that all values are positive 
+			local x = math.min(maxDistFromOrigin, math.max(-maxDistFromOrigin, realm_anchorPos.x)) + maxDistFromOrigin
+			local z = math.min(maxDistFromOrigin, math.max(-maxDistFromOrigin, realm_anchorPos.z)) + maxDistFromOrigin
 
-		local search_radius = divisor / 2 - 5 -- any portal within this area will do
+			local divisor = math.ceil(maxDistFromOrigin * 2 / cellCount)
+			local distance = get_moore_distance(cellCount, math.floor(x / divisor + 0.5), math.floor(z / divisor + 0.5))
+			local destination_distance = (distance + SURFACE_TRAVEL_DISTANCE) % (cellCount * cellCount)
+			local moore_pos = get_moore_coords(cellCount, destination_distance)
+			local target_x = moore_pos.x * divisor - maxDistFromOrigin
+			local target_z = moore_pos.y * divisor - maxDistFromOrigin
 
-		-- a y_factor of 0 makes the search ignore the altitude of the portals
-		local existing_portal_location, existing_portal_orientation = 
-			nether.find_nearest_working_portal("surface_portal", {x = target_x, y = 0, z = target_z}, search_radius, 0)
+			local search_radius = divisor / 2 - 5 -- any portal within this area will do
 
-		if existing_portal_location ~= nil then
-			-- use the existing portal that was found near target_x, target_z
-			return existing_portal_location, existing_portal_orientation
-		else 
-			-- find a good location for the new portal
-			local adj_x, adj_z = 0, 0
-	
-			if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
-				-- Deterministically look for a location in the cell where get_spawn_level() can give 
-				-- us a surface height, since nether.find_surface_target_y() works *much* better when 
-				-- it can use get_spawn_level()
-				local prng = PcgRandom( -- seed the prng so that all portals for these Moore Curve coords will use the same random location
-					moore_pos.x * 65732 +
-					moore_pos.y * 729   +
-					minetest.get_mapgen_setting("seed") * 3
-				)
-	
-				local attemptLimit = 12 -- how many attempts we'll make at finding a good location
-				for attempt = 1, attemptLimit do
-					adj_x = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
-					adj_z = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
-					minetest.chat_send_all(attempt .. ": x " .. target_x + adj_x .. ", z " .. target_z + adj_z)
-					if minetest.get_spawn_level(target_x + adj_x, target_z + adj_z)	~= nil then
-						-- found a location which will be at ground level (unless a player has built there)
-						minetest.chat_send_all("x " .. target_x + adj_x .. ", z " .. target_z + adj_z .. " is suitable. Within " .. search_radius .. " of " .. target_x .. ", " .. target_z)
-						break
+			-- a y_factor of 0 makes the search ignore the altitude of the portals
+			local existing_portal_location, existing_portal_orientation = 
+				nether.find_nearest_working_portal("surface_portal", {x = target_x, y = 0, z = target_z}, search_radius, 0)
+
+			if existing_portal_location ~= nil then
+				-- use the existing portal that was found near target_x, target_z
+				return existing_portal_location, existing_portal_orientation
+			else 
+				-- find a good location for the new portal
+				local adj_x, adj_z = 0, 0
+		
+				if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
+					-- Deterministically look for a location in the cell where get_spawn_level() can give 
+					-- us a surface height, since nether.find_surface_target_y() works *much* better when 
+					-- it can use get_spawn_level()
+					local prng = PcgRandom( -- seed the prng so that all portals for these Moore Curve coords will use the same random location
+						moore_pos.x * 65732 +
+						moore_pos.y * 729   +
+						minetest.get_mapgen_setting("seed") * 3
+					)
+		
+					local attemptLimit = 12 -- how many attempts we'll make at finding a good location
+					for attempt = 1, attemptLimit do
+						adj_x = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
+						adj_z = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
+						minetest.chat_send_all(attempt .. ": x " .. target_x + adj_x .. ", z " .. target_z + adj_z)
+						if minetest.get_spawn_level(target_x + adj_x, target_z + adj_z)	~= nil then
+							-- found a location which will be at ground level (unless a player has built there)
+							minetest.chat_send_all("x " .. target_x + adj_x .. ", z " .. target_z + adj_z .. " is suitable. Within " .. search_radius .. " of " .. target_x .. ", " .. target_z)
+							break
+						end
 					end
 				end
+		
+				local destination_pos = {x = target_x + adj_x, y = 0, z = target_z + adj_z}
+				destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, "surface_portal")
+
+				return destination_pos
 			end
-	
-			local destination_pos = {x = target_x + adj_x, y = 0, z = target_z + adj_z}
-			destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, "surface_portal")
-
-			return destination_pos
 		end
-	end
-})
+	})
 
-
+end
 
 --=========================================--
 -- Hilbert curve and Moore curve functions --
@@ -211,9 +230,9 @@ These travel a distance along the ground, and even when constructed deep undergr
 -- to place portals. https://en.wikipedia.org/wiki/Moore_curve
 
 
--- Flip a quadrant on its diagonal axis
+-- Flip a quadrant on a diagonal axis
 -- cell_count is the number of cells across the square is split into, and must be a power of 2
--- if flip_twice is true then pos does not change (any even numbers of flips would cancel out)
+-- if flip_twice is true then pos does not change (even numbers of flips cancel out)
 -- if flip_direction is true then the position is flipped along the \ diagonal
 -- if flip_direction is false then the position is flipped along the / diagonal
 local function hilbert_flip(cell_count, pos, flip_direction, flip_twice)
@@ -273,7 +292,7 @@ local function get_hilbert_coords(cell_count, distance)
 		rx = math.floor(distance / 2) % 2
 		ry = distance % 2
 		if rx == 1 then ry = 1 - ry end -- XOR ry with rx
-		 
+
 		hilbert_flip(s, pos, rx > 0, ry > 0);
 		pos.x = pos.x + s * rx
 		pos.y = pos.y + s * ry
@@ -281,7 +300,7 @@ local function get_hilbert_coords(cell_count, distance)
 
 		s = s * 2
 	end
-  return pos
+	return pos
 end
 
 
