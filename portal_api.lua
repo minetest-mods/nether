@@ -1,6 +1,6 @@
 -- see portal_api.txt for documentation
-local DEBUG = false
-
+local DEBUG = true
+local IGNORE_MODSTORAGE_PORTALS = false -- set true if you don't want portals to remember where they were linked - sometimes it's handy for debugging to have the portal always recalculate its target
 
 nether.registered_portals = {}
 
@@ -581,16 +581,20 @@ end
 -- Add portal information to mod storage, so new portals may find existing portals near the target location.
 -- Do this whenever a portal is created or changes its ignition state
 local function store_portal_location_info(portal_name, anchorPos, orientation, ignited)
-	mod_storage:set_string(
-		minetest.pos_to_string(anchorPos) .. " is " .. portal_name, 
-		minetest.serialize({orientation = orientation, active = ignited})
-	)
+	if not IGNORE_MODSTORAGE_PORTALS then 
+		mod_storage:set_string(
+			minetest.pos_to_string(anchorPos) .. " is " .. portal_name, 
+			minetest.serialize({orientation = orientation, active = ignited})
+		)
+	end
 end
 
 -- Remove portal information from mod storage.
 -- Do this if a portal frame is destroyed such that it cannot be ignited anymore.
 local function remove_portal_location_info(portal_name, anchorPos)
-	mod_storage:set_string(minetest.pos_to_string(anchorPos) .. " is " .. portal_name, "")
+	if not IGNORE_MODSTORAGE_PORTALS then 
+		mod_storage:set_string(minetest.pos_to_string(anchorPos) .. " is " .. portal_name, "")
+	end
 end
 
 -- Returns a table of the nearest portals to anchorPos indexed by distance, based on mod_storage
@@ -607,27 +611,30 @@ local function list_closest_portals(portal_definition, anchorPos, distance_limit
 
 	local result = {}
 
-	local isRealm = portal_definition.is_within_realm(anchorPos)
-	if distance_limit == nil then distance_limit = -1 end
-	if       y_factor == nil then       y_factor =  1 end
+	if not IGNORE_MODSTORAGE_PORTALS then 
 
-	for key, value in pairs(mod_storage:to_table().fields) do
-		local closingBrace = key:find(")", 6, true)
-		if closingBrace ~= nil then 
-			local found_anchorPos = minetest.string_to_pos(key:sub(0, closingBrace))
-			if found_anchorPos ~= nil and portal_definition.is_within_realm(found_anchorPos) == isRealm then
-				local found_name = key:sub(closingBrace + 5)
-				if found_name == portal_definition.name then
-					local x = anchorPos.x - found_anchorPos.x
-					local y = anchorPos.y - found_anchorPos.y
-					local z = anchorPos.z - found_anchorPos.z
-					local distance = math.hypot(y * y_factor, math.hypot(x, z))
-					if distance <= distance_limit or distance_limit < 0 then
-						local info = minetest.deserialize(value) or {}
-						if DEBUG then minetest.chat_send_all("found " .. found_name .. " listed at distance " .. distance ..  "  from dest " .. minetest.pos_to_string(anchorPos) .. ", found: " .. minetest.pos_to_string(found_anchorPos) .. " orientation " .. info.orientation) end
-						info.anchorPos = found_anchorPos
-						info.distance  = distance
-						result[distance] = info
+		local isRealm = portal_definition.is_within_realm(anchorPos)
+		if distance_limit == nil then distance_limit = -1 end
+		if       y_factor == nil then       y_factor =  1 end
+
+		for key, value in pairs(mod_storage:to_table().fields) do
+			local closingBrace = key:find(")", 6, true)
+			if closingBrace ~= nil then 
+				local found_anchorPos = minetest.string_to_pos(key:sub(0, closingBrace))
+				if found_anchorPos ~= nil and portal_definition.is_within_realm(found_anchorPos) == isRealm then
+					local found_name = key:sub(closingBrace + 5)
+					if found_name == portal_definition.name then
+						local x = anchorPos.x - found_anchorPos.x
+						local y = anchorPos.y - found_anchorPos.y
+						local z = anchorPos.z - found_anchorPos.z
+						local distance = math.hypot(y * y_factor, math.hypot(x, z))
+						if distance <= distance_limit or distance_limit < 0 then
+							local info = minetest.deserialize(value) or {}
+							if DEBUG then minetest.chat_send_all("found " .. found_name .. " listed at distance " .. distance ..  " (within " .. distance_limit .. ") from dest " .. minetest.pos_to_string(anchorPos) .. ", found: " .. minetest.pos_to_string(found_anchorPos) .. " orientation " .. info.orientation) end
+							info.anchorPos = found_anchorPos
+							info.distance  = distance
+							result[distance] = info
+						end
 					end
 				end
 			end
@@ -1020,7 +1027,7 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 	local portal_definition_list = list_portal_definitions_for_frame_node(ignition_node_name)
 
 	for _, portal_definition in ipairs(portal_definition_list) do
-		local continue = false
+		local continue = false -- WRT the for loop, since lua has no continue keyword
 
 		-- check it was a portal frame that the player is trying to ignite
 		local anchorPos, orientation, is_ignited = is_within_portal_frame(portal_definition, ignition_pos)
@@ -1028,11 +1035,20 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 			if DEBUG then minetest.chat_send_all("No " .. portal_definition.name .. " portal frame found at " .. minetest.pos_to_string(ignition_pos)) end
 			continue = true -- no portal is here, but perhaps there more than one portal type we need to search for
 		elseif is_ignited then
-			if DEBUG then
-				local meta = minetest.get_meta(ignition_pos)
-				if meta ~= nil then minetest.chat_send_all("This portal links to " .. meta:get_string("target") .. ". p1=" .. meta:get_string("p1") .. " p2=" .. meta:get_string("p2")) end
+			local repair = false
+			local meta = minetest.get_meta(ignition_pos)
+			if meta ~= nil then 
+				if meta:get_string("p1") == "" then
+					-- metadata is missing, the portal frame node must have been removed without calling 
+					-- on_destruct - perhaps by an ABM, then replaced - presumably by a player.
+					-- allowing reigniting will repair the portal
+					if DEBUG then minetest.chat_send_all("Broken portal detected, allowing reignition/repair") end
+					repair = true
+				else				
+					if DEBUG then minetest.chat_send_all("This portal links to " .. meta:get_string("target") .. ". p1=" .. meta:get_string("p1") .. " p2=" .. meta:get_string("p2")) end
+				end
 			end
-			return false -- portal is already ignited
+			if not repair then return false end -- portal is already ignited
 		end
 
 		if continue == false then
@@ -1595,8 +1611,16 @@ function nether.register_portal(name, portaldef)
 
 	if portaldef.find_surface_anchorPos == nil then	-- default to using find_surface_target_y()
 		portaldef.find_surface_anchorPos = function(pos)
-			local surface_y = nether.find_surface_target_y(pos.x, pos.z, name)
-			return {x = pos.x, y = surface_y, z = pos.z}
+			
+			local destination_pos = {x = pos.x, y = 0, z = pos.z}
+			local existing_portal_location, existing_portal_orientation = 
+				nether.find_nearest_working_portal(name, destination_pos, 10, 0) -- a y_factor of 0 makes the search ignore the altitude of the portals (as long as they are outside the realm)
+			if existing_portal_location ~= nil then
+				return existing_portal_location, existing_portal_orientation
+			else 
+				destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, name)
+				return destination_pos
+			end
 		end
 	end
 
@@ -1673,7 +1697,8 @@ function nether.register_portal_ignition_item(item_name, ignition_failure_sound)
 end
 
 -- use this when determining where to spawn a portal, to avoid overwriting player builds
--- It checks the area for any nodes that aren't ground or trees.
+-- It checks the area for any nodes that aren't ground or trees. 
+-- (Water also fails this test, unless it is unemerged)
 function nether.volume_is_natural(minp, maxp)
 	local c_air = minetest.get_content_id("air")
 	local c_ignore = minetest.get_content_id("ignore")
@@ -1691,13 +1716,14 @@ function nether.volume_is_natural(minp, maxp)
 		for x = pos1.x, pos2.x do
 			local id = data[vi] -- Existing node
 			if DEBUG and id == nil then minetest.chat_send_all("nil block at index " .. vi) end
-			if id ~= c_air and id ~= c_ignore and id ~= nil then -- These are natural or not emerged
+			if id ~= c_air and id ~= c_ignore and id ~= nil then -- checked for common natural or not emerged
 				local name = minetest.get_name_from_content_id(id)
 				local nodedef = minetest.registered_nodes[name]
 				if not nodedef.is_ground_content then
 					-- trees are natural but not "ground content"
 					local node_groups = nodedef.groups
 					if node_groups == nil or (node_groups.tree == nil and node_groups.leaves == nil and node_groups.leafdecay == nil) then
+						if DEBUG then minetest.chat_send_all("volume_is_natural() found unnatural node " .. name) end
 						return false
 					end
 				end
@@ -1707,6 +1733,7 @@ function nether.volume_is_natural(minp, maxp)
 	end
 	end
 
+	if DEBUG then minetest.chat_send_all("Volume is natural") end
 	return true
 end
 
@@ -1718,26 +1745,20 @@ function nether.find_surface_target_y(target_x, target_z, portal_name)
 	if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
 		local surface_level = minetest.get_spawn_level(target_x, target_z)		
 		if surface_level ~= nil then
-			-- get_spawn_level() seems to err on the side of caution and sometimes spawn the player a 
-			-- block higher than the ground level.
-			local shouldBeGroundPos = {x = target_x, y = surface_level - 1, z = target_z}
-			local groundNode = minetest.get_node_or_nil(shouldBeGroundPos)
-			if groundNode == nil then
-				-- force the area to be loaded - it's going to be loaded anyway by volume_is_natural()
-				minetest.get_voxel_manip():read_from_map(shouldBeGroundPos, shouldBeGroundPos)
-				groundNode = minetest.get_node(shouldBeGroundPos)
-			end
-			if not groundNode.is_ground_content then 
-				if DEBUG then minetest.chat_send_all("find_surface_target_y dropped spawn_level by 1") end
-				surface_level = surface_level - 1
 
-				shouldBeGroundPos.y = shouldBeGroundPos.y - 1
-				groundNode = minetest.get_node_or_nil(shouldBeGroundPos)
-				if groundNode ~= nil and not groundNode.is_ground_content then 
-					if DEBUG then minetest.chat_send_all("find_surface_target_y dropped spawn_level by 2") end
-					surface_level = surface_level - 1
-				end
+			-- get_spawn_level() tends to err on the side of caution and sometimes spawn the player a 
+			-- block higher than the ground level. The implementation is mapgen specific  
+			-- and -2 seems to be the right amount for v6, v5, carpathian, valleys, and flat,
+			-- but v7 only needs -1.
+			-- Perhaps this was not always the case, and -2 may be too much in older versions 
+			-- of minetest, but half-buried portals are perferable to floating ones, and they 
+			-- will clear a suitable hole around them.
+			if minetest.get_mapgen_setting("mg_name") == "v7" then 
+				surface_level = surface_level - 1
+			else
+				surface_level = surface_level - 2
 			end
+
 			-- Check volume for non-natural nodes
 			local minp = {x = target_x - 1, y = surface_level - 1, z = target_z - 2}
 			local maxp = {x = target_x + 2, y = surface_level + 3, z = target_z + 2}
