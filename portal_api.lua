@@ -1,5 +1,5 @@
 -- see portal_api.txt for documentation
-local DEBUG = true
+local DEBUG = false
 local IGNORE_MODSTORAGE_PORTALS = false -- set true if you don't want portals to remember where they were linked - sometimes it's handy for debugging to have the portal always recalculate its target
 
 nether.registered_portals = {}
@@ -90,6 +90,7 @@ nether.PortalShape_Traditional = {
 	size = vector.new(4, 5, 1), -- size of the portal, and not necessarily the size of the schematic,
 	                            -- which may clear area around the portal.
 	schematic_filename = nether.path .. "/schematics/nether_portal.mts",
+	is_horizontal  = false, -- whether the wormhole is a vertical or horizontal surface
 
 	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
 	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
@@ -237,6 +238,7 @@ nether.PortalShape_Circular = {
 	size = vector.new(7, 7, 1), -- size of the portal, and not necessarily the size of the schematic,
 	                            -- which may clear area around the portal.
 	schematic_filename = nether.path .. "/schematics/nether_portal_circular.mts",
+	is_horizontal  = false, -- whether the wormhole is a vertical or horizontal surface
 
 	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
 	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
@@ -366,6 +368,7 @@ nether.PortalShape_Platform = {
 	size = vector.new(5, 2, 5), -- size of the portal, and not necessarily the size of the schematic,
 	                            -- which may clear area around the portal.
 	schematic_filename = nether.path .. "/schematics/nether_portal_platform.mts",
+	is_horizontal  = true, -- whether the wormhole is a vertical or horizontal surface
 
 	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
 	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
@@ -760,7 +763,7 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 	-- they define the bounding volume for the portal.
 	local p1, p2 = portal_definition.shape:get_p1_and_p2_from_anchorPos(anchorPos, orientation)
 	local p1_string, p2_string = minetest.pos_to_string(p1), minetest.pos_to_string(p2)
-	local param2 = get_colorfacedir_from_color_and_orientation(portal_definition.wormhole_node_color, orientation, portal_definition.wormhole_node_is_horizontal)
+	local param2 = get_colorfacedir_from_color_and_orientation(portal_definition.wormhole_node_color, orientation, portal_definition.shape.is_horizontal)
 
 	local update_aborted-- using closures to allow the updateFunc to return extra information - by setting this variable
 
@@ -924,7 +927,7 @@ local function build_portal(portal_definition, anchorPos, orientation, destinati
 	-- set the param2 on wormhole nodes to ensure they are the right color
 	local wormholeNode = {
 		name = portal_definition.wormhole_node_name,
-		param2 = get_colorfacedir_from_color_and_orientation(portal_definition.wormhole_node_color, orientation, portal_definition.wormhole_node_is_horizontal)
+		param2 = get_colorfacedir_from_color_and_orientation(portal_definition.wormhole_node_color, orientation, portal_definition.shape.is_horizontal)
 	}
 	portal_definition.shape.apply_func_to_wormhole_nodes(
 		anchorPos, 
@@ -1560,7 +1563,6 @@ local portaldef_default = {
 	shape                        = PortalShape_Traditional,
 	wormhole_node_name           = "nether:portal",
 	wormhole_node_color          = 0,
-	wormhole_node_is_horizontal  = false,
 	frame_node_name              = "default:obsidian",
 	particle_texture             = "nether_particle.png",
 	particle_texture_animation   = nil,

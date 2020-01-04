@@ -62,7 +62,6 @@ if  minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE
 		shape               = nether.PortalShape_Platform,
 		frame_node_name     = "default:ice",
 		wormhole_node_color = 7, -- 2 is blue
-		wormhole_node_is_horizontal = true, -- indicate the wormhole surface is horizontal
 		particle_texture    = {
 			name      = "nether_particle_anim1.png",
 			animation = {
