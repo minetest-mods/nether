@@ -1036,12 +1036,14 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 		local anchorPos, orientation, is_ignited = is_within_portal_frame(portal_definition, ignition_pos)
 		if anchorPos == nil then
 			if DEBUG then minetest.chat_send_all("No " .. portal_definition.name .. " portal frame found at " .. minetest.pos_to_string(ignition_pos)) end
-			continue = true -- no portal is here, but perhaps there more than one portal type we need to search for
+			continue = true -- no portal is here, but perhaps there's more than one portal type we need to search for
 		elseif is_ignited then
+			-- Found a portal, check its metadata and timer is healthy.
 			local repair = false
 			local meta = minetest.get_meta(ignition_pos)
-			if meta ~= nil then 
-				if meta:get_string("p1") == "" then
+			if meta ~= nil then
+				local p1, p2, target = meta:get_string("p1"), meta:get_string("p2"), meta:get_string("target")
+				if p1 == "" or p2 == "" or target == "" then
 					-- metadata is missing, the portal frame node must have been removed without calling 
 					-- on_destruct - perhaps by an ABM, then replaced - presumably by a player.
 					-- allowing reigniting will repair the portal
@@ -1049,9 +1051,19 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 					repair = true
 				else				
 					if DEBUG then minetest.chat_send_all("This portal links to " .. meta:get_string("target") .. ". p1=" .. meta:get_string("p1") .. " p2=" .. meta:get_string("p2")) end
+				
+					-- Check the portal's timer is running, and fix if it's not.
+					-- A portal's timer can stop running if the game is played without that portal type being 
+					-- registered, e.g. enabling one of the example portals then later disabling it, then enabling it again.
+					-- (if this is a frequent problem, then change the value of "run_at_every_load" in the lbm)
+					local timer = minetest.get_node_timer(get_timerPos_from_p1_and_p2(minetest.string_to_pos(p1), minetest.string_to_pos(p2)))
+					if timer ~= nil and timer:get_timeout() == 0 then
+						if DEBUG then minetest.chat_send_all("Portal timer was not running: restarting the timer.") end
+						timer:start(1) 
+					end
 				end
 			end
-			if not repair then return false end -- portal is already ignited
+			if not repair then return false end -- portal is already ignited (or timer has been fixed)
 		end
 
 		if continue == false then
@@ -1508,13 +1520,14 @@ minetest.register_lbm({
 		local meta = minetest.get_meta(pos)
 		if meta ~= nil then
 			p1 = minetest.string_to_pos(meta:get_string("p1"))
-			p2 = minetest.string_to_pos(meta:get_string("p1"))
+			p2 = minetest.string_to_pos(meta:get_string("p2"))
 		end
 		if p1 ~= nil and p2 ~= nil then
 			local timerPos = get_timerPos_from_p1_and_p2(p1, p2)
 			local timer = minetest.get_node_timer(timerPos)
 			if timer ~= nil then
 				timer:start(1)
+				if DEBUG then minetest.chat_send_all("LBM started portal timer " .. minetest.pos_to_string(timerPos)) end
 			elseif DEBUG then
 				minetest.chat_send_all("get_node_timer" .. minetest.pos_to_string(timerPos) .. " returned null")
 			end
@@ -1743,35 +1756,32 @@ end
 -- portal_name is optional, providing it allows existing portals on the surface to be reused.
 function nether.find_surface_target_y(target_x, target_z, portal_name)
 
+	-- default to starting the search at -16 (probably underground) if we don't know the 
+	-- surface, like paramat's original code from before get_spawn_level() was available:
+	-- https://github.com/minetest-mods/nether/issues/5#issuecomment-506983676
+	local start_y = -16
+
 	-- try to spawn on surface first
 	if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
-		local surface_level = minetest.get_spawn_level(target_x, target_z)		
-		if surface_level ~= nil then
+		surface_level = minetest.get_spawn_level(target_x, target_z)
+		if surface_level ~= nil then -- test this since get_spawn_level() can return nil over water or steep/high terrain	
 
-			-- get_spawn_level() tends to err on the side of caution and sometimes spawn the player a 
+			-- get_spawn_level() tends to err on the side of caution and spawns the player a 
 			-- block higher than the ground level. The implementation is mapgen specific  
-			-- and -2 seems to be the right amount for v6, v5, carpathian, valleys, and flat,
+			-- and -2 seems to be the right correction for v6, v5, carpathian, valleys, and flat,
 			-- but v7 only needs -1.
 			-- Perhaps this was not always the case, and -2 may be too much in older versions 
 			-- of minetest, but half-buried portals are perferable to floating ones, and they 
-			-- will clear a suitable hole around them.
+			-- will clear a suitable hole around themselves.
 			if minetest.get_mapgen_setting("mg_name") == "v7" then 
 				surface_level = surface_level - 1
 			else
 				surface_level = surface_level - 2
 			end
-
-			-- Check volume for non-natural nodes
-			local minp = {x = target_x - 1, y = surface_level - 1, z = target_z - 2}
-			local maxp = {x = target_x + 2, y = surface_level + 3, z = target_z + 2}
-			if nether.volume_is_natural(minp, maxp) then
-				return surface_level
-			end
+			start_y = surface_level
 		end
 	end
 
-	-- fallback to underground search
-	local start_y = -16
 	for y = start_y, start_y - 256, -16 do
 		-- Check volume for non-natural nodes
 		local minp = {x = target_x - 1, y = y - 1, z = target_z - 2}
@@ -1783,6 +1793,7 @@ function nether.find_surface_target_y(target_x, target_z, portal_name)
 			-- but reigniting existing portals in portal rooms is fine - desirable even.
 			local anchorPos, orientation, is_ignited = is_within_portal_frame(nether.registered_portals[portal_name], {x = target_x, y = y, z = target_z})
 			if anchorPos ~= nil then
+				if DEBUG then minetest.chat_send_all("Volume_is_natural check failed, but a portal frame is here " .. minetest.pos_to_string(anchorPos) .. ", so this is still a good target y level") end
 				return y
 			end
 		end

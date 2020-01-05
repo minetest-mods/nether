@@ -44,7 +44,7 @@ local SURFACE_TRAVEL_DISTANCE = 26
 local FLOATLANDS_ENABLED = false
 local FLOATLAND_LEVEL    = 1280
 
-if  minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_PORTAL_EXAMPLE_FLOATLANDS) then
+if minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_PORTAL_EXAMPLE_FLOATLANDS) then
 
 	local floatlands_flavortext = ""
 	if minetest.get_mapgen_setting("mg_name") == "v7" then
@@ -53,7 +53,7 @@ if  minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE
 		FLOATLAND_LEVEL = minetest.get_mapgen_setting("mgv7_floatland_level") or 1280	
 
 		if FLOATLANDS_ENABLED then 
-			floatlands_flavortext = "There is a floating land of hills and lakes and forests up there, the edges of which lead to a drop all the way back down to the surface. We have not found how far these strange lands extend. One day I may retire here." 
+			floatlands_flavortext = S("There is a floating land of hills and forests up there, over the edges of which is a perilous drop all the way back down to sea level. We have not found how far these strange pristine lands extend. I have half a mind to retire there one day.")
 		end
 	end
 
@@ -122,7 +122,7 @@ end
 local get_moore_distance -- will be function get_moore_distance(cell_count, x, y): integer
 local get_moore_coords   -- will be function get_moore_coords(cell_count, distance): pos2d
 
-if  minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL) then
+if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL) then
 
 	nether.register_portal("surface_portal", {
 		shape               = nether.PortalShape_Circular,
@@ -202,10 +202,8 @@ if  minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENA
 					for attempt = 1, attemptLimit do
 						adj_x = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
 						adj_z = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
-						minetest.chat_send_all(attempt .. ": x " .. target_x + adj_x .. ", z " .. target_z + adj_z)
 						if minetest.get_spawn_level(target_x + adj_x, target_z + adj_z)	~= nil then
 							-- found a location which will be at ground level (unless a player has built there)
-							minetest.chat_send_all("x " .. target_x + adj_x .. ", z " .. target_z + adj_z .. " is suitable. Within " .. search_radius .. " of " .. target_x .. ", " .. target_z)
 							break
 						end
 					end
