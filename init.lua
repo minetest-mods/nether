@@ -295,7 +295,7 @@ minetest.register_abm({
 							vector.subtract(target, 4), vector.add(target, 4))
 					end
 					-- teleport the player
-					minetest.after(3, function(o, p, t)
+					minetest.after(3, function(o, p, t) pcall(function() -- avoid crashes when players exit
 						local objpos = o:getpos()
 						objpos.y = objpos.y + 0.1 -- Fix some glitches at -8000
 						if minetest.get_node(objpos).name ~= "nether:portal" then
@@ -317,7 +317,7 @@ minetest.register_abm({
 
 						minetest.after(1, check_and_build_portal, p, t)
 
-					end, obj, pos, target)
+					end) end, obj, pos, target)
 				end
 			end
 		end
