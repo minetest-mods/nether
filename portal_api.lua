@@ -1102,7 +1102,10 @@ end
 local function ensure_remote_portal_then_teleport(player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
 
 	-- check player is still standing in a portal
-	local playerPos = player:getpos()
+	local playerPos = player:get_pos()
+	if playerPos == nil then 
+		return -- player quit the game while teleporting
+	end 
 	playerPos.y = playerPos.y + 0.1 -- Fix some glitches at -8000
 	if minetest.get_node(playerPos).name ~= portal_definition.wormhole_node_name then
 		return -- the player has moved out of the portal
@@ -1162,7 +1165,7 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 			local offset = vector.subtract(playerPos, local_wormholePos) -- preserve player's position in the portal
 			local rotated_offset = {x = math.cos(rotation_angle) * offset.x - math.sin(rotation_angle) * offset.z, y = offset.y, z = math.sin(rotation_angle) * offset.x + math.cos(rotation_angle) * offset.z}
 			local new_playerPos = vector.add(destination_wormholePos, rotated_offset)
-			player:setpos(new_playerPos)
+			player:set_pos(new_playerPos)
 			player:set_look_horizontal(player:get_look_horizontal() + rotation_angle)
 
 			if portal_definition.on_player_teleported ~= nil then
