@@ -58,7 +58,13 @@ minetest.register_node("nether:portal", {
 			{-0.5, -0.5, -0.1,  0.5, 0.5, 0.1},
 		},
 	},
-	groups = {not_in_creative_inventory = 1}
+	groups = {not_in_creative_inventory = 1},
+	mesecons = {receptor = { 
+		state = "on",
+		rules = function(node) 
+			return nether.get_mesecon_emission_rules_from_colorfacedir(node.param2)
+		end
+	}}
 })
 
 

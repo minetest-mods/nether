@@ -39,6 +39,9 @@ AnchorPos     Introduced by the portal_api. Coordinates for portals are normally
               earlier versions of the nether mod.
               Usually an orientation is required with an AnchorPos.
 
+              Orientation is yaw, either 0 or 90, 0 meaning a portal that faces north/south - i.e. obsidian 
+              running east/west.
+
 TimerPos      The portal_api replaces ABMs with a single node timer per portal, and the TimerPos is the 
               node in which that timer is located. Extra metadata is also kept in the TimerPos node.
 
@@ -75,8 +78,6 @@ or vice-versa, however AnchorPos is in the bottom/south/west-corner to keep comp
 with earlier versions of nether mod (which only records portal corners p1 & p2 in the node
 metadata).
 
-Orientation is yaw, either 0 or 90, 0 meaning a portal that faces north/south - i.e. obsidian 
-running east/west.
 ]]
 
 
@@ -547,6 +548,40 @@ local function get_orientation_from_colorfacedir(param2)
 	end
 end
 
+-- We want wormhole nodes to only emit mesecon energy orthogonally to the 
+-- wormhole surface so that the wormhole will not send power to the frame, 
+-- this allows the portal frame to listen for mesecon energy from external switches/wires etc.
+function get_mesecon_emission_rules_from_colorfacedir(param2)
+
+	local axis_direction = 0
+	-- Strip off the top 6 bits to leave the 2 rotation bits, unfortunately MT lua has no bitwise '&'
+	-- (high 3 bits are palette, followed by 3 direction bits then 2 rotation bits)
+	if param2 >= 128 then param2 = param2 - 128 end
+	if param2 >=  64 then param2 = param2 -  64 end
+	if param2 >=  32 then param2 = param2 -  32 end
+	if param2 >=  16 then param2 = param2 -  16; axis_direction = axis_direction + 4 end
+	if param2 >=   8 then param2 = param2 -   8; axis_direction = axis_direction + 2 end
+	if param2 >=   4 then param2 = param2 -   4; axis_direction = axis_direction + 1 end
+
+	-- if the portal is vertical then node axis_direction will be +Y (up) and node rotation
+	-- will reflect the portal's yaw orientation.
+	-- If the portal is horizontal then the node axis direction reflects the yaw orientation and
+	-- the node's rotation will be whatever's needed to keep the texture horizontal (either 0 or 1)
+	local rules
+	if axis_direction == 0 or axis_direction == 5 then
+		-- portal is vertical
+		rules = {{x = 0, y = 0, z = 1}, {x = 0, y = 0, z = -1}}
+		if param2 % 2 ~= 0 then
+			rules = mesecon.rotate_rules_right(rules)
+		end
+	else
+		-- portal is horizontal, only emit up
+		rules = {{x = 0, y = 1, z = 0}}
+	end
+	return rules
+end
+nether.get_mesecon_emission_rules_from_colorfacedir = get_mesecon_emission_rules_from_colorfacedir -- make the function available to nodes.lua
+
 -- Combining frame_node_name, p1, and p2 will always be enough to uniquely identify a portal_definition
 -- WITHOUT needing to inspect the world. register_portal() will enforce this.
 -- This function does not require the portal to be in a loaded chunk.
@@ -725,12 +760,14 @@ function extinguish_portal(pos, node_name, frame_was_destroyed)
 	for x = p1.x, p2.x do
 	for y = p1.y, p2.y do
 	for z = p1.z, p2.z do
-		local nn = minetest.get_node({x = x, y = y, z = z}).name
+		local clearPos = {x = x, y = y, z = z}
+		local nn = minetest.get_node(clearPos).name
 		if nn == frame_node_name or nn == wormhole_node_name then
 			if nn == wormhole_node_name then
-				minetest.remove_node({x = x, y = y, z = z})
+				minetest.remove_node(clearPos)
+				if mesecon ~= nil then mesecon.receptor_off(clearPos) end
 			end
-			local m = minetest.get_meta({x = x, y = y, z = z})
+			local m = minetest.get_meta(clearPos)
 			m:set_string("p1", "")
 			m:set_string("p2", "")
 			m:set_string("target", "")
@@ -764,6 +801,8 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 	local p1, p2 = portal_definition.shape:get_p1_and_p2_from_anchorPos(anchorPos, orientation)
 	local p1_string, p2_string = minetest.pos_to_string(p1), minetest.pos_to_string(p2)
 	local param2 = get_colorfacedir_from_color_and_orientation(portal_definition.wormhole_node_color, orientation, portal_definition.shape.is_horizontal)
+	local mesecon_rules
+	if ignite and mesecon ~= nil then mesecon_rules = get_mesecon_emission_rules_from_colorfacedir(param2) end
 
 	local update_aborted-- using closures to allow the updateFunc to return extra information - by setting this variable
 
@@ -775,6 +814,7 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 			local node_name = minetest.get_node(pos).name
 			if node_name == "air" then
 				minetest.set_node(pos, {name = portal_definition.wormhole_node_name, param2 = param2})
+				if mesecon ~= nil then mesecon.receptor_on(pos, mesecon_rules) end
 			end
 
 			local existing_p1 = meta:get_string("p1")

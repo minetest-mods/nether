@@ -31,8 +31,8 @@ local ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL = false
 
 -- Sets how far a Surface Portal will travel, measured in cells along the Moore curve,
 -- which are about 117 nodes square each. Larger numbers will generally mean further distance 
--- as-the-crow-flies, but for small adjustments this will not always be true due to the how 
--- the Moore curve frequently doubles back upon itself.
+-- as-the-crow-flies, but this will not always be true due to the how the Moore curve 
+-- frequently doubles back upon itself.
 -- This doubling-back prevents the surface portal from taking players easily accross the 
 -- map - the curve is 262144 cells long!
 local SURFACE_TRAVEL_DISTANCE = 26
