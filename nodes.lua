@@ -1,7 +1,9 @@
+local S = nether.get_translator
+
 -- Portal node
 
 minetest.register_node("nether:portal", {
-	description = "Nether Portal",
+	description = S("Nether Portal"),
 	tiles = {
 		"nether_transparent.png",
 		"nether_transparent.png",
@@ -63,7 +65,7 @@ minetest.register_node("nether:portal", {
 -- Nether nodes
 
 minetest.register_node("nether:rack", {
-	description = "Netherrack",
+	description = S("Netherrack"),
 	tiles = {"nether_rack.png"},
 	is_ground_content = true,
 	groups = {cracky = 3, level = 2},
@@ -71,7 +73,7 @@ minetest.register_node("nether:rack", {
 })
 
 minetest.register_node("nether:sand", {
-	description = "Nethersand",
+	description = S("Nethersand"),
 	tiles = {"nether_sand.png"},
 	is_ground_content = true,
 	groups = {crumbly = 3, level = 2, falling_node = 1},
@@ -81,7 +83,7 @@ minetest.register_node("nether:sand", {
 })
 
 minetest.register_node("nether:glowstone", {
-	description = "Glowstone",
+	description = S("Glowstone"),
 	tiles = {"nether_glowstone.png"},
 	is_ground_content = true,
 	light_source = 14,
@@ -91,7 +93,7 @@ minetest.register_node("nether:glowstone", {
 })
 
 minetest.register_node("nether:brick", {
-	description = "Nether Brick",
+	description = S("Nether Brick"),
 	tiles = {"nether_brick.png"},
 	is_ground_content = false,
 	groups = {cracky = 2, level = 2},
@@ -102,7 +104,7 @@ local fence_texture =
 	"default_fence_overlay.png^nether_brick.png^default_fence_overlay.png^[makealpha:255,126,126"
 
 minetest.register_node("nether:fence_nether_brick", {
-	description = "Nether Brick Fence",
+	description = S("Nether Brick Fence"),
 	drawtype = "fencelike",
 	tiles = {"nether_brick.png"},
 	inventory_image = fence_texture,
@@ -126,8 +128,8 @@ stairs.register_stair_and_slab(
 	"nether:brick",
 	{cracky = 2, level = 2},
 	{"nether_brick.png"},
-	"nether stair",
-	"nether slab",
+	S("Nether stair"),
+	S("Nether slab"),
 	default.node_sound_stone_defaults()
 )
 
@@ -136,7 +138,7 @@ stairs.register_stair_and_slab(
 if minetest.get_modpath("moreblocks") then
 	stairsplus:register_all(
 		"nether", "brick", "nether:brick", {
-			description = "Nether Brick",
+			description = S("Nether Brick"),
 			groups = {cracky = 2, level = 2},
 			tiles = {"nether_brick.png"},
 			sounds = default.node_sound_stone_defaults(),

@@ -19,7 +19,19 @@
 
 ]]--
 
-local S = minetest.get_translator("nether")
+local S
+if minetest.get_translator ~= nil then
+	S = minetest.get_translator("nether")
+else
+	-- mock the translator function for MT 0.4
+	S = function(str, ...) 
+		local args={...}
+		return str:gsub(
+			"@%d+",
+			function(match) return args[tonumber(match:sub(2))]	end
+		)
+	end		
+end
 
 -- Global Nether namespace
 nether                = {}
@@ -37,7 +49,7 @@ nether.NETHER_REALM_ENABLED       =  true -- Setting to false disables the Nethe
 -- Override default settings with values from the .conf file, if any are present.
 nether.FASTTRAVEL_FACTOR          = tonumber(minetest.settings:get("nether_fasttravel_factor") or nether.FASTTRAVEL_FACTOR)
 nether.PORTAL_BOOK_LOOT_WEIGHTING = tonumber(minetest.settings:get("nether_portalBook_loot_weighting") or nether.PORTAL_BOOK_LOOT_WEIGHTING)
-nether.NETHER_REALM_ENABLED       = minetest.settings:get_bool("nether_realm_enabled", nether.NETHER_REALM_ENABLED)
+nether.NETHER_REALM_ENABLED       = minetest.settings:get_bool("nether_realm_enabled", nether.NETHER_REALM_ENABLED) or nether.NETHER_REALM_ENABLED
 
 
 -- Load files

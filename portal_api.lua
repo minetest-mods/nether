@@ -7,14 +7,14 @@ nether.registered_portals = {}
 -- gives the colour values in nether_portals_palette.png that are used by the wormhole colorfacedir
 -- hardware colouring.
 nether.portals_palette = {
-	[0] = {r = 128, g =   0, b = 128}, -- traditional/magenta
-	[1] = {r =   0, g =   0, b =   0}, -- black
-	[2] = {r =  19, g =  19, b = 255}, -- blue
-	[3] = {r =  55, g = 168, b =   0}, -- green
-	[4] = {r = 141, g = 237, b = 255}, -- cyan
-	[5] = {r = 221, g =   0, b =   0}, -- red
-	[6] = {r = 255, g = 240, b =   0}, -- yellow
-	[7] = {r = 255, g = 255, b = 255}  -- white
+	[0] = {r = 128, g =   0, b = 128, asString = "#800080"}, -- traditional/magenta
+	[1] = {r =   0, g =   0, b =   0, asString = "#000000"}, -- black
+	[2] = {r =  19, g =  19, b = 255, asString = "#1313FF"}, -- blue
+	[3] = {r =  55, g = 168, b =   0, asString = "#37A800"}, -- green
+	[4] = {r = 141, g = 237, b = 255, asString = "#8DEDFF"}, -- cyan
+	[5] = {r = 221, g =   0, b =   0, asString = "#DD0000"}, -- red
+	[6] = {r = 255, g = 240, b =   0, asString = "#FFF000"}, -- yellow
+	[7] = {r = 255, g = 255, b = 255, asString = "#FFFFFF"}  -- white
 }
 
 
@@ -1264,7 +1264,7 @@ function run_wormhole(timerPos, time_elapsed)
 		end
 	end
 
-	local p1, p2, frame_node_name
+	local p1, p2, portal_name
 	local meta = minetest.get_meta(timerPos)
 	if meta ~= nil then
 		p1          = minetest.string_to_pos(meta:get_string("p1"))
@@ -1328,6 +1328,34 @@ local function create_book(item_name, inventory_description, inventory_image, ti
 	})
 end
 
+
+local function add_book_as_treasure()
+	-- If the Nether is the only registered portal then lower the amount of these books
+	-- found as treasure, since many players already know the shape of a Nether portal
+	-- and what to build one out of, so would probably prefer other treasures.
+	local portalCount = 0
+	for _ in pairs(nether.registered_portals) do portalCount = portalCount + 1 end
+
+	local weight_adjust = 1
+	if portalCount <= 1 then weight_adjust = 0.5 end
+
+	if minetest.get_modpath("loot") then
+		loot.register_loot({
+			weights = { generic = nether.PORTAL_BOOK_LOOT_WEIGHTING * 1000 * weight_adjust,
+						books   = 100 },
+			payload = { stack = "nether:book_of_portals" }
+		})
+	end
+
+	if minetest.get_modpath("dungeon_loot") then
+		dungeon_loot.register({name = "nether:book_of_portals", chance = nether.PORTAL_BOOK_LOOT_WEIGHTING * weight_adjust})
+	end
+
+	-- todo: add to Treasurer mod TRMP https://github.com/poikilos/trmp_minetest_game
+	-- todo: add to help modpack       https://forum.minetest.net/viewtopic.php?t=15912
+end
+
+
 -- Updates nether:book_of_portals
 -- A book the player can read to lean how to build the different portals
 local function create_book_of_portals()
@@ -1371,6 +1399,8 @@ local function create_book_of_portals()
 		end
 	end
 
+	local previouslyRegistered = minetest.registered_items["nether:book_of_portals"] ~= nil
+
 	create_book(
 		"nether:book_of_portals",
 		S("Book of Portals"),
@@ -1380,6 +1410,10 @@ local function create_book_of_portals()
 		page1_text,
 		page2_text
 	)
+
+	if not previouslyRegistered and nether.PORTAL_BOOK_LOOT_WEIGHTING > 0 and portalCount > 0 then 
+		add_book_as_treasure()
+	end
 end
 
 -- This is hack to work around how place_schematic() never invalidates its cache.
@@ -1538,36 +1572,6 @@ minetest.register_lbm({
 	end
 })
 
-minetest.register_on_mods_loaded(function()
-
-	-- Make the Book of Portals available as treasure/loot
-	if nether.PORTAL_BOOK_LOOT_WEIGHTING > 0 and minetest.registered_items["nether:book_of_portals"] ~= nil then
-
-		-- All portals should be registered now.
-		-- If the Nether is the only registered portal then lower the amount of these books
-		-- found as treasure, since many players already know the shape of a Nether portal
-		-- and what to build one out of, so would probably prefer other treasures.
-		local portalCount = 0
-		for _ in pairs(nether.registered_portals) do portalCount = portalCount + 1 end
-		local weight_adjust = 1
-		if portalCount <= 1 then weight_adjust = 0.5 end
-
-		if minetest.get_modpath("loot") then
-			loot.register_loot({
-				weights = { generic = nether.PORTAL_BOOK_LOOT_WEIGHTING * 1000 * weight_adjust,
-							books   = 100 },
-				payload = { stack = "nether:book_of_portals" }
-			})
-		end
-
-		if minetest.get_modpath("dungeon_loot") then
-			dungeon_loot.register({name = "nether:book_of_portals", chance = nether.PORTAL_BOOK_LOOT_WEIGHTING * weight_adjust})
-		end
-
-		-- todo: add to Treasurer mod TRMP https://github.com/poikilos/trmp_minetest_game
-		-- todo: add to help modpack       https://forum.minetest.net/viewtopic.php?t=15912
-	end
-end)
 
 
 -- Portal API functions --
@@ -1576,7 +1580,7 @@ end)
 
 -- The fallback defaults for registered portaldef tables
 local portaldef_default = {
-	shape                        = PortalShape_Traditional,
+	shape                        = nether.PortalShape_Traditional,
 	wormhole_node_name           = "nether:portal",
 	wormhole_node_color          = 0,
 	frame_node_name              = "default:obsidian",
@@ -1613,8 +1617,7 @@ function nether.register_portal(name, portaldef)
 	if portaldef.particle_color == nil then
 		-- default the particle colours to be the same as the wormhole colour
 		assert(portaldef.wormhole_node_color >= 0 and portaldef.wormhole_node_color < 8, "portaldef.wormhole_node_color must be between 0 and 7 (inclusive)")
-		local rgb = nether.portals_palette[portaldef.wormhole_node_color]
-		portaldef.particle_color = minetest.rgba(rgb.r, rgb.g, rgb.b)
+		portaldef.particle_color = nether.portals_palette[portaldef.wormhole_node_color].asString
 	end
 	if portaldef.particle_texture_colored == nil then
 		-- Combine the particle texture with the particle color unless a particle_texture_colored was specified.
