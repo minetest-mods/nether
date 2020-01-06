@@ -44,7 +44,7 @@ local SURFACE_TRAVEL_DISTANCE = 26
 local FLOATLANDS_ENABLED = false
 local FLOATLAND_LEVEL    = 1280
 
-if minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_PORTAL_EXAMPLE_FLOATLANDS) then
+if minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_PORTAL_EXAMPLE_FLOATLANDS) or ENABLE_PORTAL_EXAMPLE_FLOATLANDS then
 
 	local floatlands_flavortext = ""
 	if minetest.get_mapgen_setting("mg_name") == "v7" then
@@ -122,7 +122,7 @@ end
 local get_moore_distance -- will be function get_moore_distance(cell_count, x, y): integer
 local get_moore_coords   -- will be function get_moore_coords(cell_count, distance): pos2d
 
-if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL) then
+if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL) or ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL then
 
 	nether.register_portal("surface_portal", {
 		shape               = nether.PortalShape_Circular,
