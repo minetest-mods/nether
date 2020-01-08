@@ -297,6 +297,9 @@ minetest.register_abm({
 					-- teleport the player
 					minetest.after(3, function(o, p, t)
 						local objpos = o:getpos()
+						if not objpos then -- player quit the game while teleporting
+							return
+						end
 						objpos.y = objpos.y + 0.1 -- Fix some glitches at -8000
 						if minetest.get_node(objpos).name ~= "nether:portal" then
 							return
