@@ -1,13 +1,16 @@
 --[[
+
   Nether mod portal examples for Minetest
 
-  These portal API examples work independently of the Nether realm and Nether portal. 
-  To try these examples, enable them in Mintest -> Settings -> All settings -> Mods -> nether
-  Once enabled, their shapes/plans will be shown in the book of portals.
+  These portal API examples work independently of the Nether realm 
+  and Nether portal. To try these examples, enable them in:
+	  Mintest -> Settings -> All settings -> Mods -> nether	  
+  Once enabled, details on how to build them can be found in dungeon 
+  chests in the book of portals.
 
   --
 
-  Copyright (C) 2019 Treer
+  Copyright (C) 2020 Treer
 
   Permission to use, copy, modify, and/or distribute this software for
   any purpose with or without fee is hereby granted, provided that the
@@ -61,7 +64,7 @@ if minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_
 	nether.register_portal("floatlands_portal", {
 		shape               = nether.PortalShape_Platform,
 		frame_node_name     = "default:ice",
-		wormhole_node_color = 7, -- 2 is blue
+		wormhole_node_color = 7, -- 7 is white
 		particle_texture    = {
 			name      = "nether_particle_anim1.png",
 			animation = {
@@ -146,7 +149,7 @@ if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENAB
 
 		is_within_realm = function(pos) 
 			-- Always return true, because these portals always just take you around the surface
-			-- rather than taking you to a realm
+			-- rather than taking you to a different realm
 			return true
 		end,
 
@@ -185,7 +188,8 @@ if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENAB
 				-- use the existing portal that was found near target_x, target_z
 				return existing_portal_location, existing_portal_orientation
 			else 
-				-- find a good location for the new portal
+				-- find a good location for the new portal, or if that isn't possible then at 
+				-- least adjust the coords a little so portals don't line up in a grid
 				local adj_x, adj_z = 0, 0
 		
 				if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
@@ -198,7 +202,7 @@ if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENAB
 						minetest.get_mapgen_setting("seed") * 3
 					)
 		
-					local attemptLimit = 12 -- how many attempts we'll make at finding a good location
+					local attemptLimit = 15 -- how many attempts we'll make at finding a good location
 					for attempt = 1, attemptLimit do
 						adj_x = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
 						adj_z = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)

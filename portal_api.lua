@@ -1,6 +1,30 @@
--- see portal_api.txt for documentation
+--[[
+
+  Portal API for Minetest
+
+  See portal_api.txt for documentation
+
+  --
+
+  Copyright (C) 2020 Treer
+
+  Permission to use, copy, modify, and/or distribute this software for
+  any purpose with or without fee is hereby granted, provided that the
+  above copyright notice and this permission notice appear in all copies.
+
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+  WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+  WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR
+  BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES
+  OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+  WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+  SOFTWARE.
+
+]]--
+
 local DEBUG = false
-local IGNORE_MODSTORAGE_PORTALS = false -- set true if you don't want portals to remember where they were linked - sometimes it's handy for debugging to have the portal always recalculate its target
+local DEBUG_IGNORE_MODSTORAGE = false -- setting true prevents portals from knowing where other portals are, forcing find_realm_anchorpos() etc. to be executed every time
 
 nether.registered_portals = {}
 
@@ -17,6 +41,10 @@ nether.portals_palette = {
 	[7] = {r = 255, g = 255, b = 255, asString = "#FFFFFF"}  -- white
 }
 
+
+if minetest.get_mod_storage == nil then 
+	error(nether.modname .. " does not support Minetest versions earlier than 0.4.16", 0) 
+end
 
 --[[
 
@@ -619,7 +647,7 @@ end
 -- Add portal information to mod storage, so new portals may find existing portals near the target location.
 -- Do this whenever a portal is created or changes its ignition state
 local function store_portal_location_info(portal_name, anchorPos, orientation, ignited)
-	if not IGNORE_MODSTORAGE_PORTALS then 
+	if not DEBUG_IGNORE_MODSTORAGE then 
 		mod_storage:set_string(
 			minetest.pos_to_string(anchorPos) .. " is " .. portal_name, 
 			minetest.serialize({orientation = orientation, active = ignited})
@@ -630,7 +658,7 @@ end
 -- Remove portal information from mod storage.
 -- Do this if a portal frame is destroyed such that it cannot be ignited anymore.
 local function remove_portal_location_info(portal_name, anchorPos)
-	if not IGNORE_MODSTORAGE_PORTALS then 
+	if not DEBUG_IGNORE_MODSTORAGE then 
 		mod_storage:set_string(minetest.pos_to_string(anchorPos) .. " is " .. portal_name, "")
 	end
 end
@@ -649,7 +677,7 @@ local function list_closest_portals(portal_definition, anchorPos, distance_limit
 
 	local result = {}
 
-	if not IGNORE_MODSTORAGE_PORTALS then 
+	if not DEBUG_IGNORE_MODSTORAGE then 
 
 		local isRealm = portal_definition.is_within_realm(anchorPos)
 		if distance_limit == nil then distance_limit = -1 end
@@ -1616,6 +1644,85 @@ minetest.register_lbm({
 
 -- Portal API functions --
 -- ==================== --
+
+
+-- the fallback defaults for wormhole nodedefs
+local wormhole_nodedef_default = {
+	description = S("Portal wormhole"),
+	tiles = {
+		"nether_transparent.png",
+		"nether_transparent.png",
+		"nether_transparent.png",
+		"nether_transparent.png",
+		{
+			name = "nether_portal.png",
+			animation = {
+				type = "vertical_frames",
+				aspect_w = 16,
+				aspect_h = 16,
+				length = 0.5,
+			},
+		},
+		{
+			name = "nether_portal.png",
+			animation = {
+				type = "vertical_frames",
+				aspect_w = 16,
+				aspect_h = 16,
+				length = 0.5,
+			},
+		},
+	},
+	drawtype = "nodebox",
+	paramtype = "light",
+	paramtype2 = "colorfacedir",
+	palette = "nether_portals_palette.png",
+	post_effect_color = {
+		-- post_effect_color can't be changed dynamically in Minetest like the portal colour is.
+		-- If you need a different post_effect_color then use register_wormhole_node() to create 
+		-- another wormhole node with the right post_effect_color and set it as the wormhole_node_name 
+		-- in your portaldef.
+		-- Hopefully this colour is close enough to magenta to work with the traditional magenta
+		-- portals, close enough to red to work for a red portal, and also close enough to red to
+		-- work with blue & cyan portals - since blue portals are sometimes portrayed as being red
+		-- from the opposite side / from the inside.
+		a = 160, r = 128, g = 0, b = 80
+	},
+	sunlight_propagates = true,
+	use_texture_alpha = true,
+	walkable = false,
+	diggable = false,
+	pointable = false,
+	buildable_to = false,
+	is_ground_content = false,
+	drop = "",
+	light_source = 5,
+	alpha = 192,
+	node_box = {
+		type = "fixed",
+		fixed = {
+			{-0.5, -0.5, -0.1,  0.5, 0.5, 0.1},
+		},
+	},
+	groups = {not_in_creative_inventory = 1},
+	mesecons = {receptor = { 
+		state = "on",
+		rules = function(node) 
+			return nether.get_mesecon_emission_rules_from_colorfacedir(node.param2)
+		end
+	}}
+}
+
+-- Call only at load time
+function nether.register_wormhole_node(name, nodedef)
+	assert(name ~= nil,    "Unable to register wormhole node: Name is nil")
+	assert(nodedef ~= nil, "Unable to register wormhole node ''" .. name .. "'': nodedef is nil")
+
+	for key, value in pairs(wormhole_nodedef_default) do 
+		if nodedef[key] == nil then nodedef[key] = value end
+	end
+	minetest.register_node(name, nodedef)	
+end
 
 
 -- The fallback defaults for registered portaldef tables
