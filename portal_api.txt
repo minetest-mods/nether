@@ -23,8 +23,8 @@ using the same node as its frame, and portal sizes remain small.
 
 Stone is not a good choice for portal frame nodes as the Minetest engine may 
 convert it into terrain nodes if the biome-pass happens after the portal is
-created. Similarly, avoid using nodes which may be replaced by ABMs etc. in the
-game without the node's on_destruct being triggered.
+created. Similarly, avoid using nodes which may be replaced by ABMs or 
+docoration functions without the node's `on_destruct` being triggered.
 
 
 Realms
@@ -37,7 +37,16 @@ inside its realm then it links to the outside.
 You get to decide what consitutes your realm by implementing the function
 `is_within_realm(position)`.
 
-The Nether realm, for example, is defined as existing at a certain depth.
+For example, the Nether realm is defined as existing at a certain depth and
+anything above that depth is considered outside the Realm.
+
+In contrast, the "Surface portal" - an example in portal_examples.lua, only
+uses one realm. Its `is_within_realm()` function always returns true so that
+any time a portal is opened it will use `find_surface_anchorPos()`.
+
+Note that "find_surface_anchorPos" is a Nether-centric misnomer, as different
+types of portals are free to use different definitions of a realm such that
+leaving the realm might not be synonymous with travelling to the surface.
 
 
 Helper functions
@@ -104,8 +113,17 @@ Portal definition
 Used by `nether.register_portal`.
 
     {
-        shape = PortalShape_Traditional, 
-        -- Optional. Defaults to PortalShape_Traditional
+        frame_node_name     = "default:obsidian",
+        -- Required. For best results, have your portal constructed of a 
+        -- material nobody else is using.
+
+        shape = nether.PortalShape_Traditional, 
+        -- Optional.
+        -- Shapes available are:
+        --     nether.PortalShape_Traditional (default)
+        --     nether.PortalShape_Circular
+        --     nether.PortalShape_Platform
+        -- New shapes can be created, but are beyond the scope of this guide.
 
         wormhole_node_name  = "nether:portal",
         -- Optional. Allows a custom wormhole node to be specified.
@@ -145,10 +163,12 @@ Used by `nether.register_portal`.
         --      scale = 1.5
         --  },      
         -- See lua_api.txt for Tile Animation definition
-
-        frame_node_name     = "default:obsidian",
-        -- Required. For best results, have your portal constructed of a 
-        -- material nobody else is using.
+        -- Some animated and non-animated textures are provided by this mod:
+        --     nether_particle.png          (original)
+        --     nether_particle_anim1.png    (stars)
+        --     nether_particle_anim2.png    (bubbles)
+        --     nether_particle_anim3.png    (sparks)
+        --     nether_particle_anim4.png    (particles)
 
         sounds = {
             ambient    = <SimpleSoundSpec>, 
@@ -179,6 +199,10 @@ Used by `nether.register_portal`.
         -- Optional. If you don't implement this then a position near the
         -- surface will be picked.
         -- Return an anchorPos or (anchorPos, orientation)
+        -- The name of this function is a Nether-centric misnomer. It should
+        -- return a position outside the realm, and different types of portals
+        -- are free to use different definitions of a realm such that leaving
+        -- the realm might not be synonymous with travelling to the surface.
         -- If orientation is not specified then the orientation of the realm
         -- portal will be used. 
         -- If the location of an existing portal is returned then include the

@@ -106,7 +106,9 @@ if nether.NETHER_REALM_ENABLED then
 			destination_pos.y = nether.DEPTH - 1000 -- temp value so find_nearest_working_portal() returns nether portals
 
 			-- a y_factor of 0 makes the search ignore the altitude of the portals (as long as they are in the Nether)
-			local existing_portal_location, existing_portal_orientation = nether.find_nearest_working_portal("nether_portal", destination_pos, 8, 0)
+			local existing_portal_location, existing_portal_orientation =
+				nether.find_nearest_working_portal("nether_portal", destination_pos, 8, 0)
+
 			if existing_portal_location ~= nil then
 				return existing_portal_location, existing_portal_orientation
 			else
@@ -119,7 +121,8 @@ if nether.NETHER_REALM_ENABLED then
 		find_surface_anchorPos = function(realm_anchorPos)
 			-- A portal definition doesn't normally need to provide a find_surface_anchorPos() function,
 			-- since find_surface_target_y() will be used by default, but Nether portals also scale position
-			-- to create fast-travel. Defining a custom function also means we can look for existing nearby portals:
+			-- to create fast-travel.
+			-- Defining a custom function also means we can look for existing nearby portals.
 
 			-- Multiply x and z by a factor of 8 to implement Nether fast-travel
 			local destination_pos = vector.multiply(realm_anchorPos, nether.FASTTRAVEL_FACTOR)
@@ -128,7 +131,9 @@ if nether.NETHER_REALM_ENABLED then
 			destination_pos.y = 0 -- temp value so find_nearest_working_portal() doesn't return nether portals
 
 			-- a y_factor of 0 makes the search ignore the altitude of the portals (as long as they are outside the Nether)
-			local existing_portal_location, existing_portal_orientation = nether.find_nearest_working_portal("nether_portal", destination_pos, 8 * nether.FASTTRAVEL_FACTOR, 0)
+			local existing_portal_location, existing_portal_orientation =
+				nether.find_nearest_working_portal("nether_portal", destination_pos, 8 * nether.FASTTRAVEL_FACTOR, 0)
+
 			if existing_portal_location ~= nil then
 				return existing_portal_location, existing_portal_orientation
 			else
