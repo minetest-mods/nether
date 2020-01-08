@@ -24,13 +24,13 @@ if minetest.get_translator ~= nil then
 	S = minetest.get_translator("nether")
 else
 	-- mock the translator function for MT 0.4
-	S = function(str, ...) 
+	S = function(str, ...)
 		local args={...}
 		return str:gsub(
 			"@%d+",
 			function(match) return args[tonumber(match:sub(2))]	end
 		)
-	end		
+	end
 end
 
 -- Global Nether namespace
@@ -131,7 +131,7 @@ if nether.NETHER_REALM_ENABLED then
 			local existing_portal_location, existing_portal_orientation = nether.find_nearest_working_portal("nether_portal", destination_pos, 8 * nether.FASTTRAVEL_FACTOR, 0)
 			if existing_portal_location ~= nil then
 				return existing_portal_location, existing_portal_orientation
-			else 
+			else
 				destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, "nether_portal")
 				return destination_pos
 			end
@@ -166,6 +166,6 @@ if nether.NETHER_REALM_ENABLED then
 			})
 
 		end
-		
+
 	})
 end

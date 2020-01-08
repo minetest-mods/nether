@@ -27,7 +27,7 @@ nether.register_wormhole_node("nether:portal", {
 	description = S("Nether Portal"),
 	post_effect_color = {
 		-- post_effect_color can't be changed dynamically in Minetest like the portal colour is.
-		-- If you need a different post_effect_color then use register_wormhole_node to create 
+		-- If you need a different post_effect_color then use register_wormhole_node to create
 		-- another wormhole node and set it as the wormhole_node_name in your portaldef.
 		-- Hopefully this colour is close enough to magenta to work with the traditional magenta
 		-- portals, close enough to red to work for a red portal, and also close enough to red to
