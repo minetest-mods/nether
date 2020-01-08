@@ -295,9 +295,9 @@ minetest.register_abm({
 							vector.subtract(target, 4), vector.add(target, 4))
 					end
 					-- teleport the player
-					minetest.after(3, function(o, p, t) function()
+					minetest.after(3, function(o, p, t)
 						local objpos = o:getpos()
-						if not objpos then -- player not exist
+						if not objpos then -- player quit the game while teleporting
 							return
 						end
 						objpos.y = objpos.y + 0.1 -- Fix some glitches at -8000
