@@ -295,7 +295,7 @@ nether.PortalShape_Circular = {
 	get_p1_and_p2_from_anchorPos = function(self, anchorPos, orientation)
 		assert(orientation, "no orientation passed")
 		assert(self ~= nil and self.name == nether.PortalShape_Circular.name, "Must pass self as first argument, or use shape:func() instead of shape.func()")
-		local p1 = anchorPos -- PortalShape_Traditional puts the anchorPos at p1 for backwards&forwards compatibility
+		local p1
 		local p2
 
 		if orientation == 0 then
@@ -1528,9 +1528,9 @@ end
 function register_frame_node(frame_node_name)
 
 	-- copy the existing node definition
-	local node = minetest.registered_nodes[frame_node_name]
+	local node_def = minetest.registered_nodes[frame_node_name]
 	local extended_node_def = {}
-	for key, value in pairs(node) do extended_node_def[key] = value end
+	for key, value in pairs(node_def) do extended_node_def[key] = value end
 
 	extended_node_def.replaced_by_portalapi = {} -- allows chaining or restoration of original functions, if necessary
 
@@ -1916,7 +1916,7 @@ function nether.find_surface_target_y(target_x, target_z, portal_name)
 
 	-- try to spawn on surface first
 	if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
-		surface_level = minetest.get_spawn_level(target_x, target_z)
+		local surface_level = minetest.get_spawn_level(target_x, target_z)
 		if surface_level ~= nil then -- test this since get_spawn_level() can return nil over water or steep/high terrain	
 
 			-- get_spawn_level() tends to err on the side of caution and spawns the player a 
@@ -1978,7 +1978,7 @@ function nether.find_nearest_working_portal(portal_name, anchorPos, distance_lim
 
 		-- the mod_storage list of portals is unreliable - e.g. it won't know if inactive portals have been 
 		-- destroyed, so check the portal is still there
-		local portalFound, portalActive = is_portal_at_anchorPos(portal_definition, portal_info.anchorPos, portal_info.orientation, true)
+		local portalFound, portalIsActive = is_portal_at_anchorPos(portal_definition, portal_info.anchorPos, portal_info.orientation, true)
 
 		if portalFound then
 			return portal_info.anchorPos, portal_info.orientation

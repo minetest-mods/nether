@@ -44,7 +44,7 @@ local SURFACE_TRAVEL_DISTANCE = 26
 --=================================================--
 -- Portal to the Floatlands, playable code example --
 --==================================================--
-local FLOATLANDS_ENABLED = false
+local FLOATLANDS_ENABLED
 local FLOATLAND_LEVEL    = 1280
 
 if minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_PORTAL_EXAMPLE_FLOATLANDS) or ENABLE_PORTAL_EXAMPLE_FLOATLANDS then
@@ -155,7 +155,7 @@ if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENAB
 
 		find_realm_anchorPos = function(surface_anchorPos)
 			-- This function isn't needed, since this type of portal always goes to the surface
-			minecraft.log("error" , "find_realm_anchorPos called for surface portal")
+			minetest.log("error" , "find_realm_anchorPos called for surface portal")
 			return {x=0, y=0, z=0}
 		end,
 
