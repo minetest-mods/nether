@@ -74,18 +74,28 @@ Call these functions only at load time:
       clashes with a portal already registered by another mod, e.g. if the size
       and frame node is not unique.
       A false return value should be handled, you could:
-          * Fall back to using a secondary material for portals to be built with.
-          * Use error() to exit lua with a message explaining how two mods are
-            clashing and how it can be resolved.
-          * Continue without a portal (the reason will be logged for the user).
+        * Fall back to using a secondary material for portals to be built with.
+        * Use error() to exit lua with a message explaining how two mods are
+          clashing and how it can be resolved.
+        * Continue without a portal (the reason will be logged for the user).
 * `nether.unregister_portal(name)`
     * Unregisters the portal from the engine, and deletes the entry with key
       `name` from `nether.registered_portals` and associated internal tables.
     * Returns true on success
-* register_portal_ignition_item(name, ignition_failure_sound)
+    * You will probably never need to call this, it exists only for completeness. 
+* `nether.register_portal_ignition_item(name, ignition_failure_sound)`
     * ignition_failure_sound is optional, it plays any time an attempt to use 
       the item occurs if a portal is not ignited.
-
+* `nether.register_wormhole_node(name, nodedef_overrides)`
+    * Can be used to register wormhole nodes with a different post_effect_color
+      from the "nether:portal" node. "Post effect color" is the tint the world
+      takes on when you are standing inside a portal. `post_effect_color` is the 
+      only key/value that is needed in the nodedef_overrides table to achieve that,
+      but the function allows any nodedef key/value to be specified/overridden.
+    * Invokes `minetest.register_node()`, so can only be called at mod load time.
+    * After `register_wormhole_node()`, invoke `register_portal()` and include 
+      `wormhole_node_name` in the portal_definition, assigning it the name of the 
+      new wormhole node.
 
 
 Portal definition

@@ -1,70 +1,40 @@
+--[[
+
+  Nether mod for minetest
+
+  Copyright (C) 2013 PilzAdam
+
+  Permission to use, copy, modify, and/or distribute this software for
+  any purpose with or without fee is hereby granted, provided that the
+  above copyright notice and this permission notice appear in all copies.
+
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+  WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+  WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR
+  BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES
+  OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+  WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+  ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+  SOFTWARE.
+
+]]--
+
 local S = nether.get_translator
 
--- Portal node
+-- Portal/wormhole node
 
-minetest.register_node("nether:portal", {
+nether.register_wormhole_node("nether:portal", {
 	description = S("Nether Portal"),
-	tiles = {
-		"nether_transparent.png",
-		"nether_transparent.png",
-		"nether_transparent.png",
-		"nether_transparent.png",
-		{
-			name = "nether_portal.png",
-			animation = {
-				type = "vertical_frames",
-				aspect_w = 16,
-				aspect_h = 16,
-				length = 0.5,
-			},
-		},
-		{
-			name = "nether_portal.png",
-			animation = {
-				type = "vertical_frames",
-				aspect_w = 16,
-				aspect_h = 16,
-				length = 0.5,
-			},
-		},
-	},
-	drawtype = "nodebox",
-	paramtype = "light",
-	paramtype2 = "colorfacedir",
-	palette = "nether_portals_palette.png",
 	post_effect_color = {
 		-- post_effect_color can't be changed dynamically in Minetest like the portal colour is.
-		-- If you need a different post_effect_color then create a custom node and set it as the
-		-- wormhole_node_name in your portaldef.
+		-- If you need a different post_effect_color then use register_wormhole_node to create 
+		-- another wormhole node and set it as the wormhole_node_name in your portaldef.
 		-- Hopefully this colour is close enough to magenta to work with the traditional magenta
 		-- portals, close enough to red to work for a red portal, and also close enough to red to
 		-- work with blue & cyan portals - since blue portals are sometimes portrayed as being red
 		-- from the opposite side / from the inside.
 		a = 160, r = 128, g = 0, b = 80
-	},
-	sunlight_propagates = true,
-	use_texture_alpha = true,
-	walkable = false,
-	diggable = false,
-	pointable = false,
-	buildable_to = false,
-	is_ground_content = false,
-	drop = "",
-	light_source = 5,
-	alpha = 192,
-	node_box = {
-		type = "fixed",
-		fixed = {
-			{-0.5, -0.5, -0.1,  0.5, 0.5, 0.1},
-		},
-	},
-	groups = {not_in_creative_inventory = 1},
-	mesecons = {receptor = { 
-		state = "on",
-		rules = function(node) 
-			return nether.get_mesecon_emission_rules_from_colorfacedir(node.param2)
-		end
-	}}
+	}
 })
 
 
