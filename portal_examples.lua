@@ -2,10 +2,10 @@
 
   Nether mod portal examples for Minetest
 
-  These portal API examples work independently of the Nether realm 
+  These portal API examples work independently of the Nether realm
   and Nether portal. To try these examples, enable them in:
-	  Mintest -> Settings -> All settings -> Mods -> nether	  
-  Once enabled, details on how to build them can be found in dungeon 
+	  Mintest -> Settings -> All settings -> Mods -> nether
+  Once enabled, details on how to build them can be found in dungeon
   chests in the book of portals.
 
   --
@@ -33,10 +33,10 @@ local ENABLE_PORTAL_EXAMPLE_FLOATLANDS    = false
 local ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL = false
 
 -- Sets how far a Surface Portal will travel, measured in cells along the Moore curve,
--- which are about 117 nodes square each. Larger numbers will generally mean further distance 
--- as-the-crow-flies, but this will not always be true due to the how the Moore curve 
+-- which are about 117 nodes square each. Larger numbers will generally mean further distance
+-- as-the-crow-flies, but this will not always be true due to the how the Moore curve
 -- frequently doubles back upon itself.
--- This doubling-back prevents the surface portal from taking players easily accross the 
+-- This doubling-back prevents the surface portal from taking players easily accross the
 -- map - the curve is 262144 cells long!
 local SURFACE_TRAVEL_DISTANCE = 26
 
@@ -53,9 +53,9 @@ if minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_
 	if minetest.get_mapgen_setting("mg_name") == "v7" then
 		local mgv7_spflags = minetest.get_mapgen_setting("mgv7_spflags")
 		FLOATLANDS_ENABLED = mgv7_spflags ~= nil and mgv7_spflags:find("floatlands") ~= nil and mgv7_spflags:find("nofloatlands") == nil
-		FLOATLAND_LEVEL = minetest.get_mapgen_setting("mgv7_floatland_level") or 1280	
+		FLOATLAND_LEVEL = minetest.get_mapgen_setting("mgv7_floatland_level") or 1280
 
-		if FLOATLANDS_ENABLED then 
+		if FLOATLANDS_ENABLED then
 			floatlands_flavortext = S("There is a floating land of hills and forests up there, over the edges of which is a perilous drop all the way back down to sea level. We have not found how far these strange pristine lands extend. I have half a mind to retire there one day.")
 		end
 	end
@@ -120,7 +120,7 @@ end
 -- Surface-travel portal, playable code example --
 --==============================================--
 
--- These Moore Curve functions requred by surface_portal's find_surface_anchorPos() will 
+-- These Moore Curve functions requred by surface_portal's find_surface_anchorPos() will
 -- be assigned later in this file.
 local get_moore_distance -- will be function get_moore_distance(cell_count, x, y): integer
 local get_moore_coords   -- will be function get_moore_coords(cell_count, distance): pos2d
@@ -147,7 +147,7 @@ if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENAB
 	These travel a distance along the ground, and even when constructed deep underground they link back up to the surface, but we were never able to predict where the matching twin portal would appear. Coudreau believes it works in epicycles, but I am not convinced.
 	]]),
 
-		is_within_realm = function(pos) 
+		is_within_realm = function(pos)
 			-- Always return true, because these portals always just take you around the surface
 			-- rather than taking you to a different realm
 			return true
@@ -162,12 +162,12 @@ if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENAB
 		find_surface_anchorPos = function(realm_anchorPos)
 			-- A portal definition doesn't normally need to provide a find_surface_anchorPos() function,
 			-- since find_surface_target_y() will be used by default, but these portals travel around the
-			-- surface (following a Moore curve) so will be calculating a different x and z to realm_anchorPos. 
+			-- surface (following a Moore curve) so will be calculating a different x and z to realm_anchorPos.
 
 			local cellCount = 512
 			local maxDistFromOrigin = 30000 -- the world edges are at X=30927, X=−30912, Z=30927 and Z=−30912
 
-			-- clip realm_anchorPos to maxDistFromOrigin, and move the origin so that all values are positive 
+			-- clip realm_anchorPos to maxDistFromOrigin, and move the origin so that all values are positive
 			local x = math.min(maxDistFromOrigin, math.max(-maxDistFromOrigin, realm_anchorPos.x)) + maxDistFromOrigin
 			local z = math.min(maxDistFromOrigin, math.max(-maxDistFromOrigin, realm_anchorPos.z)) + maxDistFromOrigin
 
@@ -181,27 +181,27 @@ if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENAB
 			local search_radius = divisor / 2 - 5 -- any portal within this area will do
 
 			-- a y_factor of 0 makes the search ignore the altitude of the portals
-			local existing_portal_location, existing_portal_orientation = 
+			local existing_portal_location, existing_portal_orientation =
 				nether.find_nearest_working_portal("surface_portal", {x = target_x, y = 0, z = target_z}, search_radius, 0)
 
 			if existing_portal_location ~= nil then
 				-- use the existing portal that was found near target_x, target_z
 				return existing_portal_location, existing_portal_orientation
-			else 
-				-- find a good location for the new portal, or if that isn't possible then at 
+			else
+				-- find a good location for the new portal, or if that isn't possible then at
 				-- least adjust the coords a little so portals don't line up in a grid
 				local adj_x, adj_z = 0, 0
-		
+
 				if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
-					-- Deterministically look for a location in the cell where get_spawn_level() can give 
-					-- us a surface height, since nether.find_surface_target_y() works *much* better when 
+					-- Deterministically look for a location in the cell where get_spawn_level() can give
+					-- us a surface height, since nether.find_surface_target_y() works *much* better when
 					-- it can use get_spawn_level()
 					local prng = PcgRandom( -- seed the prng so that all portals for these Moore Curve coords will use the same random location
 						moore_pos.x * 65732 +
 						moore_pos.y * 729   +
 						minetest.get_mapgen_setting("seed") * 3
 					)
-		
+
 					local attemptLimit = 15 -- how many attempts we'll make at finding a good location
 					for attempt = 1, attemptLimit do
 						adj_x = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
@@ -212,7 +212,7 @@ if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENAB
 						end
 					end
 				end
-		
+
 				local destination_pos = {x = target_x + adj_x, y = 0, z = target_z + adj_z}
 				destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, "surface_portal")
 
@@ -227,7 +227,7 @@ end
 -- Hilbert curve and Moore curve functions --
 --=========================================--
 
--- These are space-filling curves, used by the surface_portal example as a way to determine where 
+-- These are space-filling curves, used by the surface_portal example as a way to determine where
 -- to place portals. https://en.wikipedia.org/wiki/Moore_curve
 
 
@@ -242,7 +242,7 @@ local function hilbert_flip(cell_count, pos, flip_direction, flip_twice)
 			pos.x = (cell_count - 1) - pos.x;
 			pos.y = (cell_count - 1) - pos.y;
 		end
-	
+
 		local temp_x = pos.x;
 		pos.x = pos.y;
 		pos.y = temp_x;
@@ -306,7 +306,7 @@ end
 
 
 -- Converts (x,y) to distance
--- A Moore curve is a variation of the Hilbert curve that has the start and 
+-- A Moore curve is a variation of the Hilbert curve that has the start and
 -- end next to each other.
 -- Top middle point is the start/end location
 get_moore_distance = function(cell_count, x, y)
@@ -324,7 +324,7 @@ end
 
 
 -- Converts distance to (x,y)
--- A Moore curve is a variation of the Hilbert curve that has the start and 
+-- A Moore curve is a variation of the Hilbert curve that has the start and
 -- end next to each other.
 -- Top middle point is the start/end location
 get_moore_coords = function(cell_count, distance)
