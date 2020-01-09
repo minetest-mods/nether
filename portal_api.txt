@@ -17,14 +17,14 @@ See `init.lua` and `portal_examples.lua` for examples of 3 different portals.
 
 Portal code is more efficient when each type of portal uses a different type
 of node to build its frame out of, however it is possible to register more than
-one kind of portal with the same frame material — such as obsidian — provided 
+one kind of portal with the same frame material — such as obsidian — provided
 the size of the PortalShape is distinct from any other type of portal that is
-using the same node as its frame, and portal sizes remain small.
+using the same node for its frame, and portal sizes remain small.
 
-Stone is not a good choice for portal frame nodes as the Minetest engine may 
-convert it into terrain nodes if the biome-pass happens after the portal is
+Stone is not a good choice for portal frame nodes as the Minetest engine may
+convert it into terrain nodes if the biome-pass occurs after the portal is
 created. Similarly, avoid using nodes which may be replaced by ABMs or 
-docoration functions without the node's `on_destruct` being triggered.
+docoration functions without triggering the node's `on_destruct` handler.
 
 
 Realms
@@ -44,9 +44,10 @@ In contrast, the "Surface portal" - an example in portal_examples.lua, only
 uses one realm. Its `is_within_realm()` function always returns true so that
 any time a portal is opened it will use `find_surface_anchorPos()`.
 
-Note that "find_surface_anchorPos" is a Nether-centric misnomer, as different
-types of portals are free to use different definitions of a realm such that
-leaving the realm might not be synonymous with travelling to the surface.
+Note that the name "find_surface_anchorPos" is a Nether-centric misnomer, as
+different types of portals are free to use different definitions of a realm
+such that leaving the realm might not be synonymous with travelling to the 
+surface.
 
 
 Helper functions
@@ -56,6 +57,7 @@ Helper functions
     * use this when determining where to spawn a portal, to avoid overwriting 
       player builds. It checks the area for any nodes that aren't ground or 
       trees.
+      Water will fail this test, unless it is unemerged.
 
 * `nether.find_surface_target_y(target_x, target_z, portal_name)`: returns a 
   suitable anchorPos
@@ -64,7 +66,8 @@ Helper functions
       surface to be reused.
 
 * `nether.find_nearest_working_portal(portal_name, anchorPos, distance_limit, y_factor)`: returns 
-  an anchorPos, or nil if no portal was found within the the distance_limit.
+  (anchorPos, orientation), or nil if no portal was found within the
+  distance_limit.
     * A y_factor of 0 means y does not affect the distance_limit, a y_factor
       of 1 means y is included (the default if y_factor is nil), and a y_factor
       of 2 would squash the search-sphere by a factor of 2 on the y-axis, etc.
@@ -101,7 +104,6 @@ Call these functions only at load time:
       takes on when you are standing inside a portal. `post_effect_color` is the 
       only key/value that is needed in the nodedef_overrides table to achieve that,
       but the function allows any nodedef key/value to be specified/overridden.
-    * Invokes `minetest.register_node()`, so can only be called at mod load time.
     * After `register_wormhole_node()`, invoke `register_portal()` and include 
       `wormhole_node_name` in the portal_definition, assigning it the name of the 
       new wormhole node.
