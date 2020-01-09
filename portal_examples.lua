@@ -4,7 +4,7 @@
 
   These portal API examples work independently of the Nether realm
   and Nether portal. To try these examples, enable them in:
-	  Mintest -> Settings -> All settings -> Mods -> nether
+	  Minetest -> Settings -> All settings -> Mods -> nether
   Once enabled, details on how to build them can be found in dungeon
   chests in the book of portals.
 
@@ -56,7 +56,7 @@ if minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_
 		FLOATLAND_LEVEL = minetest.get_mapgen_setting("mgv7_floatland_level") or 1280
 
 		if FLOATLANDS_ENABLED then
-			floatlands_flavortext = S("There is a floating land of hills and forests up there, over the edges of which is a perilous drop all the way back down to sea level. We have not found how far these strange pristine lands extend. I have half a mind to retire there one day.")
+			floatlands_flavortext = "\n\n	" .. S("There is a floating land of hills and forests up there, over the edges of which is a perilous drop all the way back down to sea level. We have not found how far these pristine lands extend. I have half a mind to retire there one day.")
 		end
 	end
 
@@ -90,10 +90,8 @@ if minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_
 	└─┼─┼─┼─┼─┘
 	      └─┴─┴─┘          two blocks deep
 
-	This portal is different to the others, rather than acting akin to a doorway it appears to the eye more like a small pool of water which can be stepped into. Upon setting foot in the portal we found ourselves at a great altitude.
-
-	@1
-	]], floatlands_flavortext),
+	This portal is different to the others, rather than acting akin to a doorway it appears to the eye more like a small pool of water which can be stepped into. Upon setting foot in the portal we found ourselves at a tremendous altitude.@1]],
+		floatlands_flavortext),
 
 		is_within_realm = function(pos) -- return true if pos is inside the Nether
 			return pos.y > FLOATLAND_LEVEL - 200
@@ -144,8 +142,9 @@ if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENAB
 		      └─╚═╤═╤═┼─┘          in a circular shape
 		            └─┴─┴─┘                standing vertically, like a doorway
 
-	These travel a distance along the ground, and even when constructed deep underground they link back up to the surface, but we were never able to predict where the matching twin portal would appear. Coudreau believes it works in epicycles, but I am not convinced.
-	]]),
+	These travel a distance along the ground, and even when constructed deep underground will link back up to the surface. They appear to favor a strange direction, with the exit portal linking back only for as long as the portal stays open — attempting to reopen a portal from the exit doorway leads to a new destination along this favored direction. It has stymied our ability to study the behavior of these portals because without constructing dual portals and keeping both open it's hard to step through more than one and still be able to return home.
+
+	Due to such difficulties, we never learned what determines the direction and distance a matching twin portal will appear, and I have lost my friend and protégé. In cavalier youth and with little more than a rucksack, Coudreau has decided to follow the chain as far as it goes, and has not been seen since. Coudreau believes it works in epicycles, but I am not convinced. Still, I cling to the hope that one day the portal will open and Coudreau will step out from whichever place leads to this one, perhaps with an epic tale to tell.]]),
 
 		is_within_realm = function(pos)
 			-- Always return true, because these portals always just take you around the surface
@@ -192,24 +191,24 @@ if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENAB
 				-- least adjust the coords a little so portals don't line up in a grid
 				local adj_x, adj_z = 0, 0
 
-				if minetest.get_spawn_level ~= nil then -- older versions of Minetest don't have this
-					-- Deterministically look for a location in the cell where get_spawn_level() can give
-					-- us a surface height, since nether.find_surface_target_y() works *much* better when
-					-- it can use get_spawn_level()
-					local prng = PcgRandom( -- seed the prng so that all portals for these Moore Curve coords will use the same random location
-						moore_pos.x * 65732 +
-						moore_pos.y * 729   +
-						minetest.get_mapgen_setting("seed") * 3
-					)
+				-- Deterministically look for a location in the cell where get_spawn_level() can give
+				-- us a surface height, since nether.find_surface_target_y() works *much* better when
+				-- it can use get_spawn_level()
+				local prng = PcgRandom( -- seed the prng so that all portals for these Moore Curve coords will use the same random location
+					moore_pos.x * 65732 +
+					moore_pos.y * 729   +
+					minetest.get_mapgen_setting("seed") * 3
+				)
 
-					local attemptLimit = 15 -- how many attempts we'll make at finding a good location
-					for attempt = 1, attemptLimit do
-						adj_x = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
-						adj_z = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
-						if minetest.get_spawn_level(target_x + adj_x, target_z + adj_z)	~= nil then
-							-- found a location which will be at ground level (unless a player has built there)
-							break
-						end
+				local attemptLimit = 15 -- how many attempts we'll make at finding a good location
+				for attempt = 1, attemptLimit do
+					adj_x = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
+					adj_z = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
+					if minetest.get_spawn_level == nil or minetest.get_spawn_level(target_x + adj_x, target_z + adj_z)	~= nil then
+						-- Found a location which will be at ground level - unless a player has built there.
+						-- Or this is MT 0.4 which does not have get_spawn_level(), so there's no point looking
+						-- at any further further random locations.
+						break
 					end
 				end
 
