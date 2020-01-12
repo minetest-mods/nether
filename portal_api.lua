@@ -495,6 +495,7 @@ local ignition_item_name
 local S = nether.get_translator
 local mod_storage = minetest.get_mod_storage()
 local malleated_filenames = {}
+local meseconsAvailable = minetest.get_modpath("mesecon") ~= nil and minetest.global_exists("mesecon")
 
 
 local function get_timerPos_from_p1_and_p2(p1, p2)
@@ -798,7 +799,7 @@ function extinguish_portal(pos, node_name, frame_was_destroyed)
 		if nn == frame_node_name or nn == wormhole_node_name then
 			if nn == wormhole_node_name then
 				minetest.remove_node(clearPos)
-				if mesecon ~= nil then mesecon.receptor_off(clearPos) end
+				if meseconsAvailable then mesecon.receptor_off(clearPos) end
 			end
 			local m = minetest.get_meta(clearPos)
 			m:set_string("p1", "")
@@ -837,7 +838,7 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 	local p1_string, p2_string = minetest.pos_to_string(p1), minetest.pos_to_string(p2)
 	local param2 = get_colorfacedir_from_color_and_orientation(portal_definition.wormhole_node_color, orientation, portal_definition.shape.is_horizontal)
 	local mesecon_rules
-	if ignite and mesecon ~= nil then mesecon_rules = get_mesecon_emission_rules_from_colorfacedir(param2) end
+	if ignite and meseconsAvailable then mesecon_rules = get_mesecon_emission_rules_from_colorfacedir(param2) end
 
 	local update_aborted-- using closures to allow the updateFunc to return extra information - by setting this variable
 
@@ -849,7 +850,7 @@ local function set_portal_metadata(portal_definition, anchorPos, orientation, de
 			local node_name = minetest.get_node(pos).name
 			if node_name == "air" then
 				minetest.set_node(pos, {name = portal_definition.wormhole_node_name, param2 = param2})
-				if mesecon ~= nil then mesecon.receptor_on(pos, mesecon_rules) end
+				if meseconsAvailable then mesecon.receptor_on(pos, mesecon_rules) end
 			end
 
 			local existing_p1 = meta:get_string("p1")
