@@ -16,7 +16,8 @@ Optionally decorate by choosing portal colors, particles, media etc.
 See `init.lua` and `portal_examples.lua` for examples of 3 different portals.
 
 Portal code is more efficient when each type of portal uses a different type
-of node to build its frame out of, however it is possible to register more than
+of node to build its frame out of - consider creating your own node for 
+players to build portals from. However it is possible to register more than
 one kind of portal with the same frame material — such as obsidian — provided
 the size of the PortalShape is distinct from any other type of portal that is
 using the same node for its frame, and portal sizes remain small.

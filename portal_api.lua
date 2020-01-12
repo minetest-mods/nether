@@ -1167,13 +1167,14 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 end
 
 -- invoked when a player is standing in a portal
-local function ensure_remote_portal_then_teleport(player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
+local function ensure_remote_portal_then_teleport(playerName, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
+
+	local player = minetest.get_player_by_name(playerName)
+	if player == nil then return end -- player quit the game while teleporting
+	local playerPos = player:get_pos()
+	if playerPos == nil then return	end -- player quit the game while teleporting
 
 	-- check player is still standing in a portal
-	local playerPos = player:get_pos()
-	if playerPos == nil then
-		return -- player quit the game while teleporting
-	end
 	playerPos.y = playerPos.y + 0.1 -- Fix some glitches at -8000
 	if minetest.get_node(playerPos).name ~= portal_definition.wormhole_node_name then
 		return -- the player has moved out of the portal
@@ -1193,7 +1194,7 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 	if dest_wormhole_node == nil then
 		-- area not emerged yet, delay and retry
 		if DEBUG then minetest.chat_send_all("ensure_remote_portal_then_teleport() could not find anything yet at " .. minetest.pos_to_string(destination_wormholePos)) end
-		minetest.after(1, ensure_remote_portal_then_teleport, player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
+		minetest.after(1, ensure_remote_portal_then_teleport, playerName, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
 	else
 		local local_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(local_anchorPos, local_orientation)
 
@@ -1225,7 +1226,7 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 
 			-- play the teleport sound
 			if portal_definition.sounds.teleport ~= nil then
-				minetest.sound_play(portal_definition.sounds.teleport, {to_player = player.name})
+				minetest.sound_play(portal_definition.sounds.teleport, {to_player = playerName})
 			end
 
 			-- rotate the player if the destination portal is a different orientation
@@ -1265,7 +1266,7 @@ local function ensure_remote_portal_then_teleport(player, portal_definition, loc
 					destination_wormholePos
 				)
 			end
-			minetest.after(0.1, ensure_remote_portal_then_teleport, player, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
+			minetest.after(0.1, ensure_remote_portal_then_teleport, playerName, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
 		end
 	end
 end
@@ -1315,11 +1316,12 @@ function run_wormhole(timerPos, time_elapsed)
 					end
 
 					local local_anchorPos, local_orientation = portal_definition.shape.get_anchorPos_and_orientation_from_p1_and_p2(local_p1, local_p2)
+					local playerName = obj:get_player_name()
 					minetest.after(
 						3, -- hopefully target area is emerged in 3 seconds
 						function()
 							ensure_remote_portal_then_teleport(
-								obj,
+								playerName,
 								portal_definition,
 								local_anchorPos,
 								local_orientation,
