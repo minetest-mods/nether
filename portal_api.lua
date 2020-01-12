@@ -648,8 +648,10 @@ end
 -- Do this whenever a portal is created or changes its ignition state
 local function store_portal_location_info(portal_name, anchorPos, orientation, ignited)
 	if not DEBUG_IGNORE_MODSTORAGE then
+		local key = minetest.pos_to_string(anchorPos) .. " is " .. portal_name
+		if DEBUG then minetest.chat_send_all("Adding/updating portal in mod_storage: " .. key) end
 		mod_storage:set_string(
-			minetest.pos_to_string(anchorPos) .. " is " .. portal_name,
+			key,
 			minetest.serialize({orientation = orientation, active = ignited})
 		)
 	end
@@ -659,7 +661,9 @@ end
 -- Do this if a portal frame is destroyed such that it cannot be ignited anymore.
 local function remove_portal_location_info(portal_name, anchorPos)
 	if not DEBUG_IGNORE_MODSTORAGE then
-		mod_storage:set_string(minetest.pos_to_string(anchorPos) .. " is " .. portal_name, "")
+		local key = minetest.pos_to_string(anchorPos) .. " is " .. portal_name
+		if DEBUG then minetest.chat_send_all("Removing portal from mod_storage: " .. key) end
+		mod_storage:set_string(key, "")
 	end
 end
 
@@ -744,6 +748,7 @@ end
 
 
 -- WARNING - this is invoked by on_destruct, so you can't assume there's an accesible node at pos
+-- Returns true if a portal was found to extinguish
 function extinguish_portal(pos, node_name, frame_was_destroyed)
 
 	-- mesecons seems to invoke action_off() 6 times every time you place a block?
@@ -755,13 +760,13 @@ function extinguish_portal(pos, node_name, frame_was_destroyed)
 	local target = minetest.string_to_pos(meta:get_string("target"))
 	if p1 == nil or p2 == nil then
 		if DEBUG then minetest.chat_send_all("    no active portal found to extinguish") end
-		return
+		return false
 	end
 
 	local portal_definition = get_portal_definition(node_name, p1, p2)
 	if portal_definition == nil then
 		minetest.log("error", "extinguish_portal() invoked on " .. node_name .. " but no registered portal is constructed from " .. node_name)
-		return -- no portal frames are made from this type of node
+		return false -- no portal frames are made from this type of node
 	end
 
 	if portal_definition.sounds.extinguish ~= nil then
@@ -813,6 +818,8 @@ function extinguish_portal(pos, node_name, frame_was_destroyed)
 	if portal_definition.on_extinguish ~= nil then
 		portal_definition.on_extinguish(portal_definition, anchorPos, orientation)
 	end
+
+	return true
 end
 
 
@@ -1552,6 +1559,16 @@ function register_frame_node(frame_node_name)
 	extended_node_def.on_destruct = function(pos)
 		if DEBUG then minetest.chat_send_all("portal frame material: destruct") end
 		extinguish_portal(pos, frame_node_name, true)
+	end
+	extended_node_def.replaced_by_portalapi.on_blast = extended_node_def.on_blast
+	extended_node_def.on_blast = function(pos, intensity)
+		if DEBUG then minetest.chat_send_all("portal frame material: blast") end
+		extinguish_portal(pos, frame_node_name, extended_node_def.replaced_by_portalapi.on_blast == nil)
+		if extended_node_def.replaced_by_portalapi.on_blast ~= nil then 
+			extended_node_def.replaced_by_portalapi.on_blast(pos, intensity)
+		else
+			minetest.remove_node(pos)
+		end
 	end
 	extended_node_def.replaced_by_portalapi.on_timer = extended_node_def.on_timer
 	extended_node_def.on_timer = function(pos, elapsed)
