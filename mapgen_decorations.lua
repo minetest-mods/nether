@@ -136,3 +136,62 @@ minetest.register_decoration({
     flags = "place_center_x,place_center_z,all_ceilings",
     place_offset_y=-3
 })
+
+
+-- =======================================
+--    Concealed crevice / Lava sinkhole
+-- =======================================
+-- if player places a torch/block on this sand or digs it while standing on it, it sinks into lava
+
+if allow_lava_decorations then 
+    minetest.register_decoration({
+        name = "Weak trap",
+        deco_type = "schematic",
+        place_on = "nether:rack",
+        sidelen = 80,
+        fill_ratio = 0.002,
+        biomes = {"nether_caverns"},
+        y_max = NETHER_CEILING, -- keep compatibility with mapgen_nobiomes.lua
+        y_min = NETHER_FLOOR,
+        schematic = {
+            size = {x = 4, y = 7, z = 4},
+            data = {
+                _, _, _, _,
+                _, _, _, _,
+                _, N, _, _,
+                _, N, N, _,
+                _, N, N, _,
+                _, N, N, _,
+                _, _, _, _,
+
+                _, N, _, _, -- make it look like a stalactite if it protrudes out the bottom of a landform
+                _, N, _, _, 
+                N, L, N, _,
+                N, L, L, N,
+                N, L, L, N,
+                N, A, A, N,
+                _, S, S, _,
+
+                _, _, _, _,
+                _, _, _, _,
+                _, N, N, _,
+                N, L, L, N,
+                N, L, L, N,
+                N, A, A, N,
+                _, S, S, _,
+
+                _, _, _, _,
+                _, _, _, _,
+                _, _, _, _,
+                _, N, N, _,
+                _, N, N, _,
+                _, N, N, _,
+                _, _, _, _,
+            }
+        },
+        replacements = {["nether:glowstone"] = "nether:rack"},
+        flags = "place_center_x,place_center_z,force_placement, all_floors",
+        place_offset_y=-6,
+        rotation = "random"
+    })
+end
