@@ -39,6 +39,9 @@ SOFTWARE.
  * `nether_book_`* (files starting with "nether_book"): Treer, 2019-2020
  * `nether_portal_ignition_failure.ogg`: Treer, 2019
  * `nether_particle_anim`* (files starting with "nether_particle_anim"): Treer, 2019
+ * `nether_fumarole.ogg`: Treer, 2020
+ * `nether_smoke_puff.png` is a derivative work of gleamyRock.gif by Spring (https://opengameart.org/users/spring), used 
+ under CC0 1.0. "Nether smoke puff" is licenced under CC BY-SA 4.0 Treer, 2020
 
 ### [Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)](http://creativecommons.org/licenses/by-sa/3.0/)
  * `nether_rack.png`: Zeg9
