@@ -27,6 +27,11 @@ local DEBUG = false
 local DEBUG_IGNORE_MODSTORAGE = false -- setting true prevents portals from knowing where other portals are, forcing find_realm_anchorpos() etc. to be executed every time
 
 nether.registered_portals = {}
+nether.registered_portals_count = 0
+
+-- Exposes a list of node names that are used as frame nodes by registered portals
+nether.is_frame_node = {}
+
 
 -- gives the colour values in nether_portals_palette.png that are used by the wormhole colorfacedir
 -- hardware colouring.
@@ -489,8 +494,6 @@ nether.PortalShape_Platform = {
 -- Portal implementation functions --
 -- =============================== --
 
--- list of node names that are used as frame nodes by registered portals
-local is_frame_node = {}
 local ignition_item_name
 local S = nether.get_translator
 local mod_storage = minetest.get_mod_storage()
@@ -1411,11 +1414,8 @@ local function add_book_as_treasure()
 	-- If the Nether is the only registered portal then lower the amount of these books
 	-- found as treasure, since many players already know the shape of a Nether portal
 	-- and what to build one out of, so would probably prefer other treasures.
-	local portalCount = 0
-	for _ in pairs(nether.registered_portals) do portalCount = portalCount + 1 end
-
 	local weight_adjust = 1
-	if portalCount <= 1 then weight_adjust = 0.5 end
+	if nether.registered_portals_count <= 1 then weight_adjust = 0.5 end
 
 	if minetest.get_modpath("loot") then
 		loot.register_loot({
@@ -1442,12 +1442,10 @@ local function create_book_of_portals()
 	local page2_text = ""
 
 	-- tell the player how many portal types there are
-	local portalCount = 0
-	for _ in pairs(nether.registered_portals) do portalCount = portalCount + 1 end
-	if portalCount == 1 then
+	if nether.registered_portals_count == 1 then
 		page1_text = S("In all my travels, and time spent in the Great Libraries, I have encountered no shortage of legends surrounding preternatural doorways said to open into other worlds, yet only one can I confirm as being more than merely a story.")
 	else
-		page1_text = S("In all my travels, and time spent in the Great Libraries, I have encountered no shortage of legends surrounding preternatural doorways said to open into other worlds, yet only @1 can I confirm as being more than merely stories.", portalCount)
+		page1_text = S("In all my travels, and time spent in the Great Libraries, I have encountered no shortage of legends surrounding preternatural doorways said to open into other worlds, yet only @1 can I confirm as being more than merely stories.", nether.registered_portals_count)
 	end
 
 	-- tell the player how to ignite portals
@@ -1468,7 +1466,7 @@ local function create_book_of_portals()
 	end
 	for portalName, portalDef in pairs(nether.registered_portals) do
 		if portalName ~= "nether_portal" then
-			if i <= portalCount / 2 then
+			if i <= nether.registered_portals_count / 2 then
 				page1_text = page1_text .. portalDef.book_of_portals_pagetext .. "\n\n\n"
 			else
 				page2_text = page2_text .. portalDef.book_of_portals_pagetext .. "\n\n\n"
@@ -1489,7 +1487,7 @@ local function create_book_of_portals()
 		page2_text
 	)
 
-	if not previouslyRegistered and nether.PORTAL_BOOK_LOOT_WEIGHTING > 0 and portalCount > 0 then
+	if not previouslyRegistered and nether.PORTAL_BOOK_LOOT_WEIGHTING > 0 and nether.registered_portals_count > 0 then
 		add_book_as_treasure()
 	end
 end
@@ -1825,12 +1823,18 @@ function nether.register_portal(name, portaldef)
 		else
 			-- the new portaldef is good
 			nether.registered_portals[portaldef.name] = portaldef
+
+			-- Update registered_portals_count
+			local portalCount = 0
+			for _ in pairs(nether.registered_portals) do portalCount = portalCount + 1 end
+			nether.registered_portals_count = portalCount
+
 			create_book_of_portals()
 
-			if not is_frame_node[portaldef.frame_node_name] then
+			if not nether.is_frame_node[portaldef.frame_node_name] then
 				-- add portal functions to the nodedef being used for the portal frame
 				register_frame_node(portaldef.frame_node_name)
-				is_frame_node[portaldef.frame_node_name] = true
+				nether.is_frame_node[portaldef.frame_node_name] = true
 			end
 
 			return true
@@ -1854,7 +1858,7 @@ function nether.unregister_portal(name)
 		if next(portals_still_using_frame_node) == nil then
 			-- no portals are using this frame node any more
 			unregister_frame_node(portaldef.frame_node_name)
-			is_frame_node[portaldef.frame_node_name] = nil
+			nether.is_frame_node[portaldef.frame_node_name] = nil
 		end
 	end
 
@@ -1866,7 +1870,7 @@ function nether.register_portal_ignition_item(item_name, ignition_failure_sound)
 	minetest.override_item(item_name, {
 		on_place = function(stack, _, pt)
 			local done = false
-			if pt.under and is_frame_node[minetest.get_node(pt.under).name] then
+			if pt.under and nether.is_frame_node[minetest.get_node(pt.under).name] then
 				done = ignite_portal(pt.under)
 				if done and not minetest.settings:get_bool("creative_mode") then
 					stack:take_item()
