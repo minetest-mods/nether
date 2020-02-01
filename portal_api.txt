@@ -5,8 +5,8 @@ The portal system used to get to the Nether can be used to create portals
 to other realms.
 
 Pick a node type to have your portals built from, a shape in which the
-portals must be built, and provide 3 functions for portals to find their 
-destination with: 
+portals must be built, and provide 3 functions for portals to find their
+destination with:
  * `find_realm_anchorPos(surface_anchorPos)`
  * `find_surface_anchorPos(realm_anchorPos)`
  * `is_within_realm(pos)`
@@ -16,7 +16,7 @@ Optionally decorate by choosing portal colors, particles, media etc.
 See `init.lua` and `portal_examples.lua` for examples of 3 different portals.
 
 Portal code is more efficient when each type of portal uses a different type
-of node to build its frame out of - consider creating your own node for 
+of node to build its frame out of - consider creating your own node for
 players to build portals from. However it is possible to register more than
 one kind of portal with the same frame material — such as obsidian — provided
 the size of the PortalShape is distinct from any other type of portal that is
@@ -24,15 +24,15 @@ using the same node for its frame, and portal sizes remain small.
 
 Stone is not a good choice for portal frame nodes as the Minetest engine may
 convert it into terrain nodes if the biome-pass occurs after the portal is
-created. Similarly, avoid using nodes which may be replaced by ABMs or 
+created. Similarly, avoid using nodes which may be replaced by ABMs or
 docoration functions without triggering the node's `on_destruct` handler.
 
 
 Realms
 ------
 
-This API uses the concept of a "realm" for each type of portal. If a portal is 
-outside its realm then it links to a portal inside the realm, if a portal is 
+This API uses the concept of a "realm" for each type of portal. If a portal is
+outside its realm then it links to a portal inside the realm, if a portal is
 inside its realm then it links to the outside.
 
 You get to decide what consitutes your realm by implementing the function
@@ -47,7 +47,7 @@ any time a portal is opened it will use `find_surface_anchorPos()`.
 
 Note that the name "find_surface_anchorPos" is a Nether-centric misnomer, as
 different types of portals are free to use different definitions of a realm
-such that leaving the realm might not be synonymous with travelling to the 
+such that leaving the realm might not be synonymous with travelling to the
 surface.
 
 
@@ -55,18 +55,18 @@ Helper functions
 ----------------
 
 * `nether.volume_is_natural(minp, maxp)`: returns a boolean
-    * use this when determining where to spawn a portal, to avoid overwriting 
-      player builds. It checks the area for any nodes that aren't ground or 
+    * use this when determining where to spawn a portal, to avoid overwriting
+      player builds. It checks the area for any nodes that aren't ground or
       trees.
       Water will fail this test, unless it is unemerged.
 
-* `nether.find_surface_target_y(target_x, target_z, portal_name)`: returns a 
+* `nether.find_surface_target_y(target_x, target_z, portal_name)`: returns a
   suitable anchorPos
     * Can be used when implementing custom find_surface_anchorPos() functions
     * portal_name is optional, providing it allows existing portals on the
       surface to be reused.
 
-* `nether.find_nearest_working_portal(portal_name, anchorPos, distance_limit, y_factor)`: returns 
+* `nether.find_nearest_working_portal(portal_name, anchorPos, distance_limit, y_factor)`: returns
   (anchorPos, orientation), or nil if no portal was found within the
   distance_limit.
     * A y_factor of 0 means y does not affect the distance_limit, a y_factor
@@ -83,7 +83,7 @@ API functions
 Call these functions only at load time:
 
 * `nether.register_portal(name, portal_definition)`
-    * Returns true on success. Can return false if the portal definition 
+    * Returns true on success. Can return false if the portal definition
       clashes with a portal already registered by another mod, e.g. if the size
       and frame node is not unique.
       A false return value should be handled, you could:
@@ -95,18 +95,18 @@ Call these functions only at load time:
     * Unregisters the portal from the engine, and deletes the entry with key
       `name` from `nether.registered_portals` and associated internal tables.
     * Returns true on success
-    * You will probably never need to call this, it exists only for completeness. 
+    * You will probably never need to call this, it exists only for completeness.
 * `nether.register_portal_ignition_item(name, ignition_failure_sound)`
-    * ignition_failure_sound is optional, it plays any time an attempt to use 
+    * ignition_failure_sound is optional, it plays any time an attempt to use
       the item occurs if a portal is not ignited.
 * `nether.register_wormhole_node(name, nodedef_overrides)`
     * Can be used to register wormhole nodes with a different post_effect_color
       from the "nether:portal" node. "Post effect color" is the tint the world
-      takes on when you are standing inside a portal. `post_effect_color` is the 
+      takes on when you are standing inside a portal. `post_effect_color` is the
       only key/value that is needed in the nodedef_overrides table to achieve that,
       but the function allows any nodedef key/value to be specified/overridden.
-    * After `register_wormhole_node()`, invoke `register_portal()` and include 
-      `wormhole_node_name` in the portal_definition, assigning it the name of the 
+    * After `register_wormhole_node()`, invoke `register_portal()` and include
+      `wormhole_node_name` in the portal_definition, assigning it the name of the
       new wormhole node.
 
 
@@ -117,10 +117,10 @@ Used by `nether.register_portal`.
 
     {
         frame_node_name     = "default:obsidian",
-        -- Required. For best results, have your portal constructed of a 
+        -- Required. For best results, have your portal constructed of a
         -- material nobody else is using.
 
-        shape = nether.PortalShape_Traditional, 
+        shape = nether.PortalShape_Traditional,
         -- Optional.
         -- Shapes available are:
         --     nether.PortalShape_Traditional (default)
@@ -135,7 +135,7 @@ Used by `nether.register_portal`.
 
         wormhole_node_color = 0,
         -- Optional. Defaults to 0/magenta.
-        -- A value from 0 to 7 corresponding to the color of pixels in 
+        -- A value from 0 to 7 corresponding to the color of pixels in
         -- nether_portals_palette.png:
         --     0 traditional/magenta
         --     1 black
@@ -151,8 +151,8 @@ Used by `nether.register_portal`.
         -- if not specified.
 
         particle_texture    = "image.png",
-        -- Optional. Hardware colouring (i.e. particle_color) is applied to 
-        -- this texture, use particle_texture_colored instead if you want to 
+        -- Optional. Hardware colouring (i.e. particle_color) is applied to
+        -- this texture, use particle_texture_colored instead if you want to
         -- use the colors of the image.
         -- Animation and particle scale may also be specified, e.g:
         -- particle_texture = {
@@ -164,7 +164,7 @@ Used by `nether.register_portal`.
         --          length = 1,
         --      },
         --      scale = 1.5
-        --  },      
+        --  },
         -- See lua_api.txt for Tile Animation definition
         -- Some animated and non-animated textures are provided by this mod:
         --     nether_particle.png          (original)
@@ -173,10 +173,23 @@ Used by `nether.register_portal`.
         --     nether_particle_anim3.png    (sparks)
         --     nether_particle_anim4.png    (particles)
 
+        title = "Gateway to Moria",
+        -- Optional. Provides a title for the portal.
+        -- Currently this title is only used by the Book of Portals.
+
+        book_of_portals_pagetext = "Everything I need the player to know",
+        -- Optional. Provides the text for the portal in the Book of Portals.
+        -- The Book of Portals is a book that can be found in chests, and
+        -- provides players with instructions on how to build and use the
+        -- portal, so be sure to mention the node type the frame must be built
+        -- from.
+        -- This can also provide flavortext or details about where the portal
+        -- will take the player.
+
         sounds = {
-            ambient    = <SimpleSoundSpec>, 
-            -- if the ambient SimpleSoundSpec is a table it can also contain a 
-            -- "length" int, which is the number of seconds to wait before 
+            ambient    = <SimpleSoundSpec>,
+            -- if the ambient SimpleSoundSpec is a table it can also contain a
+            -- "length" int, which is the number of seconds to wait before
             -- repeating the ambient sound. Default is 3.
             ignite     = <SimpleSoundSpec>,
             extinguish = <SimpleSoundSpec>,
@@ -185,7 +198,7 @@ Used by `nether.register_portal`.
         -- sounds is optional
 
         within_realm = function(pos),
-        -- Required. Return true if a portal at pos is in the realm, rather 
+        -- Required. Return true if a portal at pos is in the realm, rather
            than the surface world.
 
         find_realm_anchorPos = function(surface_anchorPos),
@@ -207,7 +220,7 @@ Used by `nether.register_portal`.
         -- are free to use different definitions of a realm such that leaving
         -- the realm might not be synonymous with travelling to the surface.
         -- If orientation is not specified then the orientation of the realm
-        -- portal will be used. 
+        -- portal will be used.
         -- If the location of an existing portal is returned then include the
         -- orientation, otherwise the existing portal could be overwritten by
         -- a new one with the orientation of the realm portal.

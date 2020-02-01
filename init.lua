@@ -75,24 +75,12 @@ if nether.NETHER_REALM_ENABLED then
 		shape               = nether.PortalShape_Traditional,
 		frame_node_name     = "default:obsidian",
 		wormhole_node_color = 0, -- 0 is magenta
+		title = S("Nether Portal"),
+		book_of_portals_pagetext = S([[Construction requires 14 blocks of obsidian, which we found deep underground where water had solidified molten rock. The finished frame is four blocks wide, five blocks high, and stands vertically, like a doorway.
 
-		-- Warning: "Four per Em" spaces have been used to align the diagram in this text, rather
-		-- than ASCII spaces. If Minetest changes font this may need to be updated.
-		book_of_portals_pagetext = S([[      ──══♦♦♦◊   The Nether   ◊♦♦♦══──
+This opens to a truly hellish place, though for small mercies the air there is still breathable. There is an intriguing dimensional mismatch happening between this realm and ours, as after opening the second portal into it we observed that 10 strides taken in the Nether appear to be an equivalent of @1 in the natural world.
 
-	Requiring 14 blocks of obsidian, which we found deep underground where water had solidified molten rock. The frame must be constructed in the following fashion:
-
-	┌═╤═╤═╤═╗
-	├─╥─┴─┼─╢
-	├─╢         ├─╢
-	├─╢         ├─╢     four blocks wide
-	├─╚═╤═╡─╢     five blocks high
-	└─┴─┴─┴─┘     Standing vertically, like a doorway
-
-	This opens to a truly hellish place, though for small mercies the air there is still breathable. There is an intriguing dimensional mismatch happening between this realm and ours, as after opening the second portal into it we observed that 10 strides taken in the Nether appear to be an equivalent of @1 in the natural world.
-
-	The expedition parties have found no diamonds or gold, and after an experienced search party failed to return from the trail of a missing expedition party, I must conclude this is a dangerous place.
-	]], 10 * nether.FASTTRAVEL_FACTOR),
+The expedition parties have found no diamonds or gold, and after an experienced search party failed to return from the trail of a missing expedition party, I must conclude this is a dangerous place.]], 10 * nether.FASTTRAVEL_FACTOR),
 
 		is_within_realm = function(pos) -- return true if pos is inside the Nether
 			return pos.y < nether.DEPTH

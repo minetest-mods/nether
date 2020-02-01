@@ -75,22 +75,10 @@ if minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_
 			},
 			scale = 1.5
 		},
-		book_of_portals_pagetext = S([[      ──══♦♦♦◊   The Floatlands   ◊♦♦♦══──
+		title = S("Floatlands Portal"),
+		book_of_portals_pagetext = S([[Requiring 21 blocks of ice, and constructed in the shape of a 3 × 3 platform with walls, or like a bowl. A finished platform is 2 blocks high, and 5 blocks wide at the widest in both directions.
 
-	Requiring 21 blocks of ice, and constructed in the shape of a 3 × 3 platform with walls, or like a bowl:
-
-	      ┌─┬─┬─┐
-	┌─┼─┴─┴─┼─┐    Plan view (looking down from above)
-	├─┤               ├─┤
-	├─┤               ├─┤    five blocks wide
-	└─┼─┬─┬─┼─┘    in both directions
-	      └─┴─┴─┘
-
-	┌─┬─┬─┬─┬─┐    Side view (looking from either side)
-	└─┼─┼─┼─┼─┘
-	      └─┴─┴─┘          two blocks deep
-
-	This portal is different to the others, rather than acting akin to a doorway it appears to the eye more like a small pool of water which can be stepped into. Upon setting foot in the portal we found ourselves at a tremendous altitude.@1]],
+This portal is different to the others, rather than acting akin to a doorway it appears to the eye more like a small pool of water which can be stepped into. Upon setting foot in the portal we found ourselves at a tremendous altitude.@1]],
 		floatlands_flavortext),
 
 		is_within_realm = function(pos) -- return true if pos is inside the Nether
@@ -129,22 +117,12 @@ if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENAB
 		shape               = nether.PortalShape_Circular,
 		frame_node_name     = "default:tinblock",
 		wormhole_node_color = 4, -- 4 is cyan
-		book_of_portals_pagetext = S([[      ──══♦♦♦◊   Surface portal   ◊♦♦♦══──
+		title = S("Surface Portal"),
+		book_of_portals_pagetext = S([[Requiring 16 blocks of tin and constructed in a circular fashion, a finished frame is seven blocks wide, seven blocks high, and stands vertically like a doorway.
 
-	Requiring 16 blocks of tin, the frame must be constructed in the following fashion:
+These travel a distance along the ground, and even when constructed deep underground will link back up to the surface. They appear to favor a strange direction, with the exit portal linking back only for as long as the portal stays open — attempting to reopen a portal from the exit doorway leads to a new destination along this favored direction. It has stymied our ability to study the behavior of these portals because without constructing dual portals and keeping both open it's hard to step through more than one and still be able to return home.
 
-		            ┌═╤═╤═╗
-		      ┌═┼─┴─┴─┼═╗
-		┌═┼─┘               └─┼═╗
-		├─╢                           ├─╢
-		├─╢                           ├─╢    seven blocks wide
-		└─╚═╗               ┌═╡─┘    seven blocks high
-		      └─╚═╤═╤═┼─┘          in a circular shape
-		            └─┴─┴─┘                standing vertically, like a doorway
-
-	These travel a distance along the ground, and even when constructed deep underground will link back up to the surface. They appear to favor a strange direction, with the exit portal linking back only for as long as the portal stays open — attempting to reopen a portal from the exit doorway leads to a new destination along this favored direction. It has stymied our ability to study the behavior of these portals because without constructing dual portals and keeping both open it's hard to step through more than one and still be able to return home.
-
-	Due to such difficulties, we never learned what determines the direction and distance a matching twin portal will appear, and I have lost my friend and protégé. In cavalier youth and with little more than a rucksack, Coudreau has decided to follow the chain as far as it goes, and has not been seen since. Coudreau believes it works in epicycles, but I am not convinced. Still, I cling to the hope that one day the portal will open and Coudreau will step out from whichever place leads to this one, perhaps with an epic tale to tell.]]),
+Due to such difficulties, we never learned what determines the direction and distance where the matching twin portal will appear, and I have lost my friend and protégé. In cavalier youth and with little more than a rucksack, Coudreau has decided to follow the chain as far as it goes, and has not been seen since. Coudreau believes it works in epicycles, but I am not convinced. Still, I cling to the hope that one day the portal will open and Coudreau will step out from whichever place leads to this one, perhaps with an epic tale to tell.]]),
 
 		is_within_realm = function(pos)
 			-- Always return true, because these portals always just take you around the surface
