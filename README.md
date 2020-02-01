@@ -37,7 +37,7 @@ SOFTWARE.
  * `nether_portal_ignite.ogg` is a derivative of "Flame Ignition" by hykenfreak (https://freesound.org/people/hykenfreak), used under CC BY 3.0. "Nether Portal ignite" is licensed under CC BY 3.0 by Treer.
 
 ### [Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/)
- * `nether_book_`* (files starting with "nether_book"): Treer, 2019
+ * `nether_book_`* (files starting with "nether_book"): Treer, 2019-2020
  * `nether_portal_ignition_failure.ogg`: Treer, 2019
  * `nether_particle_anim`* (files starting with "nether_particle_anim"): Treer, 2019
 

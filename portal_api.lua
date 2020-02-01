@@ -123,8 +123,10 @@ nether.PortalShape_Traditional = {
 	name = "Traditional",
 	size = vector.new(4, 5, 1), -- size of the portal, and not necessarily the size of the schematic,
 	                            -- which may clear area around the portal.
-	schematic_filename = nether.path .. "/schematics/nether_portal.mts",
-	is_horizontal  = false, -- whether the wormhole is a vertical or horizontal surface
+	schematic_filename    = nether.path .. "/schematics/nether_portal.mts",
+	is_horizontal         = false, -- whether the wormhole is a vertical or horizontal surface
+	diagram_image_texture = "nether_book_diagram_traditional.png", -- The diagram to be shown in the Book of Portals
+	diagram_image_aspect  = 2.11, -- gives the vertical size of the image when multiplied by the width
 
 	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
 	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
@@ -271,8 +273,10 @@ nether.PortalShape_Circular = {
 	name = "Circular",
 	size = vector.new(7, 7, 1), -- size of the portal, and not necessarily the size of the schematic,
 	                            -- which may clear area around the portal.
-	schematic_filename = nether.path .. "/schematics/nether_portal_circular.mts",
-	is_horizontal  = false, -- whether the wormhole is a vertical or horizontal surface
+	schematic_filename    = nether.path .. "/schematics/nether_portal_circular.mts",
+	is_horizontal         = false, -- whether the wormhole is a vertical or horizontal surface
+	diagram_image_texture = "nether_book_diagram_circular.png", -- The diagram to be shown in the Book of Portals
+	diagram_image_aspect  = 1.62, -- gives the vertical size of the image when multiplied by the width
 
 	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
 	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
@@ -401,8 +405,10 @@ nether.PortalShape_Platform = {
 	name = "Platform",
 	size = vector.new(5, 2, 5), -- size of the portal, and not necessarily the size of the schematic,
 	                            -- which may clear area around the portal.
-	schematic_filename = nether.path .. "/schematics/nether_portal_platform.mts",
-	is_horizontal  = true, -- whether the wormhole is a vertical or horizontal surface
+	schematic_filename    = nether.path .. "/schematics/nether_portal_platform.mts",
+	is_horizontal         = true, -- whether the wormhole is a vertical or horizontal surface
+	diagram_image_texture = "nether_book_diagram_platform.png", -- The diagram to be shown in the Book of Portals
+	diagram_image_aspect  = 0.65, -- gives the vertical size of the image when multiplied by the width
 
 	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
 	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
@@ -1379,7 +1385,7 @@ function run_wormhole(timerPos, time_elapsed)
 end
 
 
-local function create_book(item_name, inventory_description, inventory_image, title, author, page1_text, page2_text)
+local function create_book(item_name, inventory_description, inventory_image, title, author, chapters)
 
 	local display_book = function(itemstack, user, pointed_thing)
 		local player_name = user:get_player_name()
@@ -1388,15 +1394,55 @@ local function create_book(item_name, inventory_description, inventory_image, ti
 
 		local formspec =
 		"size[18,12.122]" ..
+		"background[0,0;18,11;nether_book_background.png;true]"..
+		"image_button_exit[17.3,0;0.8,0.8;nether_book_close.png;;]"..
 
 		"label[3.1,0.5;" .. minetest.formspec_escape(title) .. "]" ..
-		"label[3.6,0.9;" .. author .. "]" ..
+		"label[3.6,0.9;" .. author .. "]"
 
-		"textarea[ 0.9,1.7;7.9,12.0;;" .. minetest.formspec_escape(page1_text) .. ";]" ..
-		"textarea[10.1,0.8;7.9,12.9;;" .. minetest.formspec_escape(page2_text) .. ";]" ..
+		local image_x_adj = -0.4
+		local image_width = 1.6
+		local image_padding = 0.06
 
-		"background[0,0;18,11;nether_book_background.png;true]"..
-		"image_button_exit[17.3,0;0.8,0.8;nether_book_close.png;;]"
+		for i, chapter in ipairs(chapters) do
+			local left = 0.9
+			local top = 1.7
+			local width = 7.9
+			local height = 12.0
+			local item_number = i
+			local items_on_page = math.floor(#chapters / 2)
+			if i > items_on_page then
+				-- page 2
+				left = 10.1
+				top = 0.8
+				height = 12.9
+				item_number = i - items_on_page
+				items_on_page = #chapters - items_on_page
+			end
+
+			local available_height = (height - top) / items_on_page
+			local y = top + (item_number - 1) * available_height
+
+			-- add chapter title
+			local title_height = 0
+			if chapter.title ~= nil then
+				title_height = 0.6
+				formspec = formspec .. "label[".. left + 1.5 .. ","
+					.. y .. ";      ──══♦♦♦◊   " .. minetest.formspec_escape(chapter.title) .. "   ◊♦♦♦══──]"
+			end
+
+			-- add chapter image
+			local x_offset = 0
+			if chapter.image ~= nil then
+				x_offset = image_width + image_x_adj + image_padding
+				formspec = formspec .. "image[" .. left + image_x_adj .. "," .. y + title_height .. ";" .. image_width .. ","
+					.. image_width * chapter.aspect .. ";" .. chapter.image .. "]"
+			end
+
+			-- add chapter text
+			formspec = formspec .. "textarea[" .. left + x_offset .. "," .. y + title_height .. ";" .. width - x_offset .. ","
+					.. available_height - title_height .. ";;" .. minetest.formspec_escape(chapter.text) .. ";]"
+		end
 
 		minetest.show_formspec(player_name, item_name, formspec)
 	end
@@ -1438,14 +1484,14 @@ end
 -- A book the player can read to lean how to build the different portals
 local function create_book_of_portals()
 
-	local page1_text
-	local page2_text = ""
+	local chapters = {}
 
+	local intro_text
 	-- tell the player how many portal types there are
 	if nether.registered_portals_count == 1 then
-		page1_text = S("In all my travels, and time spent in the Great Libraries, I have encountered no shortage of legends surrounding preternatural doorways said to open into other worlds, yet only one can I confirm as being more than merely a story.")
+		intro_text = S("In all my travels, and time spent in the Great Libraries, I have encountered no shortage of legends surrounding preternatural doorways said to open into other worlds, yet only one can I confirm as being more than merely a story.")
 	else
-		page1_text = S("In all my travels, and time spent in the Great Libraries, I have encountered no shortage of legends surrounding preternatural doorways said to open into other worlds, yet only @1 can I confirm as being more than merely stories.", nether.registered_portals_count)
+		intro_text = S("In all my travels, and time spent in the Great Libraries, I have encountered no shortage of legends surrounding preternatural doorways said to open into other worlds, yet only @1 can I confirm as being more than merely stories.", nether.registered_portals_count)
 	end
 
 	-- tell the player how to ignite portals
@@ -1453,26 +1499,30 @@ local function create_book_of_portals()
 	if ignition_item_name ~= nil and minetest.registered_items[ignition_item_name] ~= nil then
 		ignition_item_description = minetest.registered_items[ignition_item_name].description
 	end
-	page1_text = page1_text ..
-		S("\n\nThe key to opening such a doorway is to strike the frame with a @1, at which point the very air inside begins to crackle and glow.\n\n\n", string.lower(ignition_item_description))
+	intro_text = intro_text ..
+		S("\n\nThe key to opening such a doorway is to strike the frame with a @1, at which point the very air inside begins to crackle and glow.", string.lower(ignition_item_description))
+
+	chapters[#chapters + 1] = {text = intro_text}
 
 	-- Describe how to create each type of portal, or perhaps just give clues or flavor text,
 	-- but ensure the Nether is always listed first on the first page so other definitions can
 	-- refer to it (pairs() returns order based on a random hash).
-	local i = 1
+	local portalDefs_in_order = {}
 	if nether.registered_portals["nether_portal"] then
-		page1_text = page1_text .. nether.registered_portals["nether_portal"].book_of_portals_pagetext .. "\n\n\n"
-		i = i + 1
+		portalDefs_in_order[#portalDefs_in_order + 1] = nether.registered_portals["nether_portal"]
 	end
 	for portalName, portalDef in pairs(nether.registered_portals) do
 		if portalName ~= "nether_portal" then
-			if i <= nether.registered_portals_count / 2 then
-				page1_text = page1_text .. portalDef.book_of_portals_pagetext .. "\n\n\n"
-			else
-				page2_text = page2_text .. portalDef.book_of_portals_pagetext .. "\n\n\n"
-			end
-			i = i + 1
+			portalDefs_in_order[#portalDefs_in_order + 1] = portalDef
 		end
+	end
+	for _, portalDef in ipairs(portalDefs_in_order) do
+		chapters[#chapters + 1] = {
+			text   = portalDef.book_of_portals_pagetext,
+			image  = portalDef.shape.diagram_image_texture,
+			aspect = portalDef.shape.diagram_image_aspect,
+			title  = portalDef.title
+		}
 	end
 
 	local previouslyRegistered = minetest.registered_items["nether:book_of_portals"] ~= nil
@@ -1481,10 +1531,9 @@ local function create_book_of_portals()
 		"nether:book_of_portals",
 		S("Book of Portals"),
 		"nether_book_of_portals.png",
-		S("A treatise on Rifts and Portals"),
+		S("A definitive guide to Rifts and Portals"),
 		"Riccard F. Burton", -- perhaps a Richard F. Burton of an alternate universe
-		page1_text,
-		page2_text
+		chapters
 	)
 
 	if not previouslyRegistered and nether.PORTAL_BOOK_LOOT_WEIGHTING > 0 and nether.registered_portals_count > 0 then
@@ -1563,7 +1612,7 @@ function register_frame_node(frame_node_name)
 	extended_node_def.on_blast = function(pos, intensity)
 		if DEBUG then minetest.chat_send_all("portal frame material: blast") end
 		extinguish_portal(pos, frame_node_name, extended_node_def.replaced_by_portalapi.on_blast == nil)
-		if extended_node_def.replaced_by_portalapi.on_blast ~= nil then 
+		if extended_node_def.replaced_by_portalapi.on_blast ~= nil then
 			extended_node_def.replaced_by_portalapi.on_blast(pos, intensity)
 		else
 			minetest.remove_node(pos)
@@ -1745,6 +1794,8 @@ end
 
 -- The fallback defaults for registered portaldef tables
 local portaldef_default = {
+	title                        = S("Untitled portal"),
+	book_of_portals_pagetext     = S("We know almost nothing about this portal"),
 	shape                        = nether.PortalShape_Traditional,
 	wormhole_node_name           = "nether:portal",
 	wormhole_node_color          = 0,
