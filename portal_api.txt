@@ -175,10 +175,11 @@ Used by `nether.register_portal`.
 
         title = "Gateway to Moria",
         -- Optional. Provides a title for the portal.
-        -- Currently this title is only used by the Book of Portals.
+        -- Used in the Book of Portals or Help modpack.
 
         book_of_portals_pagetext = "Everything I need the player to know",
-        -- Optional. Provides the text for the portal in the Book of Portals.
+        -- Optional. Provides the text for the portal in the Book of Portals
+        -- and Help modpack.
         -- The Book of Portals is a book that can be found in chests, and
         -- provides players with instructions on how to build and use the
         -- portal, so be sure to mention the node type the frame must be built

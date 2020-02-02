@@ -125,8 +125,11 @@ nether.PortalShape_Traditional = {
 	                            -- which may clear area around the portal.
 	schematic_filename    = nether.path .. "/schematics/nether_portal.mts",
 	is_horizontal         = false, -- whether the wormhole is a vertical or horizontal surface
-	diagram_image_texture = "nether_book_diagram_traditional.png", -- The diagram to be shown in the Book of Portals
-	diagram_image_aspect  = 2.11, -- gives the vertical size of the image when multiplied by the width
+	diagram_image         = {
+		image  = "nether_book_diagram_traditional.png", -- The diagram to be shown in the Book of Portals
+		width  = 144,
+		height = 305
+	},
 
 	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
 	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
@@ -275,8 +278,11 @@ nether.PortalShape_Circular = {
 	                            -- which may clear area around the portal.
 	schematic_filename    = nether.path .. "/schematics/nether_portal_circular.mts",
 	is_horizontal         = false, -- whether the wormhole is a vertical or horizontal surface
-	diagram_image_texture = "nether_book_diagram_circular.png", -- The diagram to be shown in the Book of Portals
-	diagram_image_aspect  = 1.62, -- gives the vertical size of the image when multiplied by the width
+	diagram_image         = {
+		image  = "nether_book_diagram_circular.png", -- The diagram to be shown in the Book of Portals
+		width  = 150,
+		height = 243
+	},
 
 	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
 	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
@@ -407,8 +413,11 @@ nether.PortalShape_Platform = {
 	                            -- which may clear area around the portal.
 	schematic_filename    = nether.path .. "/schematics/nether_portal_platform.mts",
 	is_horizontal         = true, -- whether the wormhole is a vertical or horizontal surface
-	diagram_image_texture = "nether_book_diagram_platform.png", -- The diagram to be shown in the Book of Portals
-	diagram_image_aspect  = 0.65, -- gives the vertical size of the image when multiplied by the width
+	diagram_image         = {
+		image  = "nether_book_diagram_platform.png", -- The diagram to be shown in the Book of Portals
+		width  = 200,
+		height = 130
+	},
 
 	-- returns the coords for minetest.place_schematic() that will place the schematic on the anchorPos
 	get_schematicPos_from_anchorPos = function(anchorPos, orientation)
@@ -505,6 +514,7 @@ local S = nether.get_translator
 local mod_storage = minetest.get_mod_storage()
 local malleated_filenames = {}
 local meseconsAvailable = minetest.get_modpath("mesecon") ~= nil and minetest.global_exists("mesecon")
+local book_added_as_treasure = false
 
 
 local function get_timerPos_from_p1_and_p2(p1, p2)
@@ -1405,29 +1415,29 @@ local function create_book(item_name, inventory_description, inventory_image, ti
 		local image_padding = 0.06
 
 		for i, chapter in ipairs(chapters) do
-			local left = 0.9
-			local top = 1.7
+			local left_margin = 0.9
+			local top_margin = 1.7
 			local width = 7.9
 			local height = 12.0
 			local item_number = i
 			local items_on_page = math.floor(#chapters / 2)
 			if i > items_on_page then
 				-- page 2
-				left = 10.1
-				top = 0.8
+				left_margin = 10.1
+				top_margin = 0.8
 				height = 12.9
 				item_number = i - items_on_page
 				items_on_page = #chapters - items_on_page
 			end
 
-			local available_height = (height - top) / items_on_page
-			local y = top + (item_number - 1) * available_height
+			local available_height = (height - top_margin) / items_on_page
+			local y = top_margin + (item_number - 1) * available_height
 
 			-- add chapter title
 			local title_height = 0
 			if chapter.title ~= nil then
 				title_height = 0.6
-				formspec = formspec .. "label[".. left + 1.5 .. ","
+				formspec = formspec .. "label[".. left_margin + 1.5 .. ","
 					.. y .. ";      ──══♦♦♦◊   " .. minetest.formspec_escape(chapter.title) .. "   ◊♦♦♦══──]"
 			end
 
@@ -1435,12 +1445,14 @@ local function create_book(item_name, inventory_description, inventory_image, ti
 			local x_offset = 0
 			if chapter.image ~= nil then
 				x_offset = image_width + image_x_adj + image_padding
-				formspec = formspec .. "image[" .. left + image_x_adj .. "," .. y + title_height .. ";" .. image_width .. ","
-					.. image_width * chapter.aspect .. ";" .. chapter.image .. "]"
+
+				local image_height = image_width / chapter.image.width * chapter.image.height
+				formspec = formspec .. "image[" .. left_margin + image_x_adj .. "," .. y + title_height .. ";" .. image_width .. ","
+					.. image_height .. ";" .. chapter.image.image .. "]"
 			end
 
 			-- add chapter text
-			formspec = formspec .. "textarea[" .. left + x_offset .. "," .. y + title_height .. ";" .. width - x_offset .. ","
+			formspec = formspec .. "textarea[" .. left_margin + x_offset .. "," .. y + title_height .. ";" .. width - x_offset .. ","
 					.. available_height - title_height .. ";;" .. minetest.formspec_escape(chapter.text) .. ";]"
 		end
 
@@ -1448,35 +1460,82 @@ local function create_book(item_name, inventory_description, inventory_image, ti
 	end
 
 	minetest.register_craftitem(item_name, {
-		description     = inventory_description,
-		inventory_image = inventory_image,
-		groups          = {book = 1},
-		on_use          = display_book
+		description         = inventory_description,
+		inventory_image     = inventory_image,
+		groups              = {book = 1},
+		on_use              = display_book,
+		_doc_items_hidden   = true,
+		_doc_items_longdesc =
+			S("A guidebook for how to build portals to other realms. It can sometimes be found in dungeon chests, however a copy of this book is not needed as its contents are included in this Encyclopedia.") .. "\n" ..
+			S("Refer: \"Help\" > \"Basics\" > \"Building Portals\""),
 	})
 end
 
 
 local function add_book_as_treasure()
-	-- If the Nether is the only registered portal then lower the amount of these books
-	-- found as treasure, since many players already know the shape of a Nether portal
-	-- and what to build one out of, so would probably prefer other treasures.
-	local weight_adjust = 1
-	if nether.registered_portals_count <= 1 then weight_adjust = 0.5 end
+
+	book_added_as_treasure = true
 
 	if minetest.get_modpath("loot") then
 		loot.register_loot({
-			weights = { generic = nether.PORTAL_BOOK_LOOT_WEIGHTING * 1000 * weight_adjust,
+			weights = { generic = nether.PORTAL_BOOK_LOOT_WEIGHTING * 1000,
 						books   = 100 },
 			payload = { stack = "nether:book_of_portals" }
 		})
 	end
 
 	if minetest.get_modpath("dungeon_loot") then
-		dungeon_loot.register({name = "nether:book_of_portals", chance = nether.PORTAL_BOOK_LOOT_WEIGHTING * weight_adjust})
+		dungeon_loot.register({name = "nether:book_of_portals", chance = nether.PORTAL_BOOK_LOOT_WEIGHTING})
 	end
 
 	-- todo: add to Treasurer mod TRMP https://github.com/poikilos/trmp_minetest_game
-	-- todo: add to help modpack       https://forum.minetest.net/viewtopic.php?t=15912
+end
+
+
+-- Returns true if the Help-modpack was installed and Portal instructions were added to it
+-- Help-modpack details can be found at https://forum.minetest.net/viewtopic.php?t=15912
+local function add_book_to_help_modpack(chapters)
+
+	local result = false
+
+	if minetest.get_modpath("doc") ~= nil and minetest.global_exists("doc") then
+
+		if minetest.get_modpath("doc_basics") ~= nil then
+
+			local text = S("Portals to other realms can be opened by building a frame in the right shape with the right blocks, then using an item to activate it. A local copy of the guidebook to portals is published below.\n---\n\n")
+			local images = {}
+
+			for i, chapter in ipairs(chapters) do
+				if chapter.image ~= nil then
+					-- Portal chapters have images (from their portalDef.shape)
+					text = text .. "\n\n\n" .. (i - 1) .. ") " .. chapter.title .. "\n\n"
+
+					local aspect_3_to_2_width  = chapter.image.width
+					local aspect_3_to_2_height = aspect_3_to_2_width / 3 * 2
+					if chapter.image.height > aspect_3_to_2_height then
+						aspect_3_to_2_height = chapter.image.height
+						aspect_3_to_2_width = aspect_3_to_2_height / 2 * 3
+					end
+					local image_conveted_to_3_2_ratio =
+						"[combine:"..aspect_3_to_2_width.."x"..aspect_3_to_2_height..":0,0="..chapter.image.image
+
+					images[#images + 1] = {image=image_conveted_to_3_2_ratio}
+				end
+
+				text = text .. chapter.text
+			end
+
+			result = doc.add_entry("basics", "portals_api", {
+				name = S("Building Portals"),
+				data = {
+					text = text,
+					images = images,
+					aspect_ratio=.5
+				}
+			})
+		end
+	end
+	return result
 end
 
 
@@ -1518,14 +1577,12 @@ local function create_book_of_portals()
 	end
 	for _, portalDef in ipairs(portalDefs_in_order) do
 		chapters[#chapters + 1] = {
-			text   = portalDef.book_of_portals_pagetext,
-			image  = portalDef.shape.diagram_image_texture,
-			aspect = portalDef.shape.diagram_image_aspect,
-			title  = portalDef.title
+			text         = portalDef.book_of_portals_pagetext,
+			image        = portalDef.shape.diagram_image,
+			title        = portalDef.title
 		}
 	end
 
-	local previouslyRegistered = minetest.registered_items["nether:book_of_portals"] ~= nil
 
 	create_book(
 		"nether:book_of_portals",
@@ -1536,8 +1593,14 @@ local function create_book_of_portals()
 		chapters
 	)
 
-	if not previouslyRegistered and nether.PORTAL_BOOK_LOOT_WEIGHTING > 0 and nether.registered_portals_count > 0 then
-		add_book_as_treasure()
+	local using_helpModpack = add_book_to_help_modpack(chapters)
+
+	if not using_helpModpack and not book_added_as_treasure and nether.PORTAL_BOOK_LOOT_WEIGHTING > 0 then
+		-- Only place the Book of Portals in chests if there are non-Nether (i.e. novel) portals
+		-- which players need a way to find out about.
+		if nether.registered_portals_count > 1 or (nether.registered_portals_count == 1 and nether.registered_portals["nether_portal"] == nil) then
+			add_book_as_treasure()
+		end
 	end
 end
 
