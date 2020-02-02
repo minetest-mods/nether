@@ -14,6 +14,7 @@ read_globals = {
 	"intllib",
 	"ItemStack",
 	"loot",
+	"doc",
 	"math.hypot",
 	"mesecon",
 	"minetest",
