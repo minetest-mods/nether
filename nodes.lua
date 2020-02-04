@@ -106,7 +106,10 @@ stairs.register_stair_and_slab(
 	{"nether_brick.png"},
 	S("Nether Stair"),
 	S("Nether Slab"),
-	default.node_sound_stone_defaults()
+	default.node_sound_stone_defaults(),
+	nil,
+	S("Inner Nether Stair"),
+	S("Outer Nether Stair")
 )
 
 -- StairsPlus
