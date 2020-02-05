@@ -127,7 +127,7 @@ nether.PortalShape_Traditional = {
 	is_horizontal         = false, -- whether the wormhole is a vertical or horizontal surface
 	diagram_image         = {
 		image  = "nether_book_diagram_traditional.png", -- The diagram to be shown in the Book of Portals
-		width  = 144,
+		width  = 142,
 		height = 305
 	},
 
@@ -280,7 +280,7 @@ nether.PortalShape_Circular = {
 	is_horizontal         = false, -- whether the wormhole is a vertical or horizontal surface
 	diagram_image         = {
 		image  = "nether_book_diagram_circular.png", -- The diagram to be shown in the Book of Portals
-		width  = 150,
+		width  = 149,
 		height = 243
 	},
 
@@ -1723,6 +1723,9 @@ function test_shapedef_is_valid(shape_defintion)
 	local origin = vector.new()
 	local p1, p2 = shape_defintion:get_p1_and_p2_from_anchorPos(origin, 0)
 	assert(vector.equals(shape_defintion.size, vector.add(vector.subtract(p2, p1), 1)), "p1 and p2 of shape definition '" .. shape_defintion.name .. "' don't match shapeDef.size")
+
+	assert(shape_defintion.diagram_image ~= nil and shape_defintion.diagram_image.image ~= nil,  "Shape definition '" .. shape_defintion.name .. "' does not provide an image for Help/Book of Portals")
+	assert(shape_defintion.diagram_image.width > 0 and shape_defintion.diagram_image.height > 0, "Shape definition '" .. shape_defintion.name .. "' does not provide the size of the image for Help/Book of Portals")
 
 	-- todo
 
