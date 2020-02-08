@@ -22,11 +22,6 @@ one kind of portal with the same frame material — such as obsidian — provide
 the size of the PortalShape is distinct from any other type of portal that is
 using the same node for its frame, and portal sizes remain small.
 
-Stone is not a good choice for portal frame nodes as the Minetest engine may
-convert it into terrain nodes if the biome-pass occurs after the portal is
-created. Similarly, avoid using nodes which may be replaced by ABMs or
-docoration functions without triggering the node's `on_destruct` handler.
-
 
 Realms
 ------
@@ -200,7 +195,9 @@ Used by `nether.register_portal`.
 
         within_realm = function(pos),
         -- Required. Return true if a portal at pos is in the realm, rather
-           than the surface world.
+        -- than the surface world.
+        -- Ideally implementations are fast, as this function can be used to
+        -- sift through a list of portals.
 
         find_realm_anchorPos = function(surface_anchorPos),
         -- Required. Return a position in the realm that a portal created at

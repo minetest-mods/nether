@@ -1,10 +1,9 @@
-Nether Mod for Minetest, with Portal API.
+Nether Mod for Minetest, with Portals API.
 
 See portal_api.txt for how to create custom portals to your own realms.
 
-A Book of Portals item (nether:book_of_portals) is created which
-provides players with portal recipes, by default it can be found in
-dungeon chests.
+See settingtypes.txt or go to "Settings"->"All Settings"->"Mods"->"nether"
+in the game to view the options provided by this mod.
 
 
 ## License of source code:
