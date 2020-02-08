@@ -1095,8 +1095,17 @@ local function locate_or_build_portal(portal_definition, suggested_wormholePos, 
 		result_orientation = found_orientation
 
 		if is_ignited then
-			if DEBUG then minetest.chat_send_all("    Build unnecessary: already a lit portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation .. ". Extinguishing...") end
-			extinguish_portal(found_anchorPos, portal_definition.frame_node_name, false)
+			-- We're about to link to this portal, so if it's already linked to a different portal then
+			-- extinguish it, to update the state of the about-to-be-orphaned portal.
+			local result_target_str = minetest.get_meta(result_anchorPos):get_string("target")
+			local result_target = minetest.string_to_pos(result_target_str)
+			if result_target ~= nil and vector.equals(result_target, destination_wormholePos) then
+				-- don't extinguish the portal the player is teleporting from
+				if DEBUG then minetest.chat_send_all("    Build unnecessary: already a lit portal that links back here at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation) end
+			else
+				if DEBUG then minetest.chat_send_all("    Build unnecessary: already a lit portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation .. ", linking to " .. result_target_str .. ". Extinguishing...") end
+				extinguish_portal(found_anchorPos, portal_definition.frame_node_name, false)
+			end
 		else
 			if DEBUG then minetest.chat_send_all("    Build unnecessary: already an unlit portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation) end
 		end
@@ -1283,15 +1292,28 @@ local function ensure_remote_portal_then_teleport(playerName, portal_definition,
 
 			if not vector.equals(destination_wormholePos, new_dest_wormholePos) then
 				-- Update the local portal's target to match where the existing remote portal was found
-				destination_wormholePos = new_dest_wormholePos
-				if DEBUG then minetest.chat_send_all("    updating target to where remote portal was found - " .. minetest.pos_to_string(destination_wormholePos)) end
 
-				set_portal_metadata(
-					portal_definition,
-					local_anchorPos,
-					local_orientation,
-					destination_wormholePos
-				)
+				if minetest.get_meta(local_anchorPos):get_string("target") == "" then
+					-- The local portal has been extinguished!
+					-- Abort setting its metadata as that assumes it is active.
+					-- This shouldn't happen and may indicate a bug, I trap it incase when the destination
+					-- portal was found and extinguished, it somehow linked back to the local portal in a
+					-- misaligned fashion that wasn't recognized as being the local portal and caused the
+					-- local portal to also be extinguished.
+					local message = "Local portal at " .. minetest.pos_to_string(local_anchorPos) .. " was extinguished while linking to existing portal at " .. minetest.pos_to_string(new_dest_anchorPos)
+					minetest.log("error", message)
+					if DEBUG then minetest.chat_send_all("!ERROR! - " .. message) end
+				else
+					destination_wormholePos = new_dest_wormholePos
+					if DEBUG then minetest.chat_send_all("    updating target to where remote portal was found - " .. minetest.pos_to_string(destination_wormholePos)) end
+
+					set_portal_metadata(
+						portal_definition,
+						local_anchorPos,
+						local_orientation,
+						destination_wormholePos
+					)
+				end
 			end
 			minetest.after(0.1, ensure_remote_portal_then_teleport, playerName, portal_definition, local_anchorPos, local_orientation, destination_wormholePos)
 		end
