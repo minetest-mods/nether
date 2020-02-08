@@ -113,6 +113,9 @@ metadata).
 
 ]]
 
+local __ = {name = "air", prob = 0}
+local AA = {name = "air", prob = 255, force_place = true}
+local OO = {name = "default:obsidian", prob = 255, force_place = true}
 
 -- This object defines a portal's shape, segregating the shape logic code from portal behaviour code.
 -- You can create a new "PortalShape" definition object which implements the same
@@ -123,7 +126,6 @@ nether.PortalShape_Traditional = {
 	name = "Traditional",
 	size = vector.new(4, 5, 1), -- size of the portal, and not necessarily the size of the schematic,
 	                            -- which may clear area around the portal.
-	schematic_filename    = nether.path .. "/schematics/nether_portal.mts",
 	is_horizontal         = false, -- whether the wormhole is a vertical or horizontal surface
 	diagram_image         = {
 		image  = "nether_book_diagram_traditional.png", -- The diagram to be shown in the Book of Portals
@@ -267,7 +269,42 @@ nether.PortalShape_Traditional = {
 		-- wait in a portal long enough you teleport again. So a trap portal would have to link
 		-- to one of two blocked-in portals which link to each other - which is possible, but
 		-- quite extreme.
-	end
+	end,
+
+	schematic = {
+		size = {x = 4, y = 5, z = 5},
+		data = { -- note that data is upside down
+			__,__,__,__,
+			AA,AA,AA,AA,
+			AA,AA,AA,AA,
+			AA,AA,AA,AA,
+			AA,AA,AA,AA,
+
+			__,__,__,__,
+			AA,AA,AA,AA,
+			AA,AA,AA,AA,
+			AA,AA,AA,AA,
+			AA,AA,AA,AA,
+	
+			OO,OO,OO,OO,
+			OO,AA,AA,OO,
+			OO,AA,AA,OO,
+			OO,AA,AA,OO,
+			OO,OO,OO,OO,
+	
+			__,__,__,__,
+			AA,AA,AA,AA,
+			AA,AA,AA,AA,
+			AA,AA,AA,AA,
+			AA,AA,AA,AA,
+	
+			__,__,__,__,
+			AA,AA,AA,AA,
+			AA,AA,AA,AA,
+			AA,AA,AA,AA,
+			AA,AA,AA,AA,
+		}
+	}
 } -- End of PortalShape_Traditional class
 
 
@@ -276,7 +313,6 @@ nether.PortalShape_Circular = {
 	name = "Circular",
 	size = vector.new(7, 7, 1), -- size of the portal, and not necessarily the size of the schematic,
 	                            -- which may clear area around the portal.
-	schematic_filename    = nether.path .. "/schematics/nether_portal_circular.mts",
 	is_horizontal         = false, -- whether the wormhole is a vertical or horizontal surface
 	diagram_image         = {
 		image  = "nether_book_diagram_circular.png", -- The diagram to be shown in the Book of Portals
@@ -401,7 +437,68 @@ nether.PortalShape_Circular = {
 		assert(orientation, "no orientation passed")
 
 		-- Not implemented.
-	end
+	end,
+
+	schematic = {
+		size = {x = 7, y = 7, z = 7},
+		data = { -- note that data is upside down
+			__,__,__,__,__,__,__,
+			__,__,__,__,__,__,__,
+			__,__,AA,AA,AA,__,__,
+			__,__,AA,AA,AA,__,__,
+			__,__,AA,AA,AA,__,__,
+			__,__,__,__,__,__,__,
+			__,__,__,__,__,__,__,
+	
+			__,__,__,__,__,__,__,
+			__,AA,AA,AA,AA,AA,__,
+			__,AA,AA,AA,AA,AA,__,
+			__,AA,AA,AA,AA,AA,__,
+			__,AA,AA,AA,AA,AA,__,
+			__,AA,AA,AA,AA,AA,__,
+			__,__,__,__,__,__,__,
+	
+			__,__,__,__,__,__,__,
+			__,AA,AA,AA,AA,AA,__,
+			AA,AA,AA,AA,AA,AA,AA,
+			AA,AA,AA,AA,AA,AA,AA,
+			AA,AA,AA,AA,AA,AA,AA,
+			__,AA,AA,AA,AA,AA,__,
+			__,__,AA,AA,AA,__,__,
+	
+			__,__,OO,OO,OO,__,__,
+			__,OO,AA,AA,AA,OO,__,
+			OO,AA,AA,AA,AA,AA,OO,
+			OO,AA,AA,AA,AA,AA,OO,
+			OO,AA,AA,AA,AA,AA,OO,
+			__,OO,AA,AA,AA,OO,__,
+			__,__,OO,OO,OO,__,__,
+	
+			__,__,__,__,__,__,__,
+			__,AA,AA,AA,AA,AA,__,
+			AA,AA,AA,AA,AA,AA,AA,
+			AA,AA,AA,AA,AA,AA,AA,
+			AA,AA,AA,AA,AA,AA,AA,
+			__,AA,AA,AA,AA,AA,__,
+			__,__,AA,AA,AA,__,__,
+	
+			__,__,__,__,__,__,__,
+			__,AA,AA,AA,AA,AA,__,
+			__,AA,AA,AA,AA,AA,__,
+			__,AA,AA,AA,AA,AA,__,
+			__,AA,AA,AA,AA,AA,__,
+			__,AA,AA,AA,AA,AA,__,
+			__,__,__,__,__,__,__,
+
+			__,__,__,__,__,__,__,
+			__,__,__,__,__,__,__,
+			__,__,AA,AA,AA,__,__,
+			__,__,AA,AA,AA,__,__,
+			__,__,AA,AA,AA,__,__,
+			__,__,__,__,__,__,__,
+			__,__,__,__,__,__,__,
+		}
+	}
 } -- End of PortalShape_Circular class
 
 
@@ -411,7 +508,6 @@ nether.PortalShape_Platform = {
 	name = "Platform",
 	size = vector.new(5, 2, 5), -- size of the portal, and not necessarily the size of the schematic,
 	                            -- which may clear area around the portal.
-	schematic_filename    = nether.path .. "/schematics/nether_portal_platform.mts",
 	is_horizontal         = true, -- whether the wormhole is a vertical or horizontal surface
 	diagram_image         = {
 		image  = "nether_book_diagram_platform.png", -- The diagram to be shown in the Book of Portals
@@ -495,7 +591,42 @@ nether.PortalShape_Platform = {
 	disable_portal_trap = function(anchorPos, orientation)
 
 		-- Not implemented.
-	end
+	end,
+
+	schematic = {
+		size = {x = 5, y = 5, z = 5},
+		data = { -- note that data is upside down
+			__,__,__,__,__,
+			OO,OO,OO,OO,OO,
+			__,AA,AA,AA,__,
+			__,AA,AA,AA,__,
+			__,__,__,__,__,
+	
+			__,OO,OO,OO,__,
+			OO,AA,AA,AA,OO,
+			AA,AA,AA,AA,AA,
+			AA,AA,AA,AA,AA,
+			__,AA,AA,AA,__,
+	
+			__,OO,OO,OO,__,
+			OO,AA,AA,AA,OO,
+			AA,AA,AA,AA,AA,
+			AA,AA,AA,AA,AA,
+			__,AA,AA,AA,__,
+	
+			__,OO,OO,OO,__,
+			OO,AA,AA,AA,OO,
+			AA,AA,AA,AA,AA,
+			AA,AA,AA,AA,AA,
+			__,AA,AA,AA,__,
+	
+			__,__,__,__,__,
+			OO,OO,OO,OO,OO,
+			__,AA,AA,AA,__,
+			__,AA,AA,AA,__,
+			__,__,__,__,__,
+		}
+	}
 } -- End of PortalShape_Platform class
 
 
@@ -512,7 +643,6 @@ nether.PortalShape_Platform = {
 local ignition_item_name
 local S = nether.get_translator
 local mod_storage = minetest.get_mod_storage()
-local malleated_filenames = {}
 local meseconsAvailable = minetest.get_modpath("mesecon") ~= nil and minetest.global_exists("mesecon")
 local book_added_as_treasure = false
 
@@ -1011,11 +1141,10 @@ local function build_portal(portal_definition, anchorPos, orientation, destinati
 
 	minetest.place_schematic(
 		portal_definition.shape.get_schematicPos_from_anchorPos(anchorPos, orientation),
-		portal_definition.schematic_filename,
+		portal_definition.shape.schematic,
 		orientation,
 		{ -- node replacements
 			["default:obsidian"] = portal_definition.frame_node_name,
-			["nether:portal"]    = portal_definition.wormhole_node_name
 		},
 		true
 	)
@@ -1100,7 +1229,8 @@ local function locate_or_build_portal(portal_definition, suggested_wormholePos, 
 			local result_target_str = minetest.get_meta(result_anchorPos):get_string("target")
 			local result_target = minetest.string_to_pos(result_target_str)
 			if result_target ~= nil and vector.equals(result_target, destination_wormholePos) then
-				-- don't extinguish the portal the player is teleporting from
+				-- It already links back to the portal the player is teleporting from, so don't
+				-- extinguish it or the player's portal will also extinguish.
 				if DEBUG then minetest.chat_send_all("    Build unnecessary: already a lit portal that links back here at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation) end
 			else
 				if DEBUG then minetest.chat_send_all("    Build unnecessary: already a lit portal at " ..  minetest.pos_to_string(found_anchorPos) .. ", orientation " .. result_orientation .. ", linking to " .. result_target_str .. ". Extinguishing...") end
@@ -1626,46 +1756,6 @@ local function create_book_of_portals()
 	end
 end
 
--- This is hack to work around how place_schematic() never invalidates its cache.
--- A unique schematic filename is generated for each unique set of node replacements
-function get_malleated_schematic_filename(portal_definition)
-
-	local result
-
-	if portal_definition.shape ~= nil and portal_definition.shape.schematic_filename ~= nil then
-
-		local schematicFileName = portal_definition.shape.schematic_filename
-		local uniqueId = portal_definition.frame_node_name .. " " .. portal_definition.wormhole_node_name
-
-		if malleated_filenames[schematicFileName] == nil then malleated_filenames[schematicFileName] = {} end
-		local filenamesForSchematic = malleated_filenames[schematicFileName]
-
-		-- Split the schematic's filename into the path and filename
-		local lastSlashPos,     _ = schematicFileName:find("/[^/]+$")   -- find the rightmost slash
-		local lastBackslashPos, _ = schematicFileName:find("\\[^\\]+$") -- find the rightmost backslash
-		if lastSlashPos     == nil then lastSlashPos = -1 end
-		if lastBackslashPos ~= nil then lastSlashPos = math.max(lastSlashPos, lastBackslashPos) end
-		local part_path     = schematicFileName:sub(0, math.max(0, lastSlashPos - 1))
-		local part_filename = schematicFileName:sub(lastSlashPos + 1)
-
-		if filenamesForSchematic[uniqueId] == nil then
-
-			local malleationCount = 0
-			for _ in pairs(filenamesForSchematic) do malleationCount = malleationCount + 1 end
-
-			local malleatedFilename = part_path .. DIR_DELIM
-			for i = 1, malleationCount do
-				malleatedFilename = malleatedFilename .. '.' .. DIR_DELIM -- should work on both Linux and Windows
-			end
-			malleatedFilename = malleatedFilename .. part_filename
-			filenamesForSchematic[uniqueId] = malleatedFilename
-		end
-		result = filenamesForSchematic[uniqueId]
-	end
-
-	return result
-end
-
 
 function register_frame_node(frame_node_name)
 
@@ -1915,8 +2005,6 @@ function nether.register_portal(name, portaldef)
 	-- use portaldef_default for any values missing from portaldef or portaldef.sounds
 	if portaldef.sounds ~= nil then setmetatable(portaldef.sounds, {__index = portaldef_default.sounds}) end
 	setmetatable(portaldef, {__index = portaldef_default})
-
-	portaldef.schematic_filename = get_malleated_schematic_filename(portaldef)
 
 	if portaldef.particle_color == nil then
 		-- default the particle colours to be the same as the wormhole colour
