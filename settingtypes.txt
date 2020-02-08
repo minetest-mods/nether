@@ -15,5 +15,5 @@ nether_realm_enabled (Enable Nether realm & portal) bool true
 # Enables the Floatlands portal api code example
 nether_enable_portal_example_floatlands (Enable example portal: Floatlands) bool false
 
-# Enables the Surface travel portal api code example
-nether_enable_portal_example_surfacetravel (Enable example portal: Surface travel) bool false
+# Enables the Surface-travel portal api code example
+nether_enable_portal_example_surfacetravel (Enable example portal: Surface-travel) bool false

@@ -1178,7 +1178,13 @@ local function remote_portal_checkup(elapsed, portal_definition, anchorPos, orie
 	local wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
 	local wormhole_node = minetest.get_node_or_nil(wormholePos)
 
-	if wormhole_node == nil or wormhole_node.name ~= portal_definition.wormhole_node_name then
+	local portalFound, portalLit = false, false	
+	if wormhole_node ~= nil and wormhole_node.name == portal_definition.wormhole_node_name then 
+		-- a wormhole node was there, but check the whole frame is intact
+		portalFound, portalLit = is_portal_at_anchorPos(portal_definition, anchorPos, orientation, false)
+	end
+
+	if not portalFound or not portalLit then
 		-- ruh roh
 		local message = "Newly created portal at " .. minetest.pos_to_string(anchorPos) .. " was overwritten. Attempting to recreate. Issue spotted after " .. elapsed .. " seconds"
 		minetest.log("warning", message)
@@ -1312,22 +1318,27 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 			if DEBUG and destination_orientation == nil then minetest.chat_send_all("No destination_orientation given") end
 			if destination_orientation == nil then destination_orientation = orientation end
 
-			local destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(destination_anchorPos, destination_orientation)
-			if DEBUG then minetest.chat_send_all("Destination set to " .. minetest.pos_to_string(destination_anchorPos)) end
+			if destination_anchorPos == nil then
+				if DEBUG then minetest.chat_send_all("No portal destination available here!") end
+				return false
+			else
+				local destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(destination_anchorPos, destination_orientation)
+				if DEBUG then minetest.chat_send_all("Destination set to " .. minetest.pos_to_string(destination_anchorPos)) end
 
-			-- ignition/BURN_BABY_BURN
-			set_portal_metadata_and_ignite(portal_definition, anchorPos, orientation, destination_wormholePos)
+				-- ignition/BURN_BABY_BURN
+				set_portal_metadata_and_ignite(portal_definition, anchorPos, orientation, destination_wormholePos)
 
-			if portal_definition.sounds.ignite ~= nil then
-				local local_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
-				minetest.sound_play(portal_definition.sounds.ignite, {pos = local_wormholePos, max_hear_distance = 20})
+				if portal_definition.sounds.ignite ~= nil then
+					local local_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(anchorPos, orientation)
+					minetest.sound_play(portal_definition.sounds.ignite, {pos = local_wormholePos, max_hear_distance = 20})
+				end
+
+				if portal_definition.on_ignite ~= nil then
+					portal_definition.on_ignite(portal_definition, anchorPos, orientation)
+				end
+
+				return true
 			end
-
-			if portal_definition.on_ignite ~= nil then
-				portal_definition.on_ignite(portal_definition, anchorPos, orientation)
-			end
-
-			return true
 		end
 	end
 end
@@ -1737,7 +1748,7 @@ local function create_book_of_portals()
 
 
 	create_book(
-		"nether:book_of_portals",
+		":nether:book_of_portals",
 		S("Book of Portals"),
 		"nether_book_of_portals.png",
 		S("A definitive guide to Rifts and Portals"),
@@ -2160,6 +2171,8 @@ end
 -- portal_name is optional, providing it allows existing portals on the surface to be reused.
 function nether.find_surface_target_y(target_x, target_z, portal_name)
 
+	assert(target_x ~= nil and target_z ~= nil, "Arguments `target_x` and `target_z` cannot be nil when calling find_surface_target_y()")
+
 	-- default to starting the search at -16 (probably underground) if we don't know the
 	-- surface, like paramat's original code from before get_spawn_level() was available:
 	-- https://github.com/minetest-mods/nether/issues/5#issuecomment-506983676
@@ -2215,6 +2228,7 @@ function nether.find_nearest_working_portal(portal_name, anchorPos, distance_lim
 
 	local portal_definition = nether.registered_portals[portal_name]
 	assert(portal_definition ~= nil, "find_nearest_working_portal() called with portal_name '" .. portal_name .. "', but no portal is registered with that name.")
+	assert(anchorPos         ~= nil, "Argument `anchorPos` cannot be nil when calling find_nearest_working_portal()")
 
 	local contenders = list_closest_portals(portal_definition, anchorPos, distance_limit, y_factor)
 
