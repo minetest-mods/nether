@@ -31,11 +31,11 @@ docoration functions without triggering the node's `on_destruct` handler.
 Realms
 ------
 
-This API uses the concept of a "realm" for each type of portal. If a portal is
+This API uses the concept of a realm for each type of portal. If a portal is
 outside its realm then it links to a portal inside the realm, if a portal is
 inside its realm then it links to the outside.
 
-You get to decide what consitutes your realm by implementing the function
+You get to decide what constitutes your realm by implementing the function
 `is_within_realm(position)`.
 
 For example, the Nether realm is defined as existing at a certain depth and
@@ -91,11 +91,6 @@ Call these functions only at load time:
         * Use error() to exit lua with a message explaining how two mods are
           clashing and how it can be resolved.
         * Continue without a portal (the reason will be logged for the user).
-* `nether.unregister_portal(name)`
-    * Unregisters the portal from the engine, and deletes the entry with key
-      `name` from `nether.registered_portals` and associated internal tables.
-    * Returns true on success
-    * You will probably never need to call this, it exists only for completeness.
 * `nether.register_portal_ignition_item(name, ignition_failure_sound)`
     * ignition_failure_sound is optional, it plays any time an attempt to use
       the item occurs if a portal is not ignited.
@@ -108,6 +103,11 @@ Call these functions only at load time:
     * After `register_wormhole_node()`, invoke `register_portal()` and include
       `wormhole_node_name` in the portal_definition, assigning it the name of the
       new wormhole node.
+* `nether.unregister_portal(name)`
+    * Unregisters the portal from the engine, and deletes the entry with key
+      `name` from `nether.registered_portals` and associated internal tables.
+    * Returns true on success
+    * You will probably never need to call this, it exists only for completeness.
 
 
 Portal definition
