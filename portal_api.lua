@@ -1916,7 +1916,7 @@ local wormhole_nodedef_default = {
 				type = "vertical_frames",
 				aspect_w = 16,
 				aspect_h = 16,
-				length = 0.5,
+				length = 0.9,
 			},
 		},
 		{
@@ -1925,7 +1925,7 @@ local wormhole_nodedef_default = {
 				type = "vertical_frames",
 				aspect_w = 16,
 				aspect_h = 16,
-				length = 0.5,
+				length = 0.9,
 			},
 		},
 	},
