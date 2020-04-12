@@ -59,33 +59,40 @@ local dbuf = nil
 
 -- Content ids
 
-local c_air = minetest.get_content_id("air")
+nether.get_content_id = function(name)
+	-- Guard againt minetest.get_content_id() errors - in MT 5.2.0 it can error out of the
+	-- game if another mod (such as moreblocks) uses register_alias_force() on the node. 
+	name = minetest.registered_aliases[name] or name
+	return minetest.get_content_id(name)
+end
 
---local c_stone_with_coal = minetest.get_content_id("default:stone_with_coal")
---local c_stone_with_iron = minetest.get_content_id("default:stone_with_iron")
-local c_stone_with_mese = minetest.get_content_id("default:stone_with_mese")
-local c_stone_with_diamond = minetest.get_content_id("default:stone_with_diamond")
-local c_stone_with_gold = minetest.get_content_id("default:stone_with_gold")
---local c_stone_with_copper = minetest.get_content_id("default:stone_with_copper")
-local c_mese = minetest.get_content_id("default:mese")
+local c_air = nether.get_content_id("air")
 
-local c_gravel = minetest.get_content_id("default:gravel")
-local c_dirt = minetest.get_content_id("default:dirt")
-local c_sand = minetest.get_content_id("default:sand")
+--local c_stone_with_coal = nether.get_content_id("default:stone_with_coal")
+--local c_stone_with_iron = nether.get_content_id("default:stone_with_iron")
+local c_stone_with_mese    = nether.get_content_id("default:stone_with_mese")
+local c_stone_with_diamond = nether.get_content_id("default:stone_with_diamond")
+local c_stone_with_gold    = nether.get_content_id("default:stone_with_gold")
+--local c_stone_with_copper = nether.get_content_id("default:stone_with_copper")
+local c_mese          = nether.get_content_id("default:mese")
 
-local c_cobble = minetest.get_content_id("default:cobble")
-local c_mossycobble = minetest.get_content_id("default:mossycobble")
-local c_stair_cobble = minetest.get_content_id("stairs:stair_cobble")
+local c_gravel        = nether.get_content_id("default:gravel")
+local c_dirt          = nether.get_content_id("default:dirt")
+local c_sand          = nether.get_content_id("default:sand")
 
-local c_lava_source = minetest.get_content_id("default:lava_source")
-local c_lava_flowing = minetest.get_content_id("default:lava_flowing")
-local c_water_source = minetest.get_content_id("default:water_source")
-local c_water_flowing = minetest.get_content_id("default:water_flowing")
+local c_cobble        = nether.get_content_id("default:cobble")
+local c_mossycobble   = nether.get_content_id("default:mossycobble")
+local c_stair_cobble  = nether.get_content_id("stairs:stair_cobble")
 
-local c_glowstone = minetest.get_content_id("nether:glowstone")
-local c_nethersand = minetest.get_content_id("nether:sand")
-local c_netherbrick = minetest.get_content_id("nether:brick")
-local c_netherrack = minetest.get_content_id("nether:rack")
+local c_lava_source   = nether.get_content_id("default:lava_source")
+local c_lava_flowing  = nether.get_content_id("default:lava_flowing")
+local c_water_source  = nether.get_content_id("default:water_source")
+local c_water_flowing = nether.get_content_id("default:water_flowing")
+
+local c_glowstone     = nether.get_content_id("nether:glowstone")
+local c_nethersand    = nether.get_content_id("nether:sand")
+local c_netherbrick   = nether.get_content_id("nether:brick")
+local c_netherrack    = nether.get_content_id("nether:rack")
 
 
 -- On-generated function
