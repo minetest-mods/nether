@@ -129,7 +129,12 @@ local OU2 = {name = "default:obsidian", facedir = facedir_up + 1,    prob = 255,
 local OU3 = {name = "default:obsidian", facedir = facedir_up + 2,    prob = 255, force_place = true}
 local OU4 = {name = "default:obsidian", facedir = facedir_up + 3,    prob = 255, force_place = true}
 local OD  = {name = "default:obsidian", facedir = facedir_down,      prob = 255, force_place = true}
-local facedirNodeList = {ON, ON2, ON3, ON4, OS, OE, OW, OU, OU2, OU3, OU4, OD} -- a list of node references which should have their facedir value copied into param2 before placing a schematic
+
+-- facedirNodeList is a list of node references which should have their facedir value copied into
+-- param2 before placing a schematic. The facedir values will only be copied when the portal's frame
+-- node has a paramtype2 of "facedir" or "colorfacedir".
+-- Having schematics provide this list avoids needing to check every node in the schematic volume.
+local facedirNodeList = {ON, ON2, ON3, ON4, OS, OE, OW, OU, OU2, OU3, OU4, OD}
 
 -- This object defines a portal's shape, segregating the shape logic code from portal behaviour code.
 -- You can create a new "PortalShape" definition object which implements the same
@@ -1155,7 +1160,7 @@ end
 
 
 -- sets param2 values in the schematic to match facedir values, or 0 if the portalframe-nodedef doesn't use facedir
-local function set_schematic_param2(schematic_table, frame_node_name)
+local function set_schematic_param2(schematic_table, frame_node_name, frame_node_color)
 
 	local paramtype2 = minetest.registered_nodes[frame_node_name].paramtype2
 	local isFacedir = paramtype2 == "facedir" or paramtype2 == "colorfacedir"
@@ -1163,7 +1168,9 @@ local function set_schematic_param2(schematic_table, frame_node_name)
 	if schematic_table.facedirNodes ~= nil then
 		for _, node in ipairs(schematic_table.facedirNodes) do
 			if isFacedir and node.facedir ~= nil then
-				node.param2 = node.facedir
+				-- frame_node_color can be nil
+				local colorBits = (frame_node_color or math.floor((node.param2 or 0) / 32)) * 32
+				node.param2 = node.facedir + colorBits
 			else
 				node.param2 = 0
 			end
@@ -1173,7 +1180,7 @@ end
 
 local function build_portal(portal_definition, anchorPos, orientation, destination_wormholePos)
 
-	set_schematic_param2(portal_definition.shape.schematic, portal_definition.frame_node_name)
+	set_schematic_param2(portal_definition.shape.schematic, portal_definition.frame_node_name, portal_definition.frame_node_color)
 
 	minetest.place_schematic(
 		portal_definition.shape.get_schematicPos_from_anchorPos(anchorPos, orientation),
@@ -1900,6 +1907,10 @@ function test_portaldef_is_valid(portal_definition)
 	assert(portal_definition.wormhole_node_color >= 0 and portal_definition.wormhole_node_color < 8, "portaldef.wormhole_node_color must be between 0 and 7 (inclusive)")
 	assert(portal_definition.is_within_realm      ~= nil, "portaldef.is_within_realm() must be implemented")
 	assert(portal_definition.find_realm_anchorPos ~= nil, "portaldef.find_realm_anchorPos() must be implemented")
+
+	if portal_definition.frame_node_color ~= nil then
+		assert(portal_definition.frame_node_color >= 0 and portal_definition.frame_node_color < 8, "portal_definition.frame_node_color must be between 0 and 7 (inclusive)")
+	end
 	-- todo
 
 	return result
