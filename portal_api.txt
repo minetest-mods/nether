@@ -115,6 +115,12 @@ Used by `nether.register_portal`.
         -- Required. For best results, have your portal constructed of a
         -- material nobody else is using.
 
+        frame_node_color = 0,
+        -- Optional.
+        -- A value from 0 to 7. Only used if the frame node's paramtype2 is
+        -- "colorfacedir", in which case this color will be used when a remote
+        -- portal is created.
+
         shape = nether.PortalShape_Traditional,
         -- Optional.
         -- Shapes available are:
