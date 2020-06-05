@@ -19,11 +19,11 @@
 
 ]]--
 
-nether.DEPTH_FLOOR = -30912 -- this mapgen will create Nether all the way down
 
 -- Parameters
 
-local NETHER_DEPTH = nether.DEPTH
+local NETHER_CEILING = nether.DEPTH_CEILING
+local NETHER_FLOOR   = nether.DEPTH_FLOOR
 local TCAVE = 0.6
 local BLEND = 128
 
@@ -44,12 +44,14 @@ local np_cave = {
 
 -- Stuff
 
-local yblmax = NETHER_DEPTH - BLEND * 2
-
+local yblmin = NETHER_FLOOR   + BLEND * 2
+local yblmax = NETHER_CEILING - BLEND * 2
 
 
 
 -- Mapgen
+
+dofile(nether.path .. "/mapgen_decorations.lua")
 
 -- Initialize noise object, localise noise and data buffers
 
@@ -92,15 +94,15 @@ local c_netherrack = minetest.get_content_id("nether:rack")
 -- On-generated function
 
 minetest.register_on_generated(function(minp, maxp, seed)
-	if minp.y > NETHER_DEPTH then
+	if minp.y > NETHER_CEILING or maxp.y < NETHER_FLOOR then
 		return
 	end
 
 	local x1 = maxp.x
-	local y1 = maxp.y
+	local y1 = math.min(maxp.y, NETHER_CEILING)
 	local z1 = maxp.z
 	local x0 = minp.x
-	local y0 = minp.y
+	local y0 = math.max(minp.y, NETHER_FLOOR)
 	local z0 = minp.z
 
 	local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
@@ -126,11 +128,9 @@ minetest.register_on_generated(function(minp, maxp, seed)
 		local tcave
 		local in_chunk_y = false
 		if y >= y0 and y <= y1 then
-			if y > yblmax then
-				tcave = TCAVE + ((y - yblmax) / BLEND) ^ 2
-			else
-				tcave = TCAVE
-			end
+			tcave = TCAVE
+			if y > yblmax then tcave = TCAVE + ((y - yblmax) / BLEND) ^ 2 end
+			if y < yblmin then tcave = TCAVE + ((yblmin - y) / BLEND) ^ 2 end
 			in_chunk_y = true
 		end
 
@@ -189,6 +189,10 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	end
 
 	vm:set_data(data)
+
+	-- avoid generating decorations on the underside of the bottom of the nether
+	if minp.y > NETHER_FLOOR and maxp.y < NETHER_CEILING then minetest.generate_decorations(vm) end
+
 	vm:set_lighting({day = 0, night = 0}, minp, maxp)
 	vm:calc_lighting()
 	vm:update_liquids()
