@@ -19,6 +19,7 @@
 
 ]]--
 
+nether.DEPTH_FLOOR = -30912 -- this mapgen will create Nether all the way down
 
 -- Parameters
 
