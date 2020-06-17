@@ -196,8 +196,8 @@ local np_cave = {
 -- Buffers and objects we shouldn't recreate every on_generate
 
 local nobj_cave = nil
-local nbuf_cave = nil
-local dbuf = nil
+local nbuf_cave = {}
+local dbuf = {}
 
 local yblmin = NETHER_FLOOR   + BLEND * 2
 local yblmax = NETHER_CEILING - BLEND * 2
@@ -415,7 +415,7 @@ local function on_generated(minp, maxp, seed)
 	local chulens = {x = yCaveStride, y = yCaveStride, z = yCaveStride}
 
 	nobj_cave = nobj_cave or minetest.get_perlin_map(np_cave, chulens)
-	local nvals_cave = nobj_cave:get3dMap_flat(minp, nbuf_cave)
+	local nvals_cave = nobj_cave:get_3d_map_flat(minp, nbuf_cave)
 
 
 	local dungeonRooms = build_dungeon_room_list(data, area)
