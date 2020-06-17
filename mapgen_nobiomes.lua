@@ -56,8 +56,8 @@ dofile(nether.path .. "/mapgen_decorations.lua")
 -- Initialize noise object, localise noise and data buffers
 
 local nobj_cave = nil
-local nbuf_cave = nil
-local dbuf = nil
+local nbuf_cave = {}
+local dbuf = {}
 
 
 -- Content ids
@@ -122,7 +122,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local minposxyz = {x = x0, y = y0, z = z0}
 
 	nobj_cave = nobj_cave or minetest.get_perlin_map(np_cave, chulens)
-	local nvals_cave = nobj_cave:get3dMap_flat(minposxyz, nbuf_cave)
+	local nvals_cave = nobj_cave:get_3d_map_flat(minposxyz, nbuf_cave)
 
 	for y = y00, y11 do -- Y loop first to minimise tcave calculations
 		local tcave
