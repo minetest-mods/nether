@@ -113,7 +113,7 @@ minetest.register_decoration({
     deco_type = "schematic",
     place_on = "nether:rack",
     sidelen = 80,
-    fill_ratio = 0.0004,
+    fill_ratio = 0.0003,
     biomes = {"nether_caverns"},
     y_max = nether.DEPTH_CEILING, -- keep compatibility with mapgen_nobiomes.lua
     y_min = nether.DEPTH_FLOOR,
@@ -127,7 +127,7 @@ minetest.register_decoration({
     deco_type = "schematic",
     place_on = "nether:rack",
     sidelen = 80,
-    fill_ratio = 0.0007,
+    fill_ratio = 0.0008,
     biomes = {"nether_caverns"},
     y_max = nether.DEPTH_CEILING, -- keep compatibility with mapgen_nobiomes.lua
     y_min = nether.DEPTH_FLOOR,

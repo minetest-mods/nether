@@ -113,7 +113,7 @@ override_underground_biomes()
 
 -- nether:native_mapgen is used to prevent ores and decorations being generated according
 -- to landforms created by the native mapgen.
--- Ores and decorations are registered against "nether:rack" instead, and the lua
+-- Ores and decorations can be registered against "nether:rack" instead, and the lua
 -- on_generate() callback will carve the Nether with nether:rack before invoking
 -- generate_decorations and generate_ores.
 minetest.register_node("nether:native_mapgen", {})
@@ -160,7 +160,7 @@ minetest.register_ore({
 	ore_type       = "scatter",
 	ore            = "default:lava_source",
 	wherein        = "nether:rack",
-	clust_scarcity = 32 * 32 * 32,
+	clust_scarcity = 36 * 36 * 36,
 	clust_num_ores = 4,
 	clust_size     = 2,
 	y_max = NETHER_CEILING,
