@@ -1303,8 +1303,9 @@ end
 
 
 -- invoked when a player attempts to turn obsidian nodes into an open portal
+-- player_name is optional, allowing a player to spawn a remote portal in their own protected area
 -- ignition_node_name is optional
-local function ignite_portal(ignition_pos, ignition_node_name)
+local function ignite_portal(ignition_pos, player_name, ignition_node_name)
 
 	if ignition_node_name == nil then ignition_node_name = minetest.get_node(ignition_pos).name end
 	if DEBUG then minetest.chat_send_all("IGNITE the " .. ignition_node_name .. " at " .. minetest.pos_to_string(ignition_pos)) end
@@ -1354,9 +1355,9 @@ local function ignite_portal(ignition_pos, ignition_node_name)
 
 			local destination_anchorPos, destination_orientation
 			if portal_definition.is_within_realm(ignition_pos) then
-				destination_anchorPos, destination_orientation = portal_definition.find_surface_anchorPos(anchorPos)
+				destination_anchorPos, destination_orientation = portal_definition.find_surface_anchorPos(anchorPos, player_name or "")
 			else
-				destination_anchorPos, destination_orientation = portal_definition.find_realm_anchorPos(anchorPos)
+				destination_anchorPos, destination_orientation = portal_definition.find_realm_anchorPos(anchorPos, player_name or "")
 			end
 			if DEBUG and destination_orientation == nil then minetest.chat_send_all("No destination_orientation given") end
 			if destination_orientation == nil then destination_orientation = orientation end
@@ -1825,7 +1826,7 @@ function register_frame_node(frame_node_name)
 	extended_node_def.mesecons = {effector = {
 		action_on = function (pos, node)
 			if DEBUG then minetest.chat_send_all("portal frame material: mesecons action ON") end
-			ignite_portal(pos, node.name)
+			ignite_portal(pos, nil, node.name)
 		end,
 		action_off = function (pos, node)
 			if DEBUG then minetest.chat_send_all("portal frame material: mesecons action OFF") end
@@ -2081,7 +2082,7 @@ function nether.register_portal(name, portaldef)
 	end
 
 	if portaldef.find_surface_anchorPos == nil then	-- default to using find_surface_target_y()
-		portaldef.find_surface_anchorPos = function(pos)
+		portaldef.find_surface_anchorPos = function(pos, player_name)
 
 			local destination_pos = {x = pos.x, y = 0, z = pos.z}
 			local existing_portal_location, existing_portal_orientation =
@@ -2089,7 +2090,7 @@ function nether.register_portal(name, portaldef)
 			if existing_portal_location ~= nil then
 				return existing_portal_location, existing_portal_orientation
 			else
-				destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, name)
+				destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, name, player_name)
 				return destination_pos
 			end
 		end
@@ -2153,10 +2154,10 @@ end
 function nether.register_portal_ignition_item(item_name, ignition_failure_sound)
 
 	minetest.override_item(item_name, {
-		on_place = function(stack, _, pt)
+		on_place = function(stack, placer, pt)
 			local done = false
 			if pt.under and nether.is_frame_node[minetest.get_node(pt.under).name] then
-				done = ignite_portal(pt.under)
+				done = ignite_portal(pt.under, placer:get_player_name())
 				if done and not minetest.settings:get_bool("creative_mode") then
 					stack:take_item()
 				end
@@ -2175,22 +2176,22 @@ end
 
 -- use this when determining where to spawn a portal, to avoid overwriting player builds
 -- It checks the area for any nodes that aren't ground or trees.
+-- player_name is optional, allowing a player to spawn a remote portal in their own protected areas.
 -- (Water also fails this test, unless it is unemerged)
-function nether.volume_is_natural(minp, maxp)
+function nether.volume_is_natural_and_unprotected(minp, maxp, player_name)
+
 	local c_air = minetest.get_content_id("air")
 	local c_ignore = minetest.get_content_id("ignore")
 
 	local vm = minetest.get_voxel_manip()
-	local pos1 = {x = minp.x, y = minp.y, z = minp.z}
-	local pos2 = {x = maxp.x, y = maxp.y, z = maxp.z}
-	local emin, emax = vm:read_from_map(pos1, pos2)
+	local emin, emax = vm:read_from_map(minp, maxp)
 	local area = VoxelArea:new({MinEdge = emin, MaxEdge = emax})
 	local data = vm:get_data()
 
-	for z = pos1.z, pos2.z do
-	for y = pos1.y, pos2.y do
-		local vi = area:index(pos1.x, y, z)
-		for x = pos1.x, pos2.x do
+	for z = minp.z, maxp.z do
+	for y = minp.y, maxp.y do
+		local vi = area:index(minp.x, y, z)
+		for x = minp.x, maxp.x do
 			local id = data[vi] -- Existing node
 			if DEBUG and id == nil then minetest.chat_send_all("nil block at index " .. vi) end
 			if id ~= c_air and id ~= c_ignore and id ~= nil then -- checked for common natural or not emerged
@@ -2200,7 +2201,7 @@ function nether.volume_is_natural(minp, maxp)
 					-- trees are natural but not "ground content"
 					local node_groups = nodedef.groups
 					if node_groups == nil or (node_groups.tree == nil and node_groups.leaves == nil and node_groups.leafdecay == nil) then
-						if DEBUG then minetest.chat_send_all("volume_is_natural() found unnatural node " .. name) end
+						if DEBUG then minetest.chat_send_all("volume_is_natural_and_unprotected() found unnatural node " .. name) end
 						return false
 					end
 				end
@@ -2210,13 +2211,25 @@ function nether.volume_is_natural(minp, maxp)
 	end
 	end
 
-	if DEBUG then minetest.chat_send_all("Volume is natural") end
+	if minetest.is_area_protected(minp, maxp, player_name or "") then
+		if DEBUG then minetest.chat_send_all("Volume is protected " .. minetest.pos_to_string(minp) .. "-" .. minetest.pos_to_string(maxp)) end
+		return false;
+	end
+
+	if DEBUG then minetest.chat_send_all("Volume is natural and unprotected for player '" .. (player_name or "") .. "', " .. minetest.pos_to_string(minp) .. "-" .. minetest.pos_to_string(maxp)) end
 	return true
 end
 
+-- Deprecated, use nether.volume_is_natural_and_unprotected() instead.
+function nether.volume_is_natural(minp, maxp)
+	return nether.volume_is_natural_and_unprotected(minp, maxp)
+end
+
+
 -- Can be used when implementing custom find_surface_anchorPos() functions
 -- portal_name is optional, providing it allows existing portals on the surface to be reused.
-function nether.find_surface_target_y(target_x, target_z, portal_name)
+-- player_name is optional, allowing a player to spawn a remote portal in their own protected areas.
+function nether.find_surface_target_y(target_x, target_z, portal_name, player_name)
 
 	assert(target_x ~= nil and target_z ~= nil, "Arguments `target_x` and `target_z` cannot be nil when calling find_surface_target_y()")
 
@@ -2250,14 +2263,14 @@ function nether.find_surface_target_y(target_x, target_z, portal_name)
 		-- Check volume for non-natural nodes
 		local minp = {x = target_x - 1, y = y - 1, z = target_z - 2}
 		local maxp = {x = target_x + 2, y = y + 3, z = target_z + 2}
-		if nether.volume_is_natural(minp, maxp) then
+		if nether.volume_is_natural_and_unprotected(minp, maxp, player_name) then
 			return y
 		elseif portal_name ~= nil and nether.registered_portals[portal_name] ~= nil then
 			-- players have built here - don't grief.
 			-- but reigniting existing portals in portal rooms is fine - desirable even.
 			local anchorPos, orientation, is_ignited = is_within_portal_frame(nether.registered_portals[portal_name], {x = target_x, y = y, z = target_z})
 			if anchorPos ~= nil then
-				if DEBUG then minetest.chat_send_all("Volume_is_natural check failed, but a portal frame is here " .. minetest.pos_to_string(anchorPos) .. ", so this is still a good target y level") end
+				if DEBUG then minetest.chat_send_all("volume_is_natural_and_unprotected check failed, but a portal frame is here " .. minetest.pos_to_string(anchorPos) .. ", so this is still a good target y level") end
 				return y
 			end
 		end
