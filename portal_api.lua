@@ -2222,6 +2222,16 @@ end
 
 -- Deprecated, use nether.volume_is_natural_and_unprotected() instead.
 function nether.volume_is_natural(minp, maxp)
+
+	if nether.deprecation_warning_volume_is_natural == nil then
+		local stack = debug.traceback("", 2);
+		local calling_func = (string.split(stack, "\n", false, 2, false)[2] or ""):trim()
+		minetest.log("warning",
+			"Deprecated function \"nether.volume_is_natural()\" invoked. Use \"nether.volume_is_natural_and_unprotected()\" instead. " ..
+			calling_func)
+		nether.deprecation_warning_volume_is_natural = true;
+	end
+
 	return nether.volume_is_natural_and_unprotected(minp, maxp)
 end
 
@@ -2236,8 +2246,9 @@ function nether.get_schematic_volume(anchor_pos, orientation, portal_name)
 		local minp0, maxp0 = nether.get_schematic_volume(anchor_pos, 0, portal_name)
 		local minp1, maxp1 = nether.get_schematic_volume(anchor_pos, 1, portal_name)
 
-		-- due to the nature of schematic rotation, we don't need to check orientations
-		-- 3 and 4, even for asymmetric schematics.
+		-- ToDo: If an asymmetric portal is used with an anchor not at the center of the
+		-- schematic then we will also need to check orientations 3 and 4.
+		-- (The currently existing portal-shapes are not affected)
 		return
 			{x = math.min(minp0.x, minp1.x), y = math.min(minp0.y, minp1.y), z = math.min(minp0.z, minp1.z)},
 			{x = math.max(maxp0.x, maxp1.x), y = math.max(maxp0.y, maxp1.y), z = math.max(maxp0.z, maxp1.z)}
