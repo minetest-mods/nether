@@ -2225,9 +2225,46 @@ function nether.volume_is_natural(minp, maxp)
 	return nether.volume_is_natural_and_unprotected(minp, maxp)
 end
 
+-- Gets the volume that may be altered if a portal is placed at the anchor_pos
+-- orientation is optional, but specifying it will reduce the volume returned
+-- portal_name is optional, but specifying it will reduce the volume returned
+-- returns minp, maxp
+function nether.get_schematic_volume(anchor_pos, orientation, portal_name)
+
+	if orientation == nil then
+		-- Return a volume large enough for any orientation
+		local minp0, maxp0 = nether.get_schematic_volume(anchor_pos, 0, portal_name)
+		local minp1, maxp1 = nether.get_schematic_volume(anchor_pos, 1, portal_name)
+
+		-- due to the nature of schematic rotation, we don't need to check orientations
+		-- 3 and 4, even for asymmetric schematics.
+		return
+			{x = math.min(minp0.x, minp1.x), y = math.min(minp0.y, minp1.y), z = math.min(minp0.z, minp1.z)},
+			{x = math.max(maxp0.x, maxp1.x), y = math.max(maxp0.y, maxp1.y), z = math.max(maxp0.z, maxp1.z)}
+	end
+
+	-- Assume the largest possible portal shape unless we know it's a smaller one.
+	local shape_defintion = nether.PortalShape_Circular
+	if portal_name ~= nil and nether.registered_portals[portal_name] ~= nil then
+		shape_defintion = nether.registered_portals[portal_name].shape
+	end
+
+	local size = shape_defintion.schematic.size
+	local minp = shape_defintion.get_schematicPos_from_anchorPos(anchor_pos, orientation);
+	local maxp
+
+	if (orientation % 2) == 0 then
+		maxp = {x = minp.x + size.x - 1, y = minp.y + size.y - 1, z = minp.z + size.z - 1}
+	else
+		maxp = {x = minp.x + size.z - 1, y = minp.y + size.y - 1, z = minp.z + size.x - 1}
+	end
+	return minp, maxp
+end
+
 
 -- Can be used when implementing custom find_surface_anchorPos() functions
--- portal_name is optional, providing it allows existing portals on the surface to be reused.
+-- portal_name is optional, providing it allows existing portals on the surface to be reused, and
+-- a potentially smaller volume to be checked by volume_is_natural_and_unprotected().
 -- player_name is optional, allowing a player to spawn a remote portal in their own protected areas.
 function nether.find_surface_target_y(target_x, target_z, portal_name, player_name)
 
@@ -2259,10 +2296,14 @@ function nether.find_surface_target_y(target_x, target_z, portal_name, player_na
 		end
 	end
 
+	local minp_schem, maxp_schem = nether.get_schematic_volume({x = target_x, y = 0, z = target_z}, nil, portal_name)
+	local minp = {x = minp_schem.x, y = 0, z = minp_schem.z}
+	local maxp = {x = maxp_schem.x, y = 0, z = maxp_schem.z}
+
 	for y = start_y, start_y - 256, -16 do
 		-- Check volume for non-natural nodes
-		local minp = {x = target_x - 1, y = y - 1, z = target_z - 2}
-		local maxp = {x = target_x + 2, y = y + 3, z = target_z + 2}
+		minp.y = minp_schem.y + y
+		maxp.y = maxp_schem.y + y
 		if nether.volume_is_natural_and_unprotected(minp, maxp, player_name) then
 			return y
 		elseif portal_name ~= nil and nether.registered_portals[portal_name] ~= nil then

@@ -56,7 +56,7 @@ Helper functions
       trees.
       Water will fail this test, unless it is unemerged.
     * player_name is optional, providing it allows the player's own protected
-      areas to be recognized as unprotected.
+      areas to be treated as unprotected.
 
 * `nether.find_surface_target_y(target_x, target_z, portal_name, player_name)`:
   returns a suitable anchorPos
