@@ -23,6 +23,7 @@ read_globals = {
 	"PseudoRandom",
 	"stairs",
 	"stairsplus",
+	"string.split",
 	table = { fields = { "copy", "getn" } },
 	"vector",
 	"VoxelArea",

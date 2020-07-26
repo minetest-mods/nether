@@ -58,7 +58,7 @@ nether.NETHER_REALM_ENABLED       = minetest.settings:get_bool("nether_realm_ena
 nether.DEPTH_CEILING              = tonumber(minetest.settings:get("nether_depth_ymax") or nether.DEPTH_CEILING)
 nether.DEPTH_FLOOR                = tonumber(minetest.settings:get("nether_depth_ymin") or nether.DEPTH_FLOOR)
 
-if nether.DEPTH_FLOOR + 1000 > nether.DEPTH_CEILING then 
+if nether.DEPTH_FLOOR + 1000 > nether.DEPTH_CEILING then
 	error("The lower limit of the Nether must be set at least 1000 lower than the upper limit, and more than 3000 is recommended. Set settingtypes.txt, or 'All Settings' -> 'Mods' -> 'nether' -> 'Nether depth'", 0)
 end
 nether.DEPTH = nether.DEPTH_CEILING -- Deprecated, use nether.DEPTH_CEILING instead.
@@ -101,7 +101,7 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 			return pos.y < nether.DEPTH_CEILING
 		end,
 
-		find_realm_anchorPos = function(surface_anchorPos)
+		find_realm_anchorPos = function(surface_anchorPos, player_name)
 			-- divide x and z by a factor of 8 to implement Nether fast-travel
 			local destination_pos = vector.divide(surface_anchorPos, nether.FASTTRAVEL_FACTOR)
 			destination_pos.x = math.floor(0.5 + destination_pos.x) -- round to int
@@ -116,12 +116,12 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 				return existing_portal_location, existing_portal_orientation
 			else
 				local start_y = nether.DEPTH_CEILING - math.random(500, 1500) -- Search starting altitude
-				destination_pos.y = nether.find_nether_ground_y(destination_pos.x, destination_pos.z, start_y)
+				destination_pos.y = nether.find_nether_ground_y(destination_pos.x, destination_pos.z, start_y, player_name)
 				return destination_pos
 			end
 		end,
 
-		find_surface_anchorPos = function(realm_anchorPos)
+		find_surface_anchorPos = function(realm_anchorPos, player_name)
 			-- A portal definition doesn't normally need to provide a find_surface_anchorPos() function,
 			-- since find_surface_target_y() will be used by default, but Nether portals also scale position
 			-- to create fast-travel.
@@ -140,7 +140,7 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 			if existing_portal_location ~= nil then
 				return existing_portal_location, existing_portal_orientation
 			else
-				destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, "nether_portal")
+				destination_pos.y = nether.find_surface_target_y(destination_pos.x, destination_pos.z, "nether_portal", player_name)
 				return destination_pos
 			end
 		end,
