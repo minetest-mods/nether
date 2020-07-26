@@ -19,6 +19,13 @@
 
 ]]--
 
+-- Set DEBUG_FLAGS to determine the behavior of nether.debug():
+--   0 = off
+--   1 = print(...)
+--   2 = minetest.chat_send_all(...)
+--   4 = minetest.log("info", ...)
+local DEBUG_FLAGS = 0
+
 local S
 if minetest.get_translator ~= nil then
 	S = minetest.get_translator("nether")
@@ -62,6 +69,48 @@ if nether.DEPTH_FLOOR + 1000 > nether.DEPTH_CEILING then
 	error("The lower limit of the Nether must be set at least 1000 lower than the upper limit, and more than 3000 is recommended. Set settingtypes.txt, or 'All Settings' -> 'Mods' -> 'nether' -> 'Nether depth'", 0)
 end
 nether.DEPTH = nether.DEPTH_CEILING -- Deprecated, use nether.DEPTH_CEILING instead.
+
+
+-- A debug-print function that understands vectors etc. and does not
+-- evaluate when debugging is turned off.
+-- Works like string.format(), treating the message as a format string.
+-- nils, tables, and vectors passed as arguments to nether.debug() are
+-- converted to strings and can be included inside the message with %s
+function nether.debug(message, ...)
+
+	local args = {...}
+	local argCount = select("#", ...)
+
+	for i = 1, argCount do
+		local arg = args[i]
+		if arg == nil then
+			-- convert nils to strings
+			args[i] = '<nil>'
+		elseif type(arg) == "table" then
+			local tableCount = 0
+			for _,_ in pairs(arg) do tableCount = tableCount + 1 end
+			if tableCount == 3 and arg.x ~= nil and arg.y ~= nil and arg.z ~= nil then
+				-- convert vectors to strings
+				args[i] = minetest.pos_to_string(arg)
+			else
+				-- convert tables to strings
+				-- (calling function can use dump() if a multi-line listing is desired)
+				args[i] = string.gsub(dump(arg, ""), "\n", " ")
+			end
+		end
+	end
+
+	local composed_message = string.format(message, unpack(args))
+
+	if math.floor(DEBUG_FLAGS / 1) % 2 == 1 then print(composed_message) end
+	if math.floor(DEBUG_FLAGS / 2) % 2 == 1 then minetest.chat_send_all(composed_message) end
+	if math.floor(DEBUG_FLAGS / 4) % 2 == 1 then minetest.log("info", composed_message) end
+end
+if DEBUG_FLAGS == 0 then
+	-- do as little evaluation as possible
+	nether.debug = function() end
+end
+
 
 -- Load files
 dofile(nether.path .. "/portal_api.lua")
