@@ -52,6 +52,11 @@ if minetest.get_mod_storage == nil then
 	error(nether.modname .. " does not support Minetest versions earlier than 0.4.16", 0)
 end
 
+local S = nether.get_translator
+nether.portal_destination_not_found_message =
+	S("Mysterious forces prevented you from opening that portal. Please try another location")
+
+
 --[[
 
 Positions
@@ -663,7 +668,6 @@ nether.PortalShape_Platform = {
 -- Portal implementation functions --
 -- =============================== --
 
-local S      = nether.get_translator
 local debugf = nether.debug
 local ignition_item_name
 local mod_storage = minetest.get_mod_storage()
@@ -1367,8 +1371,13 @@ local function ignite_portal(ignition_pos, player_name, ignition_node_name)
 				destination_orientation = orientation
 			end
 
-			if destination_anchorPos == nil then
+			if destination_anchorPos == nil or destination_anchorPos.y == nil then
+				-- destination_anchorPos.y was also checked for nil in case portal_definition.find_surface_anchorPos()
+				-- had used nether.find_surface_target_y() and that had returned nil.
 				debugf("No portal destination available here!")
+				if (player_name or "") ~= "" then
+					minetest.chat_send_player(player_name, nether.portal_destination_not_found_message)
+				end
 				return false
 			else
 				local destination_wormholePos = portal_definition.shape.get_wormholePos_from_anchorPos(destination_anchorPos, destination_orientation)
@@ -2217,7 +2226,7 @@ function nether.volume_is_natural_and_unprotected(minp, maxp, player_name)
 	end
 
 	if minetest.is_area_protected(minp, maxp, player_name or "") then
-		debugf("Volume is protected %s-%s", minp, maxp)
+		debugf("Volume is protected against player '%s', %s-%s", player_name, minp, maxp)
 		return false;
 	end
 
@@ -2316,7 +2325,12 @@ function nether.find_surface_target_y(target_x, target_z, portal_name, player_na
 	local minp = {x = minp_schem.x, y = 0, z = minp_schem.z}
 	local maxp = {x = maxp_schem.x, y = 0, z = maxp_schem.z}
 
-	for y = start_y, start_y - 256, -16 do
+	-- Starting searchstep at -16 and making it larger by 2 after each step gives a 20-step search range down to -646:
+	-- 0, -16, -34, -54, -76, -100, -126, -154, -184, -216, -250, -286, -324, -364, -406, -450, -496, -544, -594, -646
+	local searchstep = -16;
+
+	local y = start_y
+	while y > start_y - 650 do
 		-- Check volume for non-natural nodes
 		minp.y = minp_schem.y + y
 		maxp.y = maxp_schem.y + y
@@ -2331,9 +2345,11 @@ function nether.find_surface_target_y(target_x, target_z, portal_name, player_na
 				return y
 			end
 		end
+		y = y + searchstep
+		searchstep = searchstep - 2
 	end
 
-	return start_y - 256 -- Fallback
+	return nil -- Portal ignition failure. Possibly due to a large protected area.
 end
 
 
@@ -2365,7 +2381,8 @@ function nether.find_nearest_working_portal(portal_name, anchorPos, distance_lim
 		if portalFound then
 			return portal_info.anchorPos, portal_info.orientation
 		else
-			debugf("Portal wasn't found, removing portal from mod_storage at %s orientation %s", portal_info.anchorPos, portal_info.orientation)
+			debugf("Portal wasn't found, removing portal from mod_storage at %s orientation %s",
+				portal_info.anchorPos, portal_info.orientation)
 			-- The portal at that location must have been destroyed
 			remove_portal_location_info(portal_name, portal_info.anchorPos)
 		end

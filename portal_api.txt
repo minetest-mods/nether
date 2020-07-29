@@ -65,6 +65,8 @@ Helper functions
       surface to be reused.
     * player_name is optional, providing it prevents the exclusion of surface
       target areas which are protected by the player.
+    * May return nil in extreme circumstances, such as the surface being
+      protected down to a great depth.
 
 * `nether.find_nearest_working_portal(portal_name, anchorPos, distance_limit, y_factor)`: returns
   (anchorPos, orientation), or nil if no portal was found within the
@@ -222,7 +224,8 @@ Used by `nether.register_portal`.
         -- If the location of an existing portal is returned then include the
         -- orientation, otherwise the existing portal could be overwritten by
         -- a new one with the orientation of the surface portal.
-        -- Return nil to prevent the portal from igniting.
+        -- Return nil, or a position with a nil y component, to prevent the
+        -- portal from igniting.
         -- player_name may be "", e.g. if the portal was ignited by a mesecon,
         -- and is provided for use with volume_is_natural_and_unprotected() etc.
 
@@ -239,7 +242,8 @@ Used by `nether.register_portal`.
         -- If the location of an existing portal is returned then include the
         -- orientation, otherwise the existing portal could be overwritten by
         -- a new one with the orientation of the realm portal.
-        -- Return nil to prevent the portal from igniting.
+        -- Return nil, or a position with a nil y component, to prevent the
+        -- portal from igniting.
         -- player_name may be "", e.g. if the portal was ignited by a mesecon,
         -- and is provided for use with volume_is_natural_and_unprotected() etc.
 
