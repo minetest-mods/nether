@@ -100,7 +100,7 @@ function nether.debug(message, ...)
 		end
 	end
 
-	local composed_message = string.format(message, unpack(args))
+	local composed_message = "nether: " .. string.format(message, unpack(args))
 
 	if math.floor(DEBUG_FLAGS / 1) % 2 == 1 then print(composed_message) end
 	if math.floor(DEBUG_FLAGS / 2) % 2 == 1 then minetest.chat_send_all(composed_message) end
