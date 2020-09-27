@@ -1780,7 +1780,7 @@ local function create_book_of_portals()
 		ignition_item_description = minetest.registered_items[ignition_item_name].description
 	end
 	intro_text = intro_text ..
-		S("\n\nThe key to opening such a doorway is to strike the frame with a @1, at which point the very air inside begins to crackle and glow.", string.lower(ignition_item_description))
+		S("\n\nThe key to opening such a doorway is to strike the frame with a @1, at which point the very air inside begins to crackle and glow.", ignition_item_description)
 
 	chapters[#chapters + 1] = {text = intro_text}
 
