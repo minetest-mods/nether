@@ -178,4 +178,11 @@ minetest.register_craft({
 	},
 })
 
-
+minetest.register_craft({
+	output = "nether:brick_compressed",
+	recipe = {
+		{"nether:brick","nether:brick","nether:brick"},
+		{"nether:brick","nether:brick","nether:brick"},
+		{"nether:brick","nether:brick","nether:brick"},
+	}
+})
