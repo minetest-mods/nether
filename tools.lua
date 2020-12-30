@@ -69,13 +69,6 @@ minetest.register_craftitem("nether:nether_lump", {
 	description = S("Nether Lump"),
 	inventory_image = "nether_nether_lump.png",
 })
-minetest.register_node("nether:nether_compressed", {
-	description = S("Nether Compressed"),
-	tiles = {"nether_nether_compressed.png"},
-	groups = {cracky = 3, level = 2},
-	is_ground_content = false,
-	sounds = default.node_sound_stone_defaults(),
-})
 
 minetest.register_craft({
 	type = "cooking",
@@ -84,19 +77,11 @@ minetest.register_craft({
 	cooktime = 30,
 })
 minetest.register_craft({
-	output = "nether:nether_compressed",
-	recipe = {
-		{"nether:brick","nether:brick","nether:brick"},
-		{"nether:brick","nether:brick","nether:brick"},
-		{"nether:brick","nether:brick","nether:brick"},
-	}
-})
-minetest.register_craft({
 	output = "nether:nether_lump",
 	recipe = {
-		{"nether:nether_compressed","nether:nether_compressed","nether:nether_compressed"},
-		{"nether:nether_compressed","nether:nether_compressed","nether:nether_compressed"},
-		{"nether:nether_compressed","nether:nether_compressed","nether:nether_compressed"},
+		{"nether:brick_compressed","nether:brick_compressed","nether:brick_compressed"},
+		{"nether:brick_compressed","nether:brick_compressed","nether:brick_compressed"},
+		{"nether:brick_compressed","nether:brick_compressed","nether:brick_compressed"},
 	}
 })
 
