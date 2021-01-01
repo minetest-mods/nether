@@ -103,6 +103,14 @@ minetest.register_node("nether:brick", {
 	sounds = default.node_sound_stone_defaults(),
 })
 
+minetest.register_node("nether:brick_compressed", {
+	description = S("Compressed Netherbrick"),
+	tiles = {"nether_brick_compressed.png"},
+	groups = {cracky = 3, level = 2},
+	is_ground_content = false,
+	sounds = default.node_sound_stone_defaults(),
+})
+
 local fence_texture =
 	"default_fence_overlay.png^nether_brick.png^default_fence_overlay.png^[makealpha:255,126,126"
 
@@ -405,4 +413,11 @@ minetest.register_craft({
 	},
 })
 
-
+minetest.register_craft({
+	output = "nether:brick_compressed",
+	recipe = {
+		{"nether:brick","nether:brick","nether:brick"},
+		{"nether:brick","nether:brick","nether:brick"},
+		{"nether:brick","nether:brick","nether:brick"},
+	}
+})

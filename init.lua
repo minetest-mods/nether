@@ -115,6 +115,7 @@ end
 -- Load files
 dofile(nether.path .. "/portal_api.lua")
 dofile(nether.path .. "/nodes.lua")
+dofile(nether.path .. "/tools.lua")
 if nether.NETHER_REALM_ENABLED then
 	if nether.useBiomes then
 		dofile(nether.path .. "/mapgen.lua")
