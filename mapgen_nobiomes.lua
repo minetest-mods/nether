@@ -2,6 +2,12 @@
 
   Nether mod for minetest
 
+  "mapgen_nobiomes.lua" is the legacy version of the mapgen, only used
+    in older versions of Minetest or in v6 worlds.
+  "mapgen.lua" is the modern biomes-based Nether mapgen, which
+    requires Minetest v5.1 or greater
+
+
   Copyright (C) 2013 PilzAdam
 
   Permission to use, copy, modify, and/or distribute this software for
@@ -190,8 +196,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 
 	vm:set_data(data)
 
-	-- avoid generating decorations on the underside of the bottom of the nether
-	if minp.y > NETHER_FLOOR and maxp.y < NETHER_CEILING then minetest.generate_decorations(vm) end
+	minetest.generate_decorations(vm)
 
 	vm:set_lighting({day = 0, night = 0}, minp, maxp)
 	vm:calc_lighting()

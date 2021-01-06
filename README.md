@@ -36,17 +36,20 @@ SOFTWARE.
  * `nether_portal_ignite.ogg` is a derivative of "Flame Ignition" by [hykenfreak](https://freesound.org/people/hykenfreak), used under CC BY 3.0. "Nether Portal ignite" is licensed under CC BY 3.0 by Treer.
 
 ### [Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/)
+ * `nether_basalt`* (files starting with "nether_basalt"): Treer, 2020
  * `nether_book_`* (files starting with "nether_book"): Treer, 2019-2020
  * `nether_fumarole.ogg`: Treer, 2020
+ * `nether_lava_bubble`* (files starting with "nether_lava_bubble"): Treer, 2020
+ * `nether_lava_crust_animated.png`: Treer, 2019-2020
  * `nether_particle_anim`* (files starting with "nether_particle_anim"): Treer, 2019
  * `nether_portal_ignition_failure.ogg`: Treer, 2019
  * `nether_smoke_puff.png`: Treer, 2020
 
 ### [Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)](http://creativecommons.org/licenses/by-sa/3.0/)
- * `nether_glowstone.png`: BlockMen
+ * `nether_glowstone`* (files starting with "nether_glowstone"): BlockMen
  * `nether_nether_ingot.png` & `nether_nether_lump.png`: color adjusted versions from "[default](https://github.com/minetest/minetest_game/tree/master/mods/default)" mod, originally by Gambit
  * `nether_portal.png`: [Extex101](https://github.com/Extex101), 2020
- * `nether_rack.png`: Zeg9
+ * `nether_rack`* (files starting with "nether_rack"): Zeg9
  * `nether_tool_`* (files starting with "nether_tool_"): color adjusted versions from "[default](https://github.com/minetest/minetest_game/tree/master/mods/default)" mod, originals by BlockMen
 
 All other media: Copyright © 2013 PilzAdam, licensed under CC BY-SA 3.0 by PilzAdam.

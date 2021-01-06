@@ -25,10 +25,16 @@
 -- emerged or not before the decoration was placed.
 local allow_lava_decorations = nether.useBiomes
 
+-- Keep compatibility with mapgen_nobiomes.lua, so hardcoding 128
+-- instead of using nether.mapgen.BLEND
+local decoration_ceiling = nether.DEPTH_CEILING - 128
+local decoration_floor   = nether.DEPTH_FLOOR   + 128
+
 local _  = {name = "air",                     prob = 0}
 local A  = {name = "air",                     prob = 255, force_place = true}
 local G  = {name = "nether:glowstone",        prob = 255, force_place = true}
 local N  = {name = "nether:rack",             prob = 255}
+local D  = {name = "nether:rack_deep",        prob = 255}
 local S  = {name = "nether:sand",             prob = 255, force_place = true}
 local L  = {name = "default:lava_source",     prob = 255, force_place = true}
 local F  = {name = "nether:fumarole",         prob = 255, force_place = true}
@@ -125,8 +131,8 @@ minetest.register_decoration({
     sidelen = 80,
     fill_ratio = 0.0003,
     biomes = {"nether_caverns"},
-    y_max = nether.DEPTH_CEILING, -- keep compatibility with mapgen_nobiomes.lua
-    y_min = nether.DEPTH_FLOOR,
+    y_max = decoration_ceiling,
+    y_min = decoration_floor,
     schematic = schematic_GlowstoneStalactite,
     flags = "place_center_x,place_center_z,force_placement,all_ceilings",
     place_offset_y=-3
@@ -139,14 +145,201 @@ minetest.register_decoration({
     sidelen = 80,
     fill_ratio = 0.0008,
     biomes = {"nether_caverns"},
-    y_max = nether.DEPTH_CEILING, -- keep compatibility with mapgen_nobiomes.lua
-    y_min = nether.DEPTH_FLOOR,
+    y_max = decoration_ceiling,
+    y_min = decoration_floor,
     schematic = schematic_GlowstoneStalactite,
     replacements = {["nether:glowstone"] = "nether:rack"},
     flags = "place_center_x,place_center_z,all_ceilings",
     place_offset_y=-3
 })
 
+
+local schematic_GreaterStalactite = {
+    size = {x = 3, y = 23, z = 3},
+    data = { -- note that data is upside down
+
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, D, _,
+        _, D, _,
+        _, D, _,
+        _, D, _,
+        D, D, D,
+        D, D, D,
+        D, D, D,
+        _, D, _,
+        _, _, _,
+        _, _, _,
+
+        _, D, _,  -- ypos 0, prob 85% (218/255)
+        _, D, _,  -- ypos 1, prob 85% (218/255)
+        _, D, _,  -- ypos 2, prob 85% (218/255)
+        _, D, _,  -- ypos 3, prob 85% (218/255)
+        _, D, _,  -- ypos 4, prob 85% (218/255)
+        _, D, _,  -- ypos 5, prob 85% (218/255)
+        _, D, _,  -- ypos 6, prob 85% (218/255)
+        _, D, _,  -- ypos 7, prob 85% (218/255)
+        _, D, _,  -- ypos 8, prob 85% (218/255)
+        _, D, D,  -- ypos 9, prob 50% (128/256) to make half of stalactites asymmetric
+        _, D, D,  -- ypos 10, prob 50% (128/256) to make half of stalactites asymmetric
+        _, D, D,  -- ypos 11, prob 50% (128/256) to make half of stalactites asymmetric
+        _, D, D,  -- ypos 12, prob 50% (128/256) to make half of stalactites asymmetric
+        D, D, D,  -- ypos 13, prob 75% (192/256)
+        D, D, D,  -- ypos 14, prob 75% (192/256)
+        D, D, D,  -- ypos 15, prob 100%
+        D, D, D,  -- ypos 16, prob 100%
+        D, D, D,  -- ypos 17, prob 100%
+        D, D, D,  -- ypos 18, prob 100%
+        D, D, D,  -- ypos 19, prob 75% (192/256)
+        D, D, D,  -- ypos 20, prob 85% (218/255)
+        _, D, D,  -- ypos 21, prob 50% (128/256) to make half of stalactites asymmetric
+        _, D, _,  -- ypos 22, prob 100%
+
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, _, _,
+        _, D, _,
+        _, D, _,
+        _, D, _,
+        _, D, _,
+        _, D, _,
+        D, D, D,
+        D, D, D,
+        D, D, D,
+        _, D, _,
+        _, D, _,
+        _, _, _,
+
+    },
+    -- Y-slice probabilities do not function correctly for ceiling schematic
+    -- decorations because they are inverted, so ypos numbers have been inverted
+    -- to match, and a larger offset in place_offset_y should be used (e.g. -3).
+    yslice_prob = {
+        {ypos = 21, prob = 128},
+        {ypos = 20, prob = 218},
+        {ypos = 19, prob = 192},
+        {ypos = 14, prob = 192},
+        {ypos = 13, prob = 192},
+        {ypos = 12, prob = 128},
+        {ypos = 11, prob = 128},
+        {ypos = 10, prob = 128},
+        {ypos =  9, prob = 128},
+        {ypos =  8, prob = 218},
+        {ypos =  7, prob = 218},
+        {ypos =  6, prob = 218},
+        {ypos =  5, prob = 218},
+        {ypos =  4, prob = 218},
+        {ypos =  3, prob = 218},
+        {ypos =  2, prob = 218},
+        {ypos =  1, prob = 218},
+        {ypos =  0, prob = 218}
+    }
+}
+
+
+
+-- A stalagmite is an upsidedown stalactite, so
+-- use the GreaterStalactite to create a ToweringStalagmite schematic
+local schematic_ToweringStalagmite = {
+    size = schematic_GreaterStalactite.size,
+    data = {},
+    yslice_prob = {}
+}
+local array_length = #schematic_GreaterStalactite.data + 1
+for i, node in ipairs(schematic_GreaterStalactite.data) do
+    schematic_ToweringStalagmite.data[array_length - i] = node
+end
+y_size = schematic_GreaterStalactite.size.y
+for i, node in ipairs(schematic_GreaterStalactite.yslice_prob) do
+    schematic_ToweringStalagmite.yslice_prob[i] = {
+        -- we can safely lower the prob. to gain more variance because floor based schematics
+        -- don't have the bug where missing lines moves them away from the surface
+        prob = schematic_GreaterStalactite.yslice_prob[i].prob - 20,
+        ypos = y_size - 1 - schematic_GreaterStalactite.yslice_prob[i].ypos
+    }
+end
+
+minetest.register_decoration({
+    name = "Deep-glowstone stalactite",
+    deco_type = "schematic",
+    place_on = "nether:rack_deep",
+    sidelen = 80,
+    fill_ratio = 0.0003,
+    biomes = {"nether_caverns"},
+    y_max = decoration_ceiling,
+    y_min = decoration_floor,
+    schematic = schematic_GlowstoneStalactite,
+    replacements = {["nether:rack"] = "nether:rack_deep", ["nether:glowstone"] = "nether:glowstone_deep"},
+    flags = "place_center_x,place_center_z,force_placement,all_ceilings",
+    place_offset_y=-3
+})
+
+minetest.register_decoration({
+    name = "Deep-glowstone stalactite outgrowth",
+    deco_type = "schematic",
+    place_on = "nether:glowstone_deep",
+    sidelen = 40,
+    fill_ratio = 0.15,
+    biomes = {"nether_caverns"},
+    y_max = decoration_ceiling,
+    y_min = decoration_floor,
+    schematic = {
+        size = {x = 1, y = 4, z = 1},
+        data = { G, G, G, G }
+    },
+    replacements = {["nether:glowstone"] = "nether:glowstone_deep"},
+    flags = "place_center_x,place_center_z,all_ceilings",
+})
+
+minetest.register_decoration({
+    name = "Deep-netherrack stalactite",
+    deco_type = "schematic",
+    place_on = "nether:rack_deep",
+    sidelen = 80,
+    fill_ratio = 0.0003,
+    biomes = {"nether_caverns"},
+    y_max = decoration_ceiling,
+    y_min = decoration_floor,
+    schematic = schematic_GlowstoneStalactite,
+    replacements = {["nether:rack"] = "nether:rack_deep", ["nether:glowstone"] = "nether:rack_deep"},
+    flags = "place_center_x,place_center_z,force_placement,all_ceilings",
+    place_offset_y=-3
+})
+
+minetest.register_decoration({
+    name = "Deep-netherrack towering stalagmite",
+    deco_type = "schematic",
+    place_on = "nether:rack_deep",
+    sidelen = 80,
+    fill_ratio = 0.001,
+    biomes = {"nether_caverns"},
+    y_max = decoration_ceiling,
+    y_min = decoration_floor,
+    schematic = schematic_ToweringStalagmite,
+    replacements = {["nether:basalt"] = "nether:rack_deep"},
+    flags = "place_center_x,place_center_z,force_placement,all_floors",
+    place_offset_y=-2
+})
 
 -- =======================================
 --    Concealed crevice / Lava sinkhole
@@ -161,8 +354,8 @@ if allow_lava_decorations then
         sidelen = 80,
         fill_ratio = 0.002,
         biomes = {"nether_caverns"},
-        y_max = nether.DEPTH, -- keep compatibility with mapgen_nobiomes.lua
-        y_min = nether.DEPTH_FLOOR,
+        y_max = decoration_ceiling,
+        y_min = decoration_floor,
         schematic = {
             size = {x = 4, y = 7, z = 4},
             data = { -- note that data is upside down
@@ -263,8 +456,8 @@ minetest.register_decoration({
     sidelen = 80,
     fill_ratio = 0.005,
     biomes = {"nether_caverns"},
-    y_max = nether.DEPTH,
-    y_min = nether.DEPTH_FLOOR,
+    y_max = decoration_ceiling,
+    y_min = decoration_floor,
     schematic = schematic_fumarole,
     replacements = replacements_full,
     flags = "place_center_x,place_center_z,all_floors",
@@ -292,8 +485,8 @@ minetest.register_decoration({
     sidelen = 8,
     noise_params = fumarole_clump_noise,
     biomes = {"nether_caverns"},
-    y_max = nether.DEPTH,
-    y_min = nether.DEPTH_FLOOR,
+    y_max = decoration_ceiling,
+    y_min = decoration_floor,
     schematic = schematic_fumarole,
     replacements = replacements_full,
     flags = "place_center_x,place_center_z,all_floors",
@@ -308,8 +501,8 @@ minetest.register_decoration({
     sidelen = 8,
     noise_params = fumarole_clump_noise,
     biomes = {"nether_caverns"},
-    y_max = nether.DEPTH,
-    y_min = nether.DEPTH_FLOOR,
+    y_max = decoration_ceiling,
+    y_min = decoration_floor,
     schematic = schematic_fumarole,
     replacements = replacements_slab,
     flags = "place_center_x,place_center_z,all_floors",
@@ -324,8 +517,8 @@ minetest.register_decoration({
     sidelen = 8,
     noise_params = fumarole_clump_noise,
     biomes = {"nether_caverns"},
-    y_max = nether.DEPTH,
-    y_min = nether.DEPTH_FLOOR,
+    y_max = decoration_ceiling,
+    y_min = decoration_floor,
     schematic = {
         size = {x = 4, y = 4, z = 4},
         data = { -- note that data is upside down
@@ -363,8 +556,8 @@ minetest.register_decoration({
     sidelen = 8,
     noise_params = fumarole_clump_noise,
     biomes = {"nether_caverns"},
-    y_max = nether.DEPTH,
-    y_min = nether.DEPTH_FLOOR,
+    y_max = decoration_ceiling,
+    y_min = decoration_floor,
     schematic = {
         size = {x = 4, y = 5, z = 4},
         data = { -- note that data is upside down
