@@ -116,6 +116,7 @@ end
 dofile(nether.path .. "/portal_api.lua")
 dofile(nether.path .. "/nodes.lua")
 dofile(nether.path .. "/tools.lua")
+dofile(nether.path .. "/crafts.lua")
 if nether.NETHER_REALM_ENABLED then
 	if nether.useBiomes then
 		dofile(nether.path .. "/mapgen.lua")
@@ -227,3 +228,18 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 
 	})
 end
+
+
+-- Play bubbling lava sounds if player killed by lava
+minetest.register_on_dieplayer(
+	function(player, reason)
+		if reason.node ~= nil and minetest.get_node_group(reason.node, "lava") > 0 or reason.node == "nether:lava_crust" then
+			minetest.sound_play(
+				"nether_lava_bubble",
+				-- this sample was encoded at 3x speed to reduce .ogg file size
+				-- at the expense of higher frequencies, so pitch it down ~3x
+				{to_player = player:get_player_name(), pitch = 0.3, gain = 0.8}
+			)
+		end
+	end
+)
