@@ -77,7 +77,8 @@ minetest.register_node("nether:rack", {
 
 -- Deep Netherrack, found in the mantle / central magma layers
 minetest.register_node("nether:rack_deep", {
-	description = S("Deep-Netherrack"),
+	description = S("Deep Netherrack"),
+	_doc_items_longdesc = S("Netherrack from deep in the mantle"),
 	tiles = {"nether_rack_deep.png"},
 	is_ground_content = true,
 	groups = {cracky = 3, level = 2},
@@ -106,7 +107,7 @@ minetest.register_node("nether:glowstone", {
 
 -- Deep glowstone, found in the mantle / central magma layers
 minetest.register_node("nether:glowstone_deep", {
-	description = S("Deep-Glowstone"),
+	description = S("Deep Glowstone"),
 	tiles = {"nether_glowstone_deep.png"},
 	is_ground_content = true,
 	light_source = 14,
@@ -204,7 +205,8 @@ end
 -- obsidian that's available for other mods to use.
 -- It cannot be found in the regions of the nether where Nether portals link to, so requires a journey to obtain.
 minetest.register_node("nether:basalt", {
-	description = S("Blue Basalt"),
+	description = S("Nether Basalt"),
+	_doc_items_longdesc = S("Columns of dark basalt found only in magma oceans deep within the Nether."),
 	tiles = {
 		"nether_basalt.png",
 		"nether_basalt.png",
@@ -225,6 +227,7 @@ minetest.register_node("nether:basalt", {
 -- MT 5.0 world-align texture features.
 minetest.register_node("nether:basalt_hewn", {
 	description = S("Hewn Basalt"),
+	_doc_items_longdesc = S("A rough cut solid block of Nether Basalt."),
 	tiles = {{
 		name        = "nether_basalt_hewn.png",
 		align_style = "world",
@@ -247,6 +250,7 @@ minetest.register_node("nether:basalt_hewn", {
 -- require the MT 5.0 world-align texture features.
 minetest.register_node("nether:basalt_chiselled", {
 	description = S("Chiselled Basalt"),
+	_doc_items_longdesc = S("A finely finished block of solid Nether Basalt."),
 	tiles = {
 		"nether_basalt_chiselled_top.png",
 		"nether_basalt_chiselled_top.png" .. "^[transformFY",
@@ -467,7 +471,9 @@ end
 -- lava_crust nodes can only be used in the biomes-based mapgen, since they require
 -- the MT 5.0 world-align texture features.
 minetest.register_node("nether:lava_crust", {
-	description = "Lava crust",
+	description = S("Lava Crust"),
+	_doc_items_longdesc = S("A thin crust of cooled lava with liquid lava beneath"),
+	_doc_items_usagehelp = S("Lava crust is strong enough to walk on, but still hot enough to inflict burns."),
 	tiles = {
 		{
 			name="nether_lava_crust_animated.png",
@@ -677,7 +683,9 @@ end
 
 
 minetest.register_node("nether:fumarole", {
-	description="Fumarolic Chimney",
+	description=S("Fumarolic Chimney"),
+	_doc_items_longdesc = S("A vent in the earth emitting steam and gas"),
+	_doc_items_usagehelp = S("Can be repurposed to provide puffs of smoke in a chimney"),
 	tiles = {"nether_rack.png"},
 	on_timer = fumarole_onTimer,
 	after_place_node = function(pos, placer, itemstack, pointed_thing)
@@ -701,7 +709,9 @@ minetest.register_node("nether:fumarole", {
 })
 
 minetest.register_node("nether:fumarole_slab", {
-	description="Fumarolic Chimney Slab",
+	description=S("Fumarolic Chimney Slab"),
+	_doc_items_longdesc = S("A vent in the earth emitting steam and gas"),
+	_doc_items_usagehelp = S("Can be repurposed to provide puffs of smoke in a chimney"),
 	tiles = {"nether_rack.png"},
 	is_ground_content = true,
 	on_timer = fumarole_onTimer,
@@ -726,7 +736,7 @@ minetest.register_node("nether:fumarole_slab", {
 })
 
 minetest.register_node("nether:fumarole_corner", {
-	description="Fumarolic Chimney Corner",
+	description=S("Fumarolic Chimney Corner"),
 	tiles = {"nether_rack.png"},
 	is_ground_content = true,
 	groups = {cracky = 3, level = 2, fumarole=1},
