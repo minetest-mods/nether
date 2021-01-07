@@ -198,7 +198,7 @@ minetest.register_ore({
 
 minetest.register_ore({
 	ore_type       = "scatter",
-	ore            = "nether:lava_crust", -- crusted lava replaces of scattered glowstone in the mantle
+	ore            = "nether:lava_crust", -- crusted lava replaces scattered glowstone in the mantle
 	wherein        = "nether:rack_deep",
 	clust_scarcity = 16 * 16 * 16,
 	clust_num_ores = 4,
