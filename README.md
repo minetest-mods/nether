@@ -1,10 +1,27 @@
-Nether Mod for Minetest, with Portals API.
+# Nether Mod for Minetest, with Portals API.
+
+Enables Nether portals to be built, opening a gateway between the surface
+realm and one of lava and netherrack, with rumors of a passageway to a great
+magma ocean.
+
+To view the options provided by this mod, see settingtypes.txt or
+go to "Settings"->"All Settings"->"Mods"->"nether" in the game.
+
+A Nether portal is built as a rectangular vertical frame of obsidian, 4 blocks
+wide and 5 blocks high. Once constructed, a Mese crystal fragment can be
+right-click/used on the frame to activate it.
+
+
+## Modders and game designers
 
 See portal_api.txt for how to create custom portals to your own realms.
 
-See settingtypes.txt or go to "Settings"->"All Settings"->"Mods"->"nether"
-in the game to view the options provided by this mod.
-
+This mod provides Nether basalts (natural, hewn, and chiseled) as nodes which
+require a player to journey to the magma ocean to obtain, so these can be used
+for gating progression through a game. For example, a portal to another realm
+might need to be constructed from basalt, thus requiring a journey through
+the nether first, or basalt might be a crafting ingredient required to reach
+a particular branch of the tech-tree.
 
 ## License of source code:
 

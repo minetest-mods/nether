@@ -161,7 +161,7 @@ minetest.register_node("nether:native_mapgen", {})
 minetest.register_biome({
 	name = "nether_caverns",
 	node_stone  = "nether:native_mapgen", -- nether:native_mapgen is used here to prevent the native mapgen from placing ores and decorations.
-	node_filler = "nether:native_mapgen", -- The lua on_generate will transform nether:rack_native into nether:rack then decorate and add ores.
+	node_filler = "nether:native_mapgen", -- The lua on_generate will transform nether:native_mapgen into nether:rack then decorate and add ores.
 	node_dungeon = "nether:brick",
 	node_dungeon_alt = "nether:brick_cracked",
 	node_dungeon_stair = "stairs:stair_nether_brick",
@@ -525,7 +525,7 @@ local function on_generated(minp, maxp, seed)
 
 	for y = y0, y1 do -- Y loop first to minimise tcave & lava-sea calculations
 
-		local sea_level, cavern_limit_distance = mapgen.find_nearest_lava_sealevel(y)
+		local sea_level, cavern_limit_distance = mapgen.find_nearest_lava_sealevel(y) -- function provided by mapgen_mantle.lua
 		local above_lavasea = y > sea_level
 		local below_lavasea = y < sea_level
 
@@ -534,7 +534,7 @@ local function on_generated(minp, maxp, seed)
 		local tmantle = CENTER_REGION_LIMIT + centerRegionLimit_adj -- cavern_noise_adj already contains central_region_limit_adj, so tmantle is only for comparisons when cavern_noise_adj hasn't been added to the noise value
 		local cavern_noise_adj =
 			CENTER_REGION_LIMIT * (cavern_limit_distance * cavern_limit_distance * cavern_limit_distance) -
-			centerRegionLimit_adj -- cavern_noise_adj gets added to noise value instead of added to the limit np_noise is compared against, so subtract centerRegionLimit_adj so subtract centerRegionLimit_adj instead of adding
+			centerRegionLimit_adj -- cavern_noise_adj gets added to noise value instead of added to the limit np_noise is compared against, so subtract centerRegionLimit_adj instead of adding
 
 		for z = z0, z1 do
 			local vi = area:index(x0, y, z) -- Initial voxelmanip index
@@ -548,7 +548,7 @@ local function on_generated(minp, maxp, seed)
 				if cave_noise > tcave then
 					-- Prime region
 					-- This was the only region in initial versions of the Nether mod.
-					-- It is the only region that portals from the surface will open into.
+					-- It is the only region which portals from the surface will open into.
 					data[vi] = c_air
 					contains_nether = true
 

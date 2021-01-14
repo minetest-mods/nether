@@ -22,6 +22,9 @@ one kind of portal with the same frame material — such as obsidian — provide
 the size of the PortalShape is distinct from any other type of portal that is
 using the same node for its frame, and portal sizes remain small.
 
+The Nether provides three variants of Nether basalt to ensure there are
+alternatives to obsidian for other mods to use as portalstones.
+
 
 Realms
 ------

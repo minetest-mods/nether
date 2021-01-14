@@ -286,7 +286,7 @@ function excavate_pathway(data, area, nether_pos, center_pos, minp, maxp)
 	radiusLimit = math_min(radiusLimit, vector_min(vector.subtract(maxp, stopPos)))
 
 	if radiusLimit < 4 then -- This is a logic check, ignore it. It could be commented out
-		-- 4 is (79 - 75), and shouldn't be possible if sampling-skip was 10
+		-- 4 is (79 - 75), and values less than 4 shouldn't be possible if sampling-skip was 10
 		-- i.e. if sampling-skip was 10 then {5, 15, 25, 35, 45, 55, 65, 75} should be sampled from possible positions 0 to 79
 		debugf("Error: radiusLimit %s is smaller then half the sampling distance. min %s, max %s, start %s, stop %s", radiusLimit, minp, maxp, startPos, stopPos)
 	end
@@ -304,7 +304,7 @@ function excavate_pathway(data, area, nether_pos, center_pos, minp, maxp)
 		local sizeAdj = 1 - (distFromMiddle * distFromMiddle * distFromMiddle)
 
 		local radius = math_min(radiusLimit, math.random(50 - (25 * sizeAdj), 80 - (45 * sizeAdj)) / 10)
-		local radiusCubed = radius * radius
+		local radiusSquared = radius * radius
 		local radiusCeil = math_floor(radius + 0.5)
 
 		linedata[i].radius = radius             -- Needed in third pass
@@ -315,7 +315,7 @@ function excavate_pathway(data, area, nether_pos, center_pos, minp, maxp)
 			local vi_z = vi + z * zstride
 			for y = -radiusCeil, radiusCeil do
 				local vi_zy = vi_z + y * ystride
-				local xSquaredLimit = radiusCubed - (z * z + y * y)
+				local xSquaredLimit = radiusSquared - (z * z + y * y)
 				for x = -radiusCeil, radiusCeil do
 					if x * x < xSquaredLimit then
 						data[vi_zy + x] = c_air
@@ -327,7 +327,7 @@ function excavate_pathway(data, area, nether_pos, center_pos, minp, maxp)
 	end
 
 	-- Third pass: decorate
-	-- Add glowstones to make tunnels to the mantle easyier to find
+	-- Add glowstones to make tunnels to the mantle easier to find
 	-- https://i.imgur.com/sRA28x7.jpg
 	for i = start_index, stop_index, 3 do
 		if linedata[i].distFromEnds < 0.3 then
