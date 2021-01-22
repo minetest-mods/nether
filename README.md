@@ -1,8 +1,8 @@
 # Nether Mod for Minetest, with Portals API.
 
-Enables Nether portals to be built, opening a gateway between the surface
-realm and one of lava and netherrack, with rumors of a passageway to a great
-magma ocean.
+Allows Nether portals to be constructed, opening a gateway between the surface
+realm and one of lava and netherrack, with rumors of a passageway through the
+netherrack to a great magma ocean.
 
 To view the options provided by this mod, see settingtypes.txt or
 go to "Settings"->"All Settings"->"Mods"->"nether" in the game.
@@ -22,6 +22,11 @@ for gating progression through a game. For example, a portal to another realm
 might need to be constructed from basalt, thus requiring a journey through
 the nether first, or basalt might be a crafting ingredient required to reach
 a particular branch of the tech-tree.
+
+Netherbrick tools are provided (pick, shovel, axe, & sword), see tools.lua
+
+Nether Portals can allow surface fast-travel.
+
 
 ## License of source code:
 
