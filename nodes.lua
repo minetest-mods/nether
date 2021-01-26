@@ -374,7 +374,7 @@ minetest.register_on_mods_loaded(function()
 
 	-- register a bucket of Lava-sea source - but make it just the same bucket as default lava.
 	-- (by doing this in register_on_mods_loaded we don't need to declare a soft dependency)
-	if minetest.get_modpath("bucket") and minetest.global_exists("bucket") then
+	if minetest.get_modpath("bucket") and minetest.global_exists("bucket") and type(bucket.liquids) == "table" then
 		local lava_bucket = bucket.liquids["default:lava_source"]
 		if lava_bucket ~= nil then
 			local lavasea_bucket = {}
