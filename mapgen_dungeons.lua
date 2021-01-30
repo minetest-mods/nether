@@ -33,6 +33,7 @@ minetest.set_gen_notify({dungeon = true})
 local c_air              = minetest.get_content_id("air")
 local c_netherrack       = minetest.get_content_id("nether:rack")
 local c_netherrack_deep  = minetest.get_content_id("nether:rack_deep")
+local c_crystaldark      = minetest.get_content_id("nether:geode")
 local c_dungeonbrick     = minetest.get_content_id("nether:brick")
 local c_dungeonbrick_alt = minetest.get_content_id("nether:brick_cracked")
 local c_netherbrick_slab = minetest.get_content_id("stairs:slab_nether_brick")
@@ -164,7 +165,7 @@ nether.mapgen.excavate_dungeons = function(data, area, rooms)
 				vi = area:index(room_min.x, y, z)
 				for x = room_min.x, room_max.x do
 					node_id = data[vi]
-					if node_id == c_netherrack or node_id == c_netherrack_deep then data[vi] = c_air end
+					if node_id == c_netherrack or node_id == c_netherrack_deep  or node_id == c_crystaldark then data[vi] = c_air end
 					vi = vi + 1
 				end
 			end

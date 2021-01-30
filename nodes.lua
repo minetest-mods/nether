@@ -180,6 +180,56 @@ minetest.register_node("nether:rack", {
 	sounds = default.node_sound_stone_defaults(),
 })
 
+-- Geode crystals can only be introduced by the biomes-based mapgen, since it requires the
+-- MT 5.0 world-align texture features.
+minetest.register_node("nether:geode", {
+	description = S("Nether Beryl"),
+	_doc_items_longdesc = S("Nether geode crystal, found lining the interior walls of Nether geodes"),
+	tiles = {{
+		name        = "nether_geode.png",
+		align_style = "world",
+		scale       = 4
+	}},
+	--light_source = 1,
+	is_ground_content = true,
+	groups = {cracky = 3, oddly_breakable_by_hand = 3, nether_crystal = 1},
+	sounds = default.node_sound_glass_defaults(),
+})
+
+-- Nether Berylite is a Beryl that can seen in the dark, used to light up the internal structure
+-- of the geode, so to avoid player confusion we'll just have it drop plain Beryl.
+minetest.register_node("nether:geodelite", {
+	description = S("Nether Berylite"),
+	_doc_items_longdesc = S("Nether geode crystal. A crystalline structure with faint glow found inside large Nether geodes"),
+	tiles = {{
+		name        = "nether_geode.png",
+		align_style = "world",
+		scale       = 4
+	}},
+	light_source = 2,
+	is_ground_content = true,
+	drop = "nether:geode",
+	groups = {cracky = 3, oddly_breakable_by_hand = 3, nether_crystal = 1},
+	sounds = default.node_sound_glass_defaults(),
+})
+
+if minetest.get_modpath("xpanes") and minetest.global_exists("xpanes") and xpanes.register_pane ~= nil then
+	xpanes.register_pane("nether_crystal_pane", {
+		description = S("Nether Crystal Pane"),
+		textures = {"nether_geode_glass.png", "", "xpanes_edge_obsidian.png"},
+		inventory_image = "nether_geode_glass.png",
+		wield_image = "nether_geode_glass.png",
+		use_texture_alpha = true,
+		sounds = default.node_sound_glass_defaults(),
+		groups = {snappy=2, cracky=3, oddly_breakable_by_hand=3},
+		recipe = {
+			{"group:nether_crystal", "group:nether_crystal", "group:nether_crystal"},
+			{"group:nether_crystal", "group:nether_crystal", "group:nether_crystal"}
+		}
+	})
+end
+
+
 -- Deep Netherrack, found in the mantle / central magma layers
 minetest.register_node("nether:rack_deep", {
 	description = S("Deep Netherrack"),
