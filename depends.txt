@@ -7,3 +7,4 @@ loot?
 mesecons?
 moreblocks?
 climate_api?
+xpanes?
