@@ -207,8 +207,8 @@ minetest.register_node("nether:geodelite", {
 		scale       = 4
 	}},
 	light_source = 2,
-	is_ground_content = true,
 	drop = "nether:geode",
+	is_ground_content = true,
 	groups = {cracky = 3, oddly_breakable_by_hand = 3, nether_crystal = 1},
 	sounds = default.node_sound_glass_defaults(),
 })
@@ -216,10 +216,17 @@ minetest.register_node("nether:geodelite", {
 if minetest.get_modpath("xpanes") and minetest.global_exists("xpanes") and xpanes.register_pane ~= nil then
 	xpanes.register_pane("nether_crystal_pane", {
 		description = S("Nether Crystal Pane"),
-		textures = {"nether_geode_glass.png", "", "xpanes_edge_obsidian.png"},
-		inventory_image = "nether_geode_glass.png",
-		wield_image = "nether_geode_glass.png",
-		use_texture_alpha = true,
+		textures = {
+			{
+				name        = "nether_geode_glass.png",
+				align_style = "world",
+				scale       = 2
+			},
+			"",
+			"xpanes_edge_obsidian.png"
+		},
+		inventory_image = "([combine:32x32:-8,-8=nether_geode_glass.png:24,-8=nether_geode_glass.png:-8,24=nether_geode_glass.png:24,24=nether_geode_glass.png)^[resize:16x16^[multiply:#922^default_obsidian_glass.png",
+		wield_image     = "([combine:32x32:-8,-8=nether_geode_glass.png:24,-8=nether_geode_glass.png:-8,24=nether_geode_glass.png:24,24=nether_geode_glass.png)^[resize:16x16^[multiply:#922^default_obsidian_glass.png",		use_texture_alpha = true,
 		sounds = default.node_sound_glass_defaults(),
 		groups = {snappy=2, cracky=3, oddly_breakable_by_hand=3},
 		recipe = {
