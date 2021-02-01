@@ -198,8 +198,8 @@ mapgen.getGeodeInteriorNodeId = function(x, y, z)
 
 	local d3_1 = distSquaredList[3] - distSquaredList[1]
 	local d3_2 = distSquaredList[3] - distSquaredList[2]
-	local d4_1 = distSquaredList[4] - distSquaredList[1]
-    --local d4_3 = distSquaredList[4] - distSquaredList[3]
+	--local d4_1 = distSquaredList[4] - distSquaredList[1]
+	--local d4_3 = distSquaredList[4] - distSquaredList[3]
 
 	-- Some shape formulas (tuned for a structureSize of 50)
 	--   (d3_1 < 0.05) gives connective lines
@@ -212,9 +212,9 @@ mapgen.getGeodeInteriorNodeId = function(x, y, z)
 
 	if (d3_1 < 0.05 or d3_2 < .02) and distSquaredList[1] > .3 then
 		return c_crystal
-	elseif d4_1 < 0.08 then
+	elseif (distSquaredList[4] - distSquaredList[1]) < 0.08 then
 		return c_glowstone
+	else
+		return c_air
 	end
-
-	return c_air
 end
