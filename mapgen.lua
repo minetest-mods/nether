@@ -45,7 +45,6 @@ local BASALT_COLUMN_LOWER_LIMIT = CENTER_CAVERN_LIMIT * 0.25      -- This value 
 
 -- Shared Nether mapgen namespace
 -- For mapgen files to share functions and constants
-nether.mapgen = {}
 local mapgen = nether.mapgen
 
 mapgen.TCAVE                     = TCAVE                     -- const needed in mapgen_mantle.lua
@@ -256,6 +255,19 @@ mapgen.np_cave = {
 	lacunarity = 2.0,
 	--flags = ""
 }
+
+local cavePointPerlin = nil
+
+mapgen.getCavePointPerlin = function()
+	cavePointPerlin = cavePointPerlin or minetest.get_perlin(mapgen.np_cave)
+	return cavePointPerlin
+end
+
+mapgen.getCavePerlinAt = function(pos)
+	cavePointPerlin = cavePointPerlin or minetest.get_perlin(mapgen.np_cave)
+	return cavePointPerlin:get3d(pos)
+end
+
 
 -- Buffers and objects we shouldn't recreate every on_generate
 
@@ -658,7 +670,7 @@ end
 -- use knowledge of the nether mapgen algorithm to return a suitable ground level for placing a portal.
 -- player_name is optional, allowing a player to spawn a remote portal in their own protected areas.
 function nether.find_nether_ground_y(target_x, target_z, start_y, player_name)
-	local nobj_cave_point = minetest.get_perlin(mapgen.np_cave)
+	local nobj_cave_point = mapgen.getCavePointPerlin()
 	local air = 0 -- Consecutive air nodes found
 
 	local minp_schem, maxp_schem = nether.get_schematic_volume({x = target_x, y = 0, z = target_z}, nil, "nether_portal")
