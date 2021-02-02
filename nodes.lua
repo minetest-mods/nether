@@ -308,6 +308,8 @@ lavasea_source.tiles = {
 		},
 	},
 }
+lavasea_source.groups = { not_in_creative_inventory = 1 } -- Avoid having two lava source blocks in the inv.
+for key, value in pairs(lava_source.groups) do lavasea_source.groups[key] = value end
 lavasea_source.liquid_alternative_source = "nether:lava_source"
 lavasea_source.inventory_image = minetest.inventorycube(
 	"nether_lava_source_animated.png^[sheet:2x16:0,0",
@@ -327,7 +329,7 @@ nether.cool_lava = function(pos, node)
 
 	-- Evaporate water sitting above lava, if it's in the Nether.
 	-- (we don't want Nether mod to affect overworld lava mechanics)
-	if minetest.get_node_group(node_above.name, "water") > 0 and
+	if minetest.get_item_group(node_above.name, "water") > 0 and
 		pos.y < nether.DEPTH_CEILING and pos.y > nether.DEPTH_FLOOR then
 		-- cools_lava might be a better group to check for, but perhaps there's
 		-- something in that group that isn't a liquid and shouldn't be evaporated?
