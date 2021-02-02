@@ -6,3 +6,4 @@ fire?
 loot?
 mesecons?
 moreblocks?
+climate_api?

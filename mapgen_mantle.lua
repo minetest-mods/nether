@@ -49,7 +49,6 @@ local np_basalt = {
 
 local nobj_basalt = nil
 local nbuf_basalt = {}
-local cavePerlin = nil
 
 -- Content ids
 
@@ -414,52 +413,84 @@ mapgen.excavate_tunnel_to_center_of_the_nether = function(data, area, nvals_cave
 end
 
 
+-- an enumerated list of the different regions in the nether
+mapgen.RegionEnum = {
+	Overworld     = "overworld",      -- Outside the Nether / none of the regions in the Nether
+	Positive      = "positive",       -- The classic nether caverns are here - where cavePerlin > 0.6
+	PositiveShell = "positive shell", -- the nether side of the wall/buffer area separating classic nether from the mantle
+	Center        = "center",         -- The Mantle caverns are here
+	CenterShell   = "center shell",   -- the mantle side of the wall/buffer area separating the positive and negative regions from the center region
+	Negative      = "negative",       -- Secondary/spare region - where cavePerlin < -0.6
+	NegativeShell = "negative shell", -- the spare region side of the wall/buffer area separating the negative region from the mantle
+}
+
+
+-- Returns (region, noise) where region is a value from mapgen.RegionEnum
+-- and noise is the unadjusted cave perlin value
+mapgen.getRegion = function(pos)
+
+	if pos.y > nether.DEPTH_CEILING or pos.y < nether.DEPTH_FLOOR then
+		return mapgen.RegionEnum.Overworld, nil
+	end
+
+	local caveNoise = mapgen.getCavePerlinAt(pos)
+	local sea_level, cavern_limit_distance = mapgen.find_nearest_lava_sealevel(pos.y)
+	local tcave_adj, centerRegionLimit_adj = mapgen.get_mapgenblend_adjustments(pos.y)
+	local tcave   = mapgen.TCAVE + tcave_adj
+	local tmantle = mapgen.CENTER_REGION_LIMIT + centerRegionLimit_adj
+	local cavern_noise_adj =
+		mapgen.CENTER_REGION_LIMIT * (cavern_limit_distance * cavern_limit_distance * cavern_limit_distance) -
+		centerRegionLimit_adj -- cavern_noise_adj gets added to noise value instead of added to the limit np_noise is compared against, so subtract centerRegionLimit_adj so subtract centerRegionLimit_adj instead of adding
+
+	local region
+	if caveNoise > tcave then
+		region = mapgen.RegionEnum.Positive
+	elseif -caveNoise > tcave then
+		region = mapgen.RegionEnum.Negative
+	elseif math_abs(caveNoise) < tmantle then
+
+		if math_abs(caveNoise) + cavern_noise_adj < mapgen.CENTER_CAVERN_LIMIT then
+			region = mapgen.RegionEnum.Center
+		else
+			region = mapgen.RegionEnum.CenterShell
+		end
+
+	elseif caveNoise > 0 then
+		region = mapgen.RegionEnum.PositiveShell
+	else
+		region = mapgen.RegionEnum.NegativeShell
+	end
+
+	return region, caveNoise
+end
+
+
 minetest.register_chatcommand("nether_whereami",
-    {
+	{
 		description = "Describes which region of the nether the player is in",
 		privs = {debug = true},
 		func = function(name, param)
 
 			local player = minetest.get_player_by_name(name)
 			if player == nil then return false, "Unknown player position" end
+			local playerPos = vector.round(player:get_pos())
 
-			local pos = vector.round(player:get_pos())
-			if pos.y > nether.DEPTH_CEILING or pos.y < nether.DEPTH_FLOOR then
-				return true, "The Overworld"
-			end
+			local region, caveNoise                = mapgen.getRegion(playerPos)
+			local seaLevel, cavernLimitDistance    = mapgen.find_nearest_lava_sealevel(playerPos.y)
+			local tcave_adj, centerRegionLimit_adj = mapgen.get_mapgenblend_adjustments(playerPos.y)
 
-			cavePerlin = cavePerlin or minetest.get_perlin(mapgen.np_cave)
-			local densityNoise = cavePerlin:get_3d(pos)
-			local sea_level, cavern_limit_distance = mapgen.find_nearest_lava_sealevel(pos.y)
-			local tcave_adj, centerRegionLimit_adj = mapgen.get_mapgenblend_adjustments(pos.y)
-			local tcave   = mapgen.TCAVE + tcave_adj
-			local tmantle = mapgen.CENTER_REGION_LIMIT + centerRegionLimit_adj
-			local cavern_noise_adj =
-				mapgen.CENTER_REGION_LIMIT * (cavern_limit_distance * cavern_limit_distance * cavern_limit_distance) -
-				centerRegionLimit_adj -- cavern_noise_adj gets added to noise value instead of added to the limit np_noise is compared against, so subtract centerRegionLimit_adj so subtract centerRegionLimit_adj instead of adding
+			local regionLabels = {
+				[mapgen.RegionEnum.Overworld]     = "The Overworld",
+				[mapgen.RegionEnum.Positive]      = "Positive nether",
+				[mapgen.RegionEnum.PositiveShell] = "Shell between positive nether and center region",
+				[mapgen.RegionEnum.Center]        = "Center/Mantle, inside cavern",
+				[mapgen.RegionEnum.CenterShell]   = "Center/Mantle, but outside the caverns",
+				[mapgen.RegionEnum.Negative]      = "Negative nether",
+				[mapgen.RegionEnum.NegativeShell] = "Shell between negative nether and center region"
+			}
+			local desc = regionLabels[region]
 
-			local desc
-
-			if densityNoise > tcave then
-				desc = "Positive nether"
-			elseif -densityNoise > tcave then
-				desc = "Negative nether"
-			elseif math_abs(densityNoise) < tmantle then
-				desc =  "Mantle"
-
-				if math_abs(densityNoise) + cavern_noise_adj < mapgen.CENTER_CAVERN_LIMIT then
-					desc =  desc .. " inside cavern"
-				else
-					desc =  desc .. " but outside cavern"
-				end
-
-			elseif densityNoise > 0 then
-				desc =  "Shell between positive nether and center region"
-			else
-				desc = "Shell between negative nether and center region"
-			end
-
-			local sea_pos = pos.y - sea_level
+			local sea_pos = playerPos.y - seaLevel
 			if sea_pos > 0 then
 				desc = desc .. ", " .. sea_pos .. "m above lava-sea level"
 			else
@@ -470,7 +501,7 @@ minetest.register_chatcommand("nether_whereami",
 				desc = desc .. ", approaching y boundary of Nether"
 			end
 
-			return true, "[Perlin " .. (math_floor(densityNoise * 1000) / 1000) .. "] " .. desc
+			return true, "[Perlin " .. (math_floor(caveNoise * 1000) / 1000) .. "] " .. desc
 		end
 	}
 )
