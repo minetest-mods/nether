@@ -108,7 +108,7 @@ local function override_underground_biomes()
 	end
 	for old_ore_key, old_ore_def in pairs(minetest.registered_ores) do
 		registered_ores_copy[old_ore_key] = old_ore_def
-	 end
+	end
 
 	-- clear biomes, decorations, and ores
 	minetest.clear_registered_decorations()
@@ -117,23 +117,36 @@ local function override_underground_biomes()
 
 	-- Restore biomes, adjusted to not overlap the Nether
 	for biome_key, new_biome_def in pairs(registered_biomes_copy) do
-		local biome_y_max, biome_y_min = tonumber(new_biome_def.y_max), tonumber(new_biome_def.y_min)
+		-- follow similar min_pos/max_pos processing logic as read_biome_def() in l_mapgen.cpp
+		local biome_y_max, biome_y_min = 31000, -31000
+		if type(new_biome_def.min_pos) == 'table' and type(new_biome_def.min_pos.y) == 'number' then biome_y_min = new_biome_def.min_pos.y end
+		if type(new_biome_def.max_pos) == 'table' and type(new_biome_def.max_pos.y) == 'number' then biome_y_max = new_biome_def.max_pos.y end
+		if type(new_biome_def.y_min) == 'number' then biome_y_min = new_biome_def.y_min end
+		if type(new_biome_def.y_max) == 'number' then biome_y_max = new_biome_def.y_max end
 
 		if biome_y_max > NETHER_FLOOR and biome_y_min < NETHER_CEILING then
 			-- This biome occupies some or all of the depth of the Nether, shift/crop it.
+			local new_y_min, new_y_max
 			local spaceOccupiedAbove = biome_y_max - NETHER_CEILING
 			local spaceOccupiedBelow = NETHER_FLOOR - biome_y_min
 			if spaceOccupiedAbove >= spaceOccupiedBelow or biome_y_min <= -30000 then
 				-- place the biome above the Nether
 				-- We also shift biomes which extend to the bottom of the map above the Nether, since they
 				-- likely only extend that deep as a catch-all, and probably have a role nearer the surface.
-				new_biome_def.y_min = NETHER_CEILING + 1
-				new_biome_def.y_max = math_max(biome_y_max, NETHER_CEILING + 2)
+				new_y_min = NETHER_CEILING + 1
+				new_y_max = math_max(biome_y_max, NETHER_CEILING + 2)
 			else
 				-- shift the biome to below the Nether
-				new_biome_def.y_max = NETHER_FLOOR - 1
-				new_biome_def.y_min = math_min(biome_y_min, NETHER_CEILING - 2)
+				new_y_max = NETHER_FLOOR - 1
+				new_y_min = math_min(biome_y_min, NETHER_CEILING - 2)
 			end
+
+			debugf("Moving biome \"%s\" from %s..%s to %s..%s", new_biome_def.name, new_biome_def.y_min, new_biome_def.y_max, new_y_min, new_y_max)
+
+			if type(new_biome_def.min_pos) == 'table' and type(new_biome_def.min_pos.y) == 'number' then new_biome_def.min_pos.y = new_y_min end
+			if type(new_biome_def.max_pos) == 'table' and type(new_biome_def.max_pos.y) == 'number' then new_biome_def.max_pos.y = new_y_max end
+			new_biome_def.y_min = new_y_min -- Ensure the new heights are saved, even if original biome never specified one
+			new_biome_def.y_max = new_y_max
 		end
 		minetest.register_biome(new_biome_def)
 	end
