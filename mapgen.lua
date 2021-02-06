@@ -68,7 +68,7 @@ if minetest.read_schematic == nil then
 	error("This " .. nether.modname .. " mapgen requires Minetest v5.1 or greater, use mapgen_nobiomes.lua instead.", 0)
 end
 
--- Load mapgen helper functions for specialized areas of the mapgen
+-- Load specialty helper functions
 dofile(nether.path .. "/mapgen_dungeons.lua")
 dofile(nether.path .. "/mapgen_mantle.lua")
 

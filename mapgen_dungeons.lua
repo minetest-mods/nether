@@ -2,8 +2,7 @@
 
   Nether mod for minetest
 
-  Helper functions for excavating and decorating dungeons, in a
-  separate file to keep the size of mapgen.lua manageable.
+  All the Dungeon related functions used by the biomes-based mapgen are here.
 
 
   Copyright (C) 2021 Treer
@@ -39,7 +38,9 @@ local c_dungeonbrick_alt = minetest.get_content_id("nether:brick_cracked")
 local c_netherbrick_slab = minetest.get_content_id("stairs:slab_nether_brick")
 local c_netherfence      = minetest.get_content_id("nether:fence_nether_brick")
 local c_glowstone        = minetest.get_content_id("nether:glowstone")
+local c_glowstone_deep   = minetest.get_content_id("nether:glowstone_deep")
 local c_lava_source      = minetest.get_content_id("default:lava_source")
+
 
 -- Misc math functions
 
@@ -52,6 +53,7 @@ local math_max, math_min  = math.max, math.min
 function is_dungeon_brick(node_id)
 	return node_id == c_dungeonbrick or node_id == c_dungeonbrick_alt
 end
+
 
 
 nether.mapgen.build_dungeon_room_list = function(data, area)
@@ -168,6 +170,21 @@ nether.mapgen.excavate_dungeons = function(data, area, rooms)
 			end
 		end
 	end
+
+	-- clear netherrack from dungeon stairways
+	if #rooms > 0 then
+		local stairPositions = minetest.find_nodes_in_area(area.MinEdge, area.MaxEdge, minetest.registered_biomes["nether_caverns"].node_dungeon_stair)
+		for _, stairPos in ipairs(stairPositions) do
+			vi = area:indexp(stairPos)
+			for i = 1, 4 do
+				if stairPos.y + i > area.MaxEdge.y then break end
+				vi = vi + area.ystride
+				node_id = data[vi]
+				-- searching forward of the stairs could also be done
+				if node_id == c_netherrack or node_id == c_netherrack_deep then data[vi] = c_air end
+			end
+		end
+	end
 end
 
 -- Since we already know where all the rooms and their walls are, and have all the nodes stored
@@ -185,6 +202,8 @@ nether.mapgen.decorate_dungeons = function(data, area, rooms)
 		if room_size > 10 then
 			local room_seed = roomInfo.x + 3 * roomInfo.z + 13 * roomInfo.y
 			local window_y  = roomInfo.y + math_min(2, room_max.y - roomInfo.y - 1)
+			local roomWidth  = room_max.x - room_min.x + 1
+			local roomLength = room_max.z - room_min.z + 1
 
 			if room_seed % 3 == 0 and room_max.y < maxEdge.y then
 				-- Glowstone chandelier (feel free to replace with a fancy schematic)
@@ -206,29 +225,105 @@ nether.mapgen.decorate_dungeons = function(data, area, rooms)
 			end
 
 			-- Barred windows
-			if room_seed % 7 < 5 and room_max.x - room_min.x >= 4 and room_max.z - room_min.z >= 4
+			if room_seed % 7 < 5 and roomWidth >= 5 and roomLength >= 5
 			   and window_y >= minEdge.y and window_y + 1 <= maxEdge.y
 			   and room_min.x > minEdge.x and room_max.x < maxEdge.x
 			   and room_min.z > minEdge.z and room_max.z < maxEdge.z then
 				--data[area:indexp(roomInfo)] = minetest.get_content_id("default:mese_post_light") -- debug
 
+				-- Can't use glass panes because they need the param data set.
 				-- Until whisper glass is added, every window will be made of netherbrick fence (rather
 				-- than material depending on room_seed)
 				local window_node = c_netherfence
+				--if c_netherglass ~= nil and room_seed % 20 >= 12 then window_node = c_crystallight end
+
+				local function placeWindow(vi, viOutsideOffset, windowNo)
+					if is_dungeon_brick(data[vi]) and is_dungeon_brick(data[vi + yStride]) then
+						data[vi] = window_node
+
+						if room_seed % 19 == windowNo then
+							-- place a glowstone light behind the window
+							local node_id = data[vi + viOutsideOffset]
+							if node_id == c_netherrack then
+								data[vi + viOutsideOffset] = c_glowstone
+							elseif node_id == c_netherrack_deep then
+								data[vi + viOutsideOffset] = c_glowstone_deep
+							end
+						end
+					end
+				end
 
 				local vi_min = area:index(room_min.x - 1, window_y, roomInfo.z)
 				local vi_max = area:index(room_max.x + 1, window_y, roomInfo.z)
 				local locations = {-zStride, zStride, -zStride + yStride, zStride + yStride}
-				for _, offset in ipairs(locations) do
-					if is_dungeon_brick(data[vi_min + offset]) then data[vi_min + offset] = window_node end
-					if is_dungeon_brick(data[vi_max + offset]) then data[vi_max + offset] = window_node end
+				for i, offset in ipairs(locations) do
+					placeWindow(vi_min + offset, -1, i)
+					placeWindow(vi_max + offset,  1, i + #locations)
 				end
 				vi_min = area:index(roomInfo.x, window_y, room_min.z - 1)
 				vi_max = area:index(roomInfo.x, window_y, room_max.z + 1)
 				locations = {-xStride, xStride, -xStride + yStride, xStride + yStride}
-				for _, offset in ipairs(locations) do
-					if is_dungeon_brick(data[vi_min + offset]) then data[vi_min + offset] = window_node end
-					if is_dungeon_brick(data[vi_max + offset]) then data[vi_max + offset] = window_node end
+				for i, offset in ipairs(locations) do
+					placeWindow(vi_min + offset, -zStride, i + #locations * 2)
+					placeWindow(vi_max + offset,  zStride, i + #locations * 3)
+				end
+			end
+
+			-- pillars or mezzanine floor
+			if room_seed % 43 > 10 and roomWidth >= 6 and roomLength >= 6 then
+
+				local pillar_vi    = {}
+				local pillarHeight = 0
+				local wallDist = 1 + math.floor((roomWidth + roomLength) / 14)
+
+				local roomHeight = room_max.y - room_min.y
+				if roomHeight >= 7 then
+					-- mezzanine floor
+					local mezzMax = {
+						x = room_min.x + math.floor(roomWidth / 7 * 4),
+						y = room_min.y + math.floor(roomHeight / 5 * 3),
+						z = room_max.z
+					}
+
+					pillarHeight = mezzMax.y - room_min.y - 1
+					pillar_vi = {
+						area:index(mezzMax.x, room_min.y, room_min.z + wallDist),
+						area:index(mezzMax.x, room_min.y, room_max.z - wallDist),
+					}
+
+					if is_dungeon_brick(data[pillar_vi[1] - yStride]) and is_dungeon_brick(data[pillar_vi[2] - yStride]) then
+						-- The floor of the dungeon looks like it exists (i.e. not erased by nether
+						-- cavern), so add the mezzanine floor
+						for z = 0, roomLength - 1 do
+							local vi = area:index(room_min.x, mezzMax.y, room_min.z + z)
+							for x = room_min.x, mezzMax.x do
+								if data[vi] == c_air then data[vi] = c_dungeonbrick end
+								vi = vi + 1
+							end
+						end
+					end
+
+				elseif roomHeight >= 4 then
+					-- 4 pillars
+					pillarHeight = roomHeight
+					pillar_vi = {
+						area:index(room_min.x + wallDist, room_min.y, room_min.z + wallDist),
+						area:index(room_min.x + wallDist, room_min.y, room_max.z - wallDist),
+						area:index(room_max.x - wallDist, room_min.y, room_min.z + wallDist),
+						area:index(room_max.x - wallDist, room_min.y, room_max.z - wallDist)
+					}
+				end
+
+				for i = #pillar_vi, 1, -1 do
+					if not is_dungeon_brick(data[pillar_vi[i] - yStride]) then
+						-- there's no dungeon floor under this pillar so skip it, it's probably been cut away by nether cavern.
+						table.remove(pillar_vi, i)
+					end
+				end
+				for y = 0, pillarHeight do
+					for _, vi in ipairs(pillar_vi) do
+						if data[vi + y * yStride] == c_air then data[vi + y * yStride] = c_dungeonbrick end
+					end
 				end
 			end
 
