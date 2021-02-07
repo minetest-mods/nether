@@ -13,9 +13,25 @@ Construction requires 14 blocks of obsidian, which we found deep underground whe
 
 Nether Portal=Portail du Nether
 
+### mapgen_mantle.lua ###
+
+, @1m above lava-sea level=
+, @1m below lava-sea level=
+, approaching y boundary of Nether=
+@1@2@3@4=
+Center/Mantle, but outside the caverns=
+Center/Mantle, inside cavern=
+Describes which region of the nether the player is in=
+Negative nether=
+Positive nether=
+Shell between negative nether and center region=
+Shell between positive nether and center region=
+The Overworld=
+Unknown player position=
+[Perlin @1] =
+
 ### nodes.lua ###
 
-=
 A finely finished block of solid Nether Basalt.=
 A rough cut solid block of Nether Basalt.=
 A thin crust of cooled lava with liquid lava beneath=
