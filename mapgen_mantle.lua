@@ -27,6 +27,7 @@
 
 local debugf = nether.debug
 local mapgen = nether.mapgen
+local S      = nether.get_translator
 
 local BASALT_COLUMN_UPPER_LIMIT = mapgen.BASALT_COLUMN_UPPER_LIMIT
 local BASALT_COLUMN_LOWER_LIMIT = mapgen.BASALT_COLUMN_LOWER_LIMIT
@@ -118,7 +119,7 @@ mapgen.add_basalt_columns = function(data, area, minp, maxp)
 	local yStride = area.ystride
 	local yCaveStride = x1 - x0 + 1
 
-	cavePerlin = cavePerlin or minetest.get_perlin(mapgen.np_cave)
+	local cavePerlin = mapgen.getCavePointPerlin()
 	nobj_basalt = nobj_basalt or minetest.get_perlin_map(np_basalt, {x = yCaveStride, y = yCaveStride})
 	local nvals_basalt = nobj_basalt:get_2d_map_flat({x=minp.x, y=minp.z}, {x=yCaveStride, y=yCaveStride}, nbuf_basalt)
 
@@ -398,11 +399,14 @@ mapgen.excavate_tunnel_to_center_of_the_nether = function(data, area, nvals_cave
 	if lowest < mapgen.CENTER_CAVERN_LIMIT and highest > mapgen.TCAVE + 0.03 then
 
 		local mantle_y = area:position(lowest_vi).y
-		local sealevel, cavern_limit_distance = mapgen.find_nearest_lava_sealevel(mantle_y)
+		local _, cavern_limit_distance = mapgen.find_nearest_lava_sealevel(mantle_y)
 		local _, centerRegionLimit_adj = mapgen.get_mapgenblend_adjustments(mantle_y)
+
+		 -- cavern_noise_adj gets added to noise value instead of added to the limit np_noise
+		 -- is compared against, so subtract centerRegionLimit_adj instead of adding
 		local cavern_noise_adj =
 			mapgen.CENTER_REGION_LIMIT * (cavern_limit_distance * cavern_limit_distance * cavern_limit_distance) -
-			centerRegionLimit_adj -- cavern_noise_adj gets added to noise value instead of added to the limit np_noise is compared against, so subtract centerRegionLimit_adj instead of adding
+			centerRegionLimit_adj
 
 		if lowest + cavern_noise_adj < mapgen.CENTER_CAVERN_LIMIT then
 			excavate_pathway(data, area, area:position(highest_vi), area:position(lowest_vi), minp, maxp)
@@ -415,13 +419,13 @@ end
 
 -- an enumerated list of the different regions in the nether
 mapgen.RegionEnum = {
-	Overworld     = "overworld",      -- Outside the Nether / none of the regions in the Nether
-	Positive      = "positive",       -- The classic nether caverns are here - where cavePerlin > 0.6
-	PositiveShell = "positive shell", -- the nether side of the wall/buffer area separating classic nether from the mantle
-	Center        = "center",         -- The Mantle caverns are here
-	CenterShell   = "center shell",   -- the mantle side of the wall/buffer area separating the positive and negative regions from the center region
-	Negative      = "negative",       -- Secondary/spare region - where cavePerlin < -0.6
-	NegativeShell = "negative shell", -- the spare region side of the wall/buffer area separating the negative region from the mantle
+	OVERWORLD     = {name = "overworld",      desc = S("The Overworld") },   -- Outside the Nether / none of the regions in the Nether
+	POSITIVE      = {name = "positive",       desc = S("Positive nether") }, -- The classic nether caverns are here - where cavePerlin > 0.6
+	POSITIVESHELL = {name = "positive shell", desc = S("Shell between positive nether and center region") }, -- the nether side of the wall/buffer area separating classic nether from the mantle
+	CENTER        = {name = "center",         desc = S("Center/Mantle, inside cavern") },
+	CENTERSHELL   = {name = "center shell",   desc = S("Center/Mantle, but outside the caverns") }, -- the mantle side of the wall/buffer area separating the positive and negative regions from the center region
+	NEGATIVE      = {name = "negative",       desc = S("Negative nether") }, -- Secondary/spare region - where cavePerlin < -0.6
+	NEGATIVESHELL = {name = "negative shell", desc = S("Shell between negative nether and center region") } -- the spare region side of the wall/buffer area separating the negative region from the mantle
 }
 
 
@@ -430,35 +434,38 @@ mapgen.RegionEnum = {
 mapgen.getRegion = function(pos)
 
 	if pos.y > nether.DEPTH_CEILING or pos.y < nether.DEPTH_FLOOR then
-		return mapgen.RegionEnum.Overworld, nil
+		return mapgen.RegionEnum.OVERWORLD, nil
 	end
 
 	local caveNoise = mapgen.getCavePerlinAt(pos)
-	local sea_level, cavern_limit_distance = mapgen.find_nearest_lava_sealevel(pos.y)
+	local sealevel, cavern_limit_distance = mapgen.find_nearest_lava_sealevel(pos.y)
 	local tcave_adj, centerRegionLimit_adj = mapgen.get_mapgenblend_adjustments(pos.y)
 	local tcave   = mapgen.TCAVE + tcave_adj
 	local tmantle = mapgen.CENTER_REGION_LIMIT + centerRegionLimit_adj
+
+	-- cavern_noise_adj gets added to noise value instead of added to the limit np_noise
+	-- is compared against, so subtract centerRegionLimit_adj instead of adding
 	local cavern_noise_adj =
 		mapgen.CENTER_REGION_LIMIT * (cavern_limit_distance * cavern_limit_distance * cavern_limit_distance) -
-		centerRegionLimit_adj -- cavern_noise_adj gets added to noise value instead of added to the limit np_noise is compared against, so subtract centerRegionLimit_adj so subtract centerRegionLimit_adj instead of adding
+		centerRegionLimit_adj
 
 	local region
 	if caveNoise > tcave then
-		region = mapgen.RegionEnum.Positive
+		region = mapgen.RegionEnum.POSITIVE
 	elseif -caveNoise > tcave then
-		region = mapgen.RegionEnum.Negative
+		region = mapgen.RegionEnum.NEGATIVE
 	elseif math_abs(caveNoise) < tmantle then
 
 		if math_abs(caveNoise) + cavern_noise_adj < mapgen.CENTER_CAVERN_LIMIT then
-			region = mapgen.RegionEnum.Center
+			region = mapgen.RegionEnum.CENTER
 		else
-			region = mapgen.RegionEnum.CenterShell
+			region = mapgen.RegionEnum.CENTERSHELL
 		end
 
 	elseif caveNoise > 0 then
-		region = mapgen.RegionEnum.PositiveShell
+		region = mapgen.RegionEnum.POSITIVESHELL
 	else
-		region = mapgen.RegionEnum.NegativeShell
+		region = mapgen.RegionEnum.NEGATIVESHELL
 	end
 
 	return region, caveNoise
@@ -467,41 +474,39 @@ end
 
 minetest.register_chatcommand("nether_whereami",
 	{
-		description = "Describes which region of the nether the player is in",
+		description = S("Describes which region of the nether the player is in"),
 		privs = {debug = true},
 		func = function(name, param)
 
 			local player = minetest.get_player_by_name(name)
-			if player == nil then return false, "Unknown player position" end
+			if player == nil then return false, S("Unknown player position") end
 			local playerPos = vector.round(player:get_pos())
 
 			local region, caveNoise                = mapgen.getRegion(playerPos)
 			local seaLevel, cavernLimitDistance    = mapgen.find_nearest_lava_sealevel(playerPos.y)
 			local tcave_adj, centerRegionLimit_adj = mapgen.get_mapgenblend_adjustments(playerPos.y)
 
-			local regionLabels = {
-				[mapgen.RegionEnum.Overworld]     = "The Overworld",
-				[mapgen.RegionEnum.Positive]      = "Positive nether",
-				[mapgen.RegionEnum.PositiveShell] = "Shell between positive nether and center region",
-				[mapgen.RegionEnum.Center]        = "Center/Mantle, inside cavern",
-				[mapgen.RegionEnum.CenterShell]   = "Center/Mantle, but outside the caverns",
-				[mapgen.RegionEnum.Negative]      = "Negative nether",
-				[mapgen.RegionEnum.NegativeShell] = "Shell between negative nether and center region"
-			}
-			local desc = regionLabels[region]
+			local seaDesc = ""
+			local boundaryDesc = ""
+			local perlinDesc = ""
 
-			local sea_pos = playerPos.y - seaLevel
-			if sea_pos > 0 then
-				desc = desc .. ", " .. sea_pos .. "m above lava-sea level"
-			else
-				desc = desc .. ", " .. sea_pos .. "m below lava-sea level"
+			if region ~= mapgen.RegionEnum.OVERWORLD then
+
+				local seaPos = playerPos.y - seaLevel
+				if seaPos > 0 then
+					seaDesc = S(", @1m above lava-sea level", seaPos)
+				else
+					seaDesc = S(", @1m below lava-sea level", seaPos)
+				end
+
+				if tcave_adj > 0 then
+					boundaryDesc = S(", approaching y boundary of Nether")
+				end
+
+				perlinDesc = S("[Perlin @1] ", (math_floor(caveNoise * 1000) / 1000))
 			end
 
-			if tcave_adj > 0 then
-				desc = desc .. ", approaching y boundary of Nether"
-			end
-
-			return true, "[Perlin " .. (math_floor(caveNoise * 1000) / 1000) .. "] " .. desc
+			return true, S("@1@2@3@4", perlinDesc, region.desc, seaDesc, boundaryDesc)
 		end
 	}
 )

@@ -253,13 +253,15 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 				if pos.y <= nether.DEPTH_CEILING and pos.y >= nether.DEPTH_FLOOR then
 					result = "nether"
 
+					-- since mapgen_nobiomes.lua has no regions it doesn't implement getRegion(),
+					-- so only use getRegion() if it exists
 					if nether.mapgen.getRegion ~= nil then
 						-- the biomes-based mapgen supports 2 extra regions
 						local regions = nether.mapgen.RegionEnum
 						local region  = nether.mapgen.getRegion(pos)
-						if region == regions.Center or region == regions.CenterShell then
+						if region == regions.CENTER or region == regions.CENTERSHELL then
 							result = "mantle"
-						elseif region == regions.Negative or region == regions.NegativeShell then
+						elseif region == regions.NEGATIVE or region == regions.NEGATIVESHELL then
 							result = "geode"
 						end
 					end

@@ -557,9 +557,12 @@ local function on_generated(minp, maxp, seed)
 		local tcave_adj, centerRegionLimit_adj = mapgen.get_mapgenblend_adjustments(y)
 		local tcave   = TCAVE + tcave_adj
 		local tmantle = CENTER_REGION_LIMIT + centerRegionLimit_adj -- cavern_noise_adj already contains central_region_limit_adj, so tmantle is only for comparisons when cavern_noise_adj hasn't been added to the noise value
+
+		 -- cavern_noise_adj gets added to noise value instead of added to the limit np_noise
+		 -- is compared against, so subtract centerRegionLimit_adj instead of adding
 		local cavern_noise_adj =
 			CENTER_REGION_LIMIT * (cavern_limit_distance * cavern_limit_distance * cavern_limit_distance) -
-			centerRegionLimit_adj -- cavern_noise_adj gets added to noise value instead of added to the limit np_noise is compared against, so subtract centerRegionLimit_adj instead of adding
+			centerRegionLimit_adj
 
 		for z = z0, z1 do
 			local vi = area:index(x0, y, z) -- Initial voxelmanip index
