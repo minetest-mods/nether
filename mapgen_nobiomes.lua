@@ -216,7 +216,7 @@ function nether.find_nether_ground_y(target_x, target_z, start_y, player_name)
 	local maxp = {x = maxp_schem.x, y = 0, z = maxp_schem.z}
 
 	for y = start_y, math.max(NETHER_FLOOR + BLEND, start_y - 4096), -1 do
-		local nval_cave = nobj_cave_point:get3d({x = target_x, y = y, z = target_z})
+		local nval_cave = nobj_cave_point:get_3d({x = target_x, y = y, z = target_z})
 
 		if nval_cave > TCAVE then -- Cavern
 			air = air + 1
