@@ -155,7 +155,7 @@ This opens to a truly hellish place, though for small mercies the air there is s
 The expedition parties have found no diamonds or gold, and after an experienced search party failed to return from the trail of a missing expedition party, I must conclude this is a dangerous place.]], 10 * nether.FASTTRAVEL_FACTOR),
 
 		is_within_realm = function(pos) -- return true if pos is inside the Nether
-			return pos.y < nether.DEPTH_CEILING
+			return pos.y < nether.DEPTH_CEILING and pos.y > nether.DEPTH_FLOOR
 		end,
 
 		find_realm_anchorPos = function(surface_anchorPos, player_name)
