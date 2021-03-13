@@ -529,7 +529,7 @@ minetest.register_node("nether:lava_crust", {
 	paramtype = "light",
 	light_source = default.LIGHT_MAX - 3,
 	buildable_to = false,
-	walkable_to = true,
+	walkable = true,
 	is_ground_content = true,
 	drop = {
 		items = {{
