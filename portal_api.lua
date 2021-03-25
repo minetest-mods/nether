@@ -2015,7 +2015,6 @@ local wormhole_nodedef_default = {
 	is_ground_content = false,
 	drop = "",
 	light_source = 5,
-	alpha = 192,
 	node_box = {
 		type = "fixed",
 		fixed = {
