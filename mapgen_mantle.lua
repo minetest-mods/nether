@@ -136,7 +136,7 @@ mapgen.add_basalt_columns = function(data, area, minp, maxp)
 			if basaltNoise > 0 then
 				-- a basalt column is here
 
-				local abs_sealevel_cave_noise = math_abs(cavePerlin:get3d({x = x, y = nearest_sea_level, z = z}))
+				local abs_sealevel_cave_noise = math_abs(cavePerlin:get_3d({x = x, y = nearest_sea_level, z = z}))
 
 				-- Add Some quick deterministic noise to the column heights
 				-- This is probably not good noise, but it doesn't have to be.

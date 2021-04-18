@@ -2007,7 +2007,8 @@ local wormhole_nodedef_default = {
 		a = 160, r = 128, g = 0, b = 80
 	},
 	sunlight_propagates = true,
-	use_texture_alpha = true,
+	use_texture_alpha = minetest.features.use_texture_alpha_string_modes
+		and "blend" or true,
 	walkable = false,
 	diggable = false,
 	pointable = false,
@@ -2015,7 +2016,6 @@ local wormhole_nodedef_default = {
 	is_ground_content = false,
 	drop = "",
 	light_source = 5,
-	alpha = 192,
 	node_box = {
 		type = "fixed",
 		fixed = {
