@@ -119,7 +119,7 @@ mapgen.add_basalt_columns = function(data, area, minp, maxp)
 	local yStride = area.ystride
 	local yCaveStride = x1 - x0 + 1
 
-	local cavePerlin = mapgen.getCavePointPerlin()
+	local cavePerlin = mapgen.get_cave_point_perlin()
 	nobj_basalt = nobj_basalt or minetest.get_perlin_map(np_basalt, {x = yCaveStride, y = yCaveStride})
 	local nvals_basalt = nobj_basalt:get_2d_map_flat({x=minp.x, y=minp.z}, {x=yCaveStride, y=yCaveStride}, nbuf_basalt)
 
@@ -431,13 +431,13 @@ mapgen.RegionEnum = {
 
 -- Returns (region, noise) where region is a value from mapgen.RegionEnum
 -- and noise is the unadjusted cave perlin value
-mapgen.getRegion = function(pos)
+mapgen.get_region = function(pos)
 
 	if pos.y > nether.DEPTH_CEILING or pos.y < nether.DEPTH_FLOOR then
 		return mapgen.RegionEnum.OVERWORLD, nil
 	end
 
-	local caveNoise = mapgen.getCavePerlinAt(pos)
+	local caveNoise = mapgen.get_cave_perlin_at(pos)
 	local sealevel, cavern_limit_distance = mapgen.find_nearest_lava_sealevel(pos.y)
 	local tcave_adj, centerRegionLimit_adj = mapgen.get_mapgenblend_adjustments(pos.y)
 	local tcave   = mapgen.TCAVE + tcave_adj
@@ -482,7 +482,7 @@ minetest.register_chatcommand("nether_whereami",
 			if player == nil then return false, S("Unknown player position") end
 			local playerPos = vector.round(player:get_pos())
 
-			local region, caveNoise                = mapgen.getRegion(playerPos)
+			local region, caveNoise                = mapgen.get_region(playerPos)
 			local seaLevel, cavernLimitDistance    = mapgen.find_nearest_lava_sealevel(playerPos.y)
 			local tcave_adj, centerRegionLimit_adj = mapgen.get_mapgenblend_adjustments(playerPos.y)
 

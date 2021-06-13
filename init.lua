@@ -76,6 +76,19 @@ if nether.DEPTH_FLOOR + 1000 > nether.DEPTH_CEILING then
 end
 nether.DEPTH = nether.DEPTH_CEILING -- Deprecated, use nether.DEPTH_CEILING instead.
 
+-- DEPTH_FLOOR_LAYERS gives the bottom Y of all locations that wish to be
+-- considered part of the Nether.
+-- DEPTH_FLOOR_LAYERS Allows mods to insert extra layers below the
+-- Nether, by knowing where their layer ceiling should start, and letting
+-- the layers be included in effects which only happen in the Nether.
+-- If a mod wishes to add a layer below the Nether it should read
+-- nether.DEPTH_FLOOR_LAYERS to find the bottom Y of the Nether and any
+-- other layers already under the Nether. The mod should leave a small gap
+-- between DEPTH_FLOOR_LAYERS and its ceiling (e.g. use DEPTH_FLOOR_LAYERS - 6
+-- for its ceiling Y, so there is room to shift edge-case biomes), then set
+-- nether.DEPTH_FLOOR_LAYERS to reflect the mod's floor Y value, and call
+-- shift_existing_biomes() with DEPTH_FLOOR_LAYERS as the floor_y argument.
+nether.DEPTH_FLOOR_LAYERS = nether.DEPTH_CEILING
 
 -- A debug-print function that understands vectors etc. and does not
 -- evaluate when debugging is turned off.
@@ -253,12 +266,12 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 				if pos.y <= nether.DEPTH_CEILING and pos.y >= nether.DEPTH_FLOOR then
 					result = "nether"
 
-					-- since mapgen_nobiomes.lua has no regions it doesn't implement getRegion(),
-					-- so only use getRegion() if it exists
-					if nether.mapgen.getRegion ~= nil then
+					-- since mapgen_nobiomes.lua has no regions it doesn't implement get_region(),
+					-- so only use get_region() if it exists
+					if nether.mapgen.get_region ~= nil then
 						-- the biomes-based mapgen supports 2 extra regions
 						local regions = nether.mapgen.RegionEnum
-						local region  = nether.mapgen.getRegion(pos)
+						local region  = nether.mapgen.get_region(pos)
 						if region == regions.CENTER or region == regions.CENTERSHELL then
 							result = "mantle"
 						elseif region == regions.NEGATIVE or region == regions.NEGATIVESHELL then
