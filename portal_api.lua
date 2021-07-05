@@ -2211,7 +2211,7 @@ function nether.volume_is_natural_and_unprotected(minp, maxp, player_name)
 			if id ~= c_air and id ~= c_ignore and id ~= nil then -- checked for common natural or not emerged
 				local name = minetest.get_name_from_content_id(id)
 				local nodedef = minetest.registered_nodes[name]
-				if not nodedef.is_ground_content then
+				if nodedef and not nodedef.is_ground_content then
 					-- trees are natural but not "ground content"
 					local node_groups = nodedef.groups
 					if node_groups == nil or (node_groups.tree == nil and node_groups.leaves == nil and node_groups.leafdecay == nil) then
