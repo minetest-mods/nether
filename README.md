@@ -74,4 +74,7 @@ SOFTWARE.
  * `nether_rack`* (files starting with "nether_rack"): Zeg9
  * `nether_tool_`* (files starting with "nether_tool_"): color adjusted versions from "[default](https://github.com/minetest/minetest_game/tree/master/mods/default)" mod, originals by BlockMen
 
+### [Unlicensed but permission for inclusion by kovaszos_uborka](https://www.planetminecraft.com/member/kovaszos_uborka/)
+ * `nether_brick_deep.png` (edited by TenPlus1)
+
 All other media: Copyright © 2013 PilzAdam, licensed under CC BY-SA 3.0 by PilzAdam.
