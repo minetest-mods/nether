@@ -45,6 +45,14 @@ minetest.register_craft({
 })
 
 minetest.register_craft({
+	output = "nether:brick_deep 4",
+	recipe = {
+		{"nether:rack_deep", "nether:rack_deep"},
+		{"nether:rack_deep", "nether:rack_deep"}
+	}
+})
+
+minetest.register_craft({
     output = "nether:basalt_hewn",
     type = "shapeless",
     recipe = {
