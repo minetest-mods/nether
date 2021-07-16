@@ -24,6 +24,14 @@ The Nether mod exposes some of its functions and data via the lua global
   `nether.DEPTH_FLOOR_LAYERS` to reflect the mod's floor Y value, and call
   `shift_existing_biomes()` with DEPTH_FLOOR_LAYERS as the `floor_y` argument.
 
+* `nether.NETHER_REALM_ENABLED`: [read-only] Gets the value of the "Enable
+  Nether realm & portal" setting the nether mod exposes in Minetest's
+  "All Settings" -> "Mods" -> "nether" options.
+  When false, the entire nether mapgen is disabled (not run), and the portal
+  to it is not registered. Reasons someone might disable the Nether realm
+  include if a nether-layer mod was to be used as the Nether instead, or if
+  the portal mechanic was desired in a game without the Nether, etc.
+
 * `nether.useBiomes`: [read-only] When this is false, the Nether interop
   functions below are not available (nil).
   Indicates that the biomes-enabled mapgen is in use. The Nether mod falls back
@@ -34,7 +42,8 @@ The Nether mod exposes some of its functions and data via the lua global
 Mapgen functions available when nether.useBiomes is true
 --------------------------------------------------------
 
-The following functions are nil when `nether.useBiomes` is false
+The following functions are nil if `nether.useBiomes` is false,
+and also nil if `nether.NETHER_REALM_ENABLED` is false.
 
 * `nether.mapgen.shift_existing_biomes(floor_y, ceiling_y)` Move any existing
   biomes out of the y-range specified by `floor_y` and `ceiling_y`.
@@ -54,3 +63,16 @@ The following functions are nil when `nether.useBiomes` is false
 
 * `nether.mapgen.get_cave_perlin_at(pos)`: Returns the Nether cavern noise
   value at a given 3D position.
+
+
+Other mapgen functions
+-------------------------------------------
+
+If the Nether realm is enabled, then this function will be available
+regardless of whether `nether.useBiomes` is true:
+
+* `nether.find_nether_ground_y(target_x, target_z, start_y, player_name)`
+  Uses knowledge of the nether mapgen algorithm to return a suitable ground
+  level for placing a portal.
+    * `player_name` is optional, allowing a player to spawn a remote portal
+      in their own protected areas.

@@ -88,7 +88,7 @@ nether.DEPTH = nether.DEPTH_CEILING -- Deprecated, use nether.DEPTH_CEILING inst
 -- for its ceiling Y, so there is room to shift edge-case biomes), then set
 -- nether.DEPTH_FLOOR_LAYERS to reflect the mod's floor Y value, and call
 -- shift_existing_biomes() with DEPTH_FLOOR_LAYERS as the floor_y argument.
-nether.DEPTH_FLOOR_LAYERS = nether.DEPTH_CEILING
+nether.DEPTH_FLOOR_LAYERS = nether.DEPTH_FLOOR
 
 -- A debug-print function that understands vectors etc. and does not
 -- evaluate when debugging is turned off.
@@ -176,7 +176,7 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 			local destination_pos = vector.divide(surface_anchorPos, nether.FASTTRAVEL_FACTOR)
 			destination_pos.x = math.floor(0.5 + destination_pos.x) -- round to int
 			destination_pos.z = math.floor(0.5 + destination_pos.z) -- round to int
-			destination_pos.y = nether.DEPTH_CEILING - 1000 -- temp value so find_nearest_working_portal() returns nether portals
+			destination_pos.y = nether.DEPTH_CEILING - 1 -- temp value so find_nearest_working_portal() returns nether portals
 
 			-- a y_factor of 0 makes the search ignore the altitude of the portals (as long as they are in the Nether)
 			local existing_portal_location, existing_portal_orientation =
@@ -201,7 +201,7 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 			local destination_pos = vector.multiply(realm_anchorPos, nether.FASTTRAVEL_FACTOR)
 			destination_pos.x = math.min(30900, math.max(-30900, destination_pos.x)) -- clip to world boundary
 			destination_pos.z = math.min(30900, math.max(-30900, destination_pos.z)) -- clip to world boundary
-			destination_pos.y = 0 -- temp value so find_nearest_working_portal() doesn't return nether portals
+			destination_pos.y = nether.DEPTH_CEILING + 1 -- temp value so find_nearest_working_portal() doesn't return nether portals
 
 			-- a y_factor of 0 makes the search ignore the altitude of the portals (as long as they are outside the Nether)
 			local existing_portal_location, existing_portal_orientation =
