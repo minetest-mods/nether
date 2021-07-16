@@ -337,7 +337,7 @@ nether.cool_lava = function(pos, node)
 	-- Evaporate water sitting above lava, if it's in the Nether.
 	-- (we don't want Nether mod to affect overworld lava mechanics)
 	if minetest.get_item_group(node_above.name, "water") > 0 and
-		pos.y < nether.DEPTH_CEILING and pos.y > nether.DEPTH_FLOOR then
+		pos.y < nether.DEPTH_CEILING and pos.y > nether.DEPTH_FLOOR_LAYERS then
 		-- cools_lava might be a better group to check for, but perhaps there's
 		-- something in that group that isn't a liquid and shouldn't be evaporated?
 		minetest.swap_node(pos_above, {name="air"})
@@ -604,7 +604,7 @@ local function fumarole_onTimer(pos, elapsed)
 
 	-- Fumaroles in the Nether can catch fire.
 	-- (if taken to the surface and used as cottage chimneys, they don't catch fire)
-	local inNether = pos.y <= nether.DEPTH and pos.y >= nether.DEPTH_FLOOR
+	local inNether = pos.y <= nether.DEPTH and pos.y >= nether.DEPTH_FLOOR_LAYERS
 	local canCatchFire = inNether and minetest.registered_nodes["fire:permanent_flame"] ~= nil
 	local smoke_offset   = 0
 	local timeout_factor = 1

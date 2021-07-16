@@ -81,7 +81,8 @@ local math_max, math_min, math_abs, math_floor = math.max, math.min, math.abs, m
 
 -- Inject nether_caverns biome
 
-local function override_underground_biomes()
+-- Move any existing biomes out of the y-range specified by 'floor_y' and 'ceiling_y'
+mapgen.shift_existing_biomes = function(floor_y, ceiling_y)
 	-- https://forum.minetest.net/viewtopic.php?p=257522#p257522
 	-- Q: Is there a way to override an already-registered biome so I can get it out of the
 	--    way of my own underground biomes without disturbing the other biomes registered by
@@ -124,21 +125,21 @@ local function override_underground_biomes()
 		if type(new_biome_def.y_min) == 'number' then biome_y_min = new_biome_def.y_min end
 		if type(new_biome_def.y_max) == 'number' then biome_y_max = new_biome_def.y_max end
 
-		if biome_y_max > NETHER_FLOOR and biome_y_min < NETHER_CEILING then
+		if biome_y_max > floor_y and biome_y_min < ceiling_y then
 			-- This biome occupies some or all of the depth of the Nether, shift/crop it.
 			local new_y_min, new_y_max
-			local spaceOccupiedAbove = biome_y_max - NETHER_CEILING
-			local spaceOccupiedBelow = NETHER_FLOOR - biome_y_min
+			local spaceOccupiedAbove = biome_y_max - ceiling_y
+			local spaceOccupiedBelow = floor_y - biome_y_min
 			if spaceOccupiedAbove >= spaceOccupiedBelow or biome_y_min <= -30000 then
 				-- place the biome above the Nether
 				-- We also shift biomes which extend to the bottom of the map above the Nether, since they
 				-- likely only extend that deep as a catch-all, and probably have a role nearer the surface.
-				new_y_min = NETHER_CEILING + 1
-				new_y_max = math_max(biome_y_max, NETHER_CEILING + 2)
+				new_y_min = ceiling_y + 1
+				new_y_max = math_max(biome_y_max, ceiling_y + 2)
 			else
 				-- shift the biome to below the Nether
-				new_y_max = NETHER_FLOOR - 1
-				new_y_min = math_min(biome_y_min, NETHER_CEILING - 2)
+				new_y_max = floor_y - 1
+				new_y_min = math_min(biome_y_min, floor_y - 2)
 			end
 
 			debugf("Moving biome \"%s\" from %s..%s to %s..%s", new_biome_def.name, new_biome_def.y_min, new_biome_def.y_max, new_y_min, new_y_max)
@@ -162,7 +163,7 @@ local function override_underground_biomes()
  end
 
 -- Shift any overlapping biomes out of the way before we create the Nether biomes
-override_underground_biomes()
+mapgen.shift_existing_biomes(NETHER_FLOOR, NETHER_CEILING)
 
 -- nether:native_mapgen is used to prevent ores and decorations being generated according
 -- to landforms created by the native mapgen.
@@ -259,12 +260,12 @@ mapgen.np_cave = {
 
 local cavePointPerlin = nil
 
-mapgen.getCavePointPerlin = function()
+mapgen.get_cave_point_perlin = function()
 	cavePointPerlin = cavePointPerlin or minetest.get_perlin(mapgen.np_cave)
 	return cavePointPerlin
 end
 
-mapgen.getCavePerlinAt = function(pos)
+mapgen.get_cave_perlin_at = function(pos)
 	cavePointPerlin = cavePointPerlin or minetest.get_perlin(mapgen.np_cave)
 	return cavePointPerlin:get_3d(pos)
 end
@@ -477,7 +478,7 @@ end
 -- use knowledge of the nether mapgen algorithm to return a suitable ground level for placing a portal.
 -- player_name is optional, allowing a player to spawn a remote portal in their own protected areas.
 function nether.find_nether_ground_y(target_x, target_z, start_y, player_name)
-	local nobj_cave_point = mapgen.getCavePointPerlin()
+	local nobj_cave_point = mapgen.get_cave_point_perlin()
 	local air = 0 -- Consecutive air nodes found
 
 	local minp_schem, maxp_schem = nether.get_schematic_volume({x = target_x, y = 0, z = target_z}, nil, "nether_portal")

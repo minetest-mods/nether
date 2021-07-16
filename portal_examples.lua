@@ -106,7 +106,7 @@ end
 -- Surface-travel portal, playable code example --
 --==============================================--
 
--- These Moore Curve functions requred by surface_portal's find_surface_anchorPos() will
+-- These Moore Curve functions required by surface_portal's find_surface_anchorPos() will
 -- be assigned later in this file.
 local get_moore_distance -- will be function get_moore_distance(cell_count, x, y): integer
 local get_moore_coords   -- will be function get_moore_coords(cell_count, distance): pos2d

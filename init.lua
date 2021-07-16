@@ -76,6 +76,19 @@ if nether.DEPTH_FLOOR + 1000 > nether.DEPTH_CEILING then
 end
 nether.DEPTH = nether.DEPTH_CEILING -- Deprecated, use nether.DEPTH_CEILING instead.
 
+-- DEPTH_FLOOR_LAYERS gives the bottom Y of all locations that wish to be
+-- considered part of the Nether.
+-- DEPTH_FLOOR_LAYERS Allows mods to insert extra layers below the
+-- Nether, by knowing where their layer ceiling should start, and letting
+-- the layers be included in effects which only happen in the Nether.
+-- If a mod wishes to add a layer below the Nether it should read
+-- nether.DEPTH_FLOOR_LAYERS to find the bottom Y of the Nether and any
+-- other layers already under the Nether. The mod should leave a small gap
+-- between DEPTH_FLOOR_LAYERS and its ceiling (e.g. use DEPTH_FLOOR_LAYERS - 6
+-- for its ceiling Y, so there is room to shift edge-case biomes), then set
+-- nether.DEPTH_FLOOR_LAYERS to reflect the mod's floor Y value, and call
+-- shift_existing_biomes() with DEPTH_FLOOR_LAYERS as the floor_y argument.
+nether.DEPTH_FLOOR_LAYERS = nether.DEPTH_FLOOR
 
 -- A debug-print function that understands vectors etc. and does not
 -- evaluate when debugging is turned off.
@@ -163,7 +176,7 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 			local destination_pos = vector.divide(surface_anchorPos, nether.FASTTRAVEL_FACTOR)
 			destination_pos.x = math.floor(0.5 + destination_pos.x) -- round to int
 			destination_pos.z = math.floor(0.5 + destination_pos.z) -- round to int
-			destination_pos.y = nether.DEPTH_CEILING - 1000 -- temp value so find_nearest_working_portal() returns nether portals
+			destination_pos.y = nether.DEPTH_CEILING - 1 -- temp value so find_nearest_working_portal() returns nether portals
 
 			-- a y_factor of 0 makes the search ignore the altitude of the portals (as long as they are in the Nether)
 			local existing_portal_location, existing_portal_orientation =
@@ -188,7 +201,7 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 			local destination_pos = vector.multiply(realm_anchorPos, nether.FASTTRAVEL_FACTOR)
 			destination_pos.x = math.min(30900, math.max(-30900, destination_pos.x)) -- clip to world boundary
 			destination_pos.z = math.min(30900, math.max(-30900, destination_pos.z)) -- clip to world boundary
-			destination_pos.y = 0 -- temp value so find_nearest_working_portal() doesn't return nether portals
+			destination_pos.y = nether.DEPTH_CEILING + 1 -- temp value so find_nearest_working_portal() doesn't return nether portals
 
 			-- a y_factor of 0 makes the search ignore the altitude of the portals (as long as they are outside the Nether)
 			local existing_portal_location, existing_portal_orientation =
@@ -253,12 +266,12 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 				if pos.y <= nether.DEPTH_CEILING and pos.y >= nether.DEPTH_FLOOR then
 					result = "nether"
 
-					-- since mapgen_nobiomes.lua has no regions it doesn't implement getRegion(),
-					-- so only use getRegion() if it exists
-					if nether.mapgen.getRegion ~= nil then
+					-- since mapgen_nobiomes.lua has no regions it doesn't implement get_region(),
+					-- so only use get_region() if it exists
+					if nether.mapgen.get_region ~= nil then
 						-- the biomes-based mapgen supports 2 extra regions
 						local regions = nether.mapgen.RegionEnum
-						local region  = nether.mapgen.getRegion(pos)
+						local region  = nether.mapgen.get_region(pos)
 						if region == regions.CENTER or region == regions.CENTERSHELL then
 							result = "mantle"
 						elseif region == regions.NEGATIVE or region == regions.NEGATIVESHELL then
