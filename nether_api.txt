@@ -1,0 +1,78 @@
+Modding/interop guide to Nether
+===============================
+
+For portals API see portal_api.txt
+
+The Nether mod exposes some of its functions and data via the lua global
+`nether` and `nether.mapgen`
+
+
+* `nether.DEPTH_CEILING`: [read-only] Y value of the top of the Nether.
+
+* `nether.DEPTH_FLOOR`: [read-only] Y value of the bottom of the Nether.
+
+* `nether.DEPTH_FLOOR_LAYERS`: [writable] Gives the bottom Y of all
+  locations that wish to be considered part of the Nether.
+  DEPTH_FLOOR_LAYERS Allows mods to insert extra layers below the
+  Nether, by knowing where their layer ceiling should start, and letting
+  the layers be included in effects which only happen in the Nether.
+  If a mod wishes to add a layer below the Nether it should read
+  `nether.DEPTH_FLOOR_LAYERS` to find the bottom Y of the Nether and any
+  other layers already under the Nether. The mod should leave a small gap
+  between DEPTH_FLOOR_LAYERS and its ceiling (e.g. use DEPTH_FLOOR_LAYERS - 6
+  for its ceiling Y, so there is room to shift edge-case biomes), then set
+  `nether.DEPTH_FLOOR_LAYERS` to reflect the mod's floor Y value, and call
+  `shift_existing_biomes()` with DEPTH_FLOOR_LAYERS as the `floor_y` argument.
+
+* `nether.NETHER_REALM_ENABLED`: [read-only] Gets the value of the "Enable
+  Nether realm & portal" setting the nether mod exposes in Minetest's
+  "All Settings" -> "Mods" -> "nether" options.
+  When false, the entire nether mapgen is disabled (not run), and the portal
+  to it is not registered. Reasons someone might disable the Nether realm
+  include if a nether-layer mod was to be used as the Nether instead, or if
+  the portal mechanic was desired in a game without the Nether, etc.
+
+* `nether.useBiomes`: [read-only] When this is false, the Nether interop
+  functions below are not available (nil).
+  Indicates that the biomes-enabled mapgen is in use. The Nether mod falls back
+  to older mapgen code for v6 maps and old versions of Minetest, the older
+  mapgen code doesn't use biomes and doesn't provide API/interop functions.
+
+
+Mapgen functions available when nether.useBiomes is true
+--------------------------------------------------------
+
+The following functions are nil if `nether.useBiomes` is false,
+and also nil if `nether.NETHER_REALM_ENABLED` is false.
+
+* `nether.mapgen.shift_existing_biomes(floor_y, ceiling_y)` Move any existing
+  biomes out of the y-range specified by `floor_y` and `ceiling_y`.
+
+* `nether.mapgen.get_region(pos)`: Returns two values, (region, noise) where
+  `region` is a value from `nether.mapgen.RegionEnum` and `noise` is the
+  unadjusted cave perlin value.
+    * `nether.mapgen.RegionEnum` values are tables which contain an invariant
+      `name` and a localized `desc`. Current region names include overworld,
+      positive, positive shell, center, center shell, negative, and negative
+      shell.
+      "positive" corresponds to conventional Nether caverns, and "center"
+      corresponds to the Mantle region.
+
+* `nether.mapgen.get_cave_point_perlin()`: Returns the PerlinNoise object for
+  the Nether's cavern noise.
+
+* `nether.mapgen.get_cave_perlin_at(pos)`: Returns the Nether cavern noise
+  value at a given 3D position.
+
+
+Other mapgen functions
+-------------------------------------------
+
+If the Nether realm is enabled, then this function will be available
+regardless of whether `nether.useBiomes` is true:
+
+* `nether.find_nether_ground_y(target_x, target_z, start_y, player_name)`
+  Uses knowledge of the nether mapgen algorithm to return a suitable ground
+  level for placing a portal.
+    * `player_name` is optional, allowing a player to spawn a remote portal
+      in their own protected areas.

@@ -2073,7 +2073,7 @@ function nether.register_portal(name, portaldef)
 	end
 
 	portaldef.name     = name
-	portaldef.mod_name = minetest.get_current_modname()
+	portaldef.mod_name = minetest.get_current_modname() or "<mod name not recorded>"
 
 	-- use portaldef_default for any values missing from portaldef or portaldef.sounds
 	if portaldef.sounds ~= nil then setmetatable(portaldef.sounds, {__index = portaldef_default.sounds}) end

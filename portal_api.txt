@@ -250,16 +250,16 @@ Used by `nether.register_portal`.
         -- player_name may be "", e.g. if the portal was ignited by a mesecon,
         -- and is provided for use with volume_is_natural_and_unprotected() etc.
 
-        on_run_wormhole      = function(portalDef, anochorPos, orientation),
+        on_run_wormhole      = function(portalDef, anchorPos, orientation),
         -- invoked once per second per portal
-        on_extinguish        = function(portalDef, anochorPos, orientation),
+        on_extinguish        = function(portalDef, anchorPos, orientation),
         -- invoked when a portal is extinguished, including when the portal
         -- it connected to was extinguished.
         on_player_teleported = function(portalDef, player, oldPos, newPos),
         -- invoked immediately after a player is teleported
-        on_ignite            = function(portalDef, anochorPos, orientation)
+        on_ignite            = function(portalDef, anchorPos, orientation)
         -- invoked when a player or mesecon ignites a portal
-        on_created           = function(portalDef, anochorPos, orientation)
+        on_created           = function(portalDef, anchorPos, orientation)
         -- invoked when a portal creates a remote twin, this is usually when
         -- a player travels through a portal for the first time.
     }
