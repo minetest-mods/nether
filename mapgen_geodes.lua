@@ -127,8 +127,9 @@ end
 
 local distSquaredList = {}
 local adj_x = 0
-local adj_y = 0, lasty
-local adj_z = 0, lastz
+local adj_y = 0
+local adj_z = 0
+local lasty, lastz
 local warpx, warpz
 
 

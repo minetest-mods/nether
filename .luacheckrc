@@ -30,5 +30,6 @@ read_globals = {
 	"vector",
 	"VoxelArea",
 	"VoxelManip",
+	xpanes = { fields = { "register_pane" } },
 }
 

@@ -190,14 +190,14 @@ minetest.register_node("nether:geode", {
 		align_style = "world",
 		scale       = 4
 	}},
-	--light_source = 1,
 	is_ground_content = true,
 	groups = {cracky = 3, oddly_breakable_by_hand = 3, nether_crystal = 1},
 	sounds = default.node_sound_glass_defaults(),
 })
 
 -- Nether Berylite is a Beryl that can seen in the dark, used to light up the internal structure
--- of the geode, so to avoid player confusion we'll just have it drop plain Beryl.
+-- of the geode, so to avoid player confusion we'll just have it drop plain Beryl, and have only
+-- plain Beryl in the creative inventory.
 minetest.register_node("nether:geodelite", {
 	description = S("Nether Berylite"),
 	_doc_items_longdesc = S("Nether geode crystal. A crystalline structure with faint glow found inside large Nether geodes"),
@@ -209,7 +209,7 @@ minetest.register_node("nether:geodelite", {
 	light_source = 2,
 	drop = "nether:geode",
 	is_ground_content = true,
-	groups = {cracky = 3, oddly_breakable_by_hand = 3, nether_crystal = 1},
+	groups = {cracky = 3, oddly_breakable_by_hand = 3, nether_crystal = 1, not_in_creative_inventory = 1},
 	sounds = default.node_sound_glass_defaults(),
 })
 

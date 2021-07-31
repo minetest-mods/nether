@@ -384,7 +384,8 @@ local function on_generated(minp, maxp, seed)
 				if cave_noise > tcave then
 					-- Prime region
 					-- This was the only region in initial versions of the Nether mod.
-					-- It is the only region which portals from the surface will open into.
+					-- It is the only region which portals from the surface will open into,
+					-- getting to any other regions in the Nether will require Shanks' Pony.
 					data[vi] = c_air
 					contains_nether = true
 
@@ -394,7 +395,7 @@ local function on_generated(minp, maxp, seed)
 					-- Reaching here would require the player to first find and journey through the central region,
 					-- as it's always separated from the Prime region by the central region.
 
-					data[vi] = mapgen.getGeodeInteriorNodeId(x, y, z)
+					data[vi] = mapgen.getGeodeInteriorNodeId(x, y, z)-- function from mapgen_geodes.lua
 
 					-- Only set contains_nether to true here if you want tunnels created between the secondary region
 					-- and the central region.
