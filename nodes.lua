@@ -175,18 +175,35 @@ minetest.register_node("nether:brick_deep", {
 
 -- Register stair and slab
 
-stairs.register_stair_and_slab(
-	"nether_brick",
-	"nether:brick",
-	{cracky = 2, level = 2},
-	{"nether_brick.png"},
-	S("Nether Stair"),
-	S("Nether Slab"),
-	default.node_sound_stone_defaults(),
-	nil,
-	S("Inner Nether Stair"),
-	S("Outer Nether Stair")
+-- Nether bricks can be made into stairs, slabs, inner stairs, and outer stairs
+
+stairs.register_stair_and_slab( -- this function also registers inner and outer stairs
+	"nether_brick",                                    -- subname
+	"nether:brick",                                    -- recipeitem
+	{cracky = 2, level = 2},                           -- groups
+	{"nether_brick.png"},                              -- images
+	S("Nether Stair"),                                 -- desc_stair
+	S("Nether Slab"),                                  -- desc_slab
+	minetest.registered_nodes["nether:brick"].sounds,  -- sounds
+	false,                                             -- worldaligntex
+	S("Inner Nether Stair"),                           -- desc_stair_inner
+	S("Outer Nether Stair")                            -- desc_stair_outer
 )
+
+stairs.register_stair_and_slab( -- this function also registers inner and outer stairs
+	"nether_brick_deep",                                    -- subname
+	"nether:brick_deep",                                    -- recipeitem
+	{cracky = 2, level = 2},                                -- groups
+	{"nether_brick_deep.png"},                              -- images
+	S("Deep Nether Stair"),                                 -- desc_stair
+	S("Deep Nether Slab"),                                  -- desc_slab
+	minetest.registered_nodes["nether:brick_deep"].sounds,  -- sounds
+	false,                                                  -- worldaligntex
+	S("Inner Deep Nether Stair"),                           -- desc_stair_inner
+	S("Outer Deep Nether Stair")                            -- desc_stair_outer
+)
+
+-- Netherrack can be shaped into stairs, slabs and walls
 
 stairs.register_stair(
 	"netherrack",
@@ -194,18 +211,53 @@ stairs.register_stair(
 	{cracky = 2, level = 2},
 	{"nether_rack.png"},
 	S("Netherrack stair"),
-	default.node_sound_stone_defaults()
+	minetest.registered_nodes["nether:rack"].sounds
 )
+stairs.register_slab( -- register a slab without adding inner and outer stairs
+	"netherrack",
+	"nether:rack",
+	{cracky = 2, level = 2},
+	{"nether_rack.png"},
+	S("Deep Netherrack slab"),
+	minetest.registered_nodes["nether:rack"].sounds
+)
+
+stairs.register_stair(
+	"netherrack_deep",
+	"nether:rack_deep",
+	{cracky = 2, level = 2},
+	{"nether_rack_deep.png"},
+	S("Deep Netherrack stair"),
+	minetest.registered_nodes["nether:rack_deep"].sounds
+)
+stairs.register_slab( -- register a slab without adding inner and outer stairs
+	"netherrack_deep",
+	"nether:rack_deep",
+	{cracky = 2, level = 2},
+	{"nether_rack_deep.png"},
+	S("Deep Netherrack slab"),
+	minetest.registered_nodes["nether:rack_deep"].sounds
+)
+
+-- Connecting walls
+if minetest.get_modpath("walls") and minetest.global_exists("walls") and walls.register ~= nil then
+	walls.register("nether:rack_wall",      "A Netherrack wall",      "nether_rack.png",      "nether:rack",      minetest.registered_nodes["nether:rack"].sounds)
+	walls.register("nether:rack_deep_wall", "A Deep Netherrack wall", "nether_rack_deep.png", "nether:rack_deep", minetest.registered_nodes["nether:rack_deep"].sounds)
+end
 
 -- StairsPlus
 
 if minetest.get_modpath("moreblocks") then
+	-- Registers about 49 different shapes of nether brick, replacing the stairs & slabs registered above.
+	-- (This could also be done for deep nether brick, but I've left that out to avoid a precedent of 49 new
+	-- nodes every time the nether gets a new material. Nether structures won't be able to use them because
+	-- they can't depend on moreblocks)
 	stairsplus:register_all(
 		"nether", "brick", "nether:brick", {
 			description = S("Nether Brick"),
 			groups = {cracky = 2, level = 2},
 			tiles = {"nether_brick.png"},
-			sounds = default.node_sound_stone_defaults(),
+			sounds = minetest.registered_nodes["nether:brick"].sounds,
 	})
 end
 
