@@ -20,18 +20,33 @@
 local S = nether.get_translator
 
 minetest.register_tool("nether:pick_nether", {
-	description = S("Nether Pickaxe"),
+	description = S("Nether Pickaxe\nWell suited for mining netherrack"),
+	_doc_items_longdesc = S("Uniquely suited for mining netherrack, with minimal wear when doing so. Blunts quickly on other materials."),
 	inventory_image = "nether_tool_netherpick.png",
 	tool_capabilities = {
 		full_punch_interval = 0.8,
 		max_drop_level=3,
 		groupcaps={
-			cracky = {times={[1]=1.90, [2]=0.9, [3]=0.4}, uses=35, maxlevel=3},
+			cracky = {times={[1]=1.90, [2]=0.9, [3]=0.3}, uses=35, maxlevel=2},
 		},
 		damage_groups = {fleshy=4},
 	},
 	sound = {breaks = "default_tool_breaks"},
-	groups = {pickaxe = 1}
+	groups = {pickaxe = 1},
+
+	after_use = function(itemstack, user, node, digparams)
+		local wearDivisor = 1
+		local nodeDef = minetest.registered_nodes[node.name]
+		if nodeDef ~= nil and nodeDef.groups ~= nil then
+			-- The nether pick hardly wears out when mining netherrack
+			local workable = nodeDef.groups.workable_with_nether_tools or 0
+			wearDivisor =  1 + (3 * workable) -- 10 for netherrack, 1 otherwise. Making it able to mine 350 netherrack nodes, instead of 35.
+		end
+
+		local wear = math.floor(digparams.wear / wearDivisor)
+		itemstack:add_wear(wear)  -- apply the adjusted wear as usual
+		return itemstack
+	end
 })
 
 minetest.register_tool("nether:shovel_nether", {

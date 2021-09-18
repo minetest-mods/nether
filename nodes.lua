@@ -71,7 +71,8 @@ minetest.register_node("nether:rack", {
 	description = S("Netherrack"),
 	tiles = {"nether_rack.png"},
 	is_ground_content = true,
-	groups = {cracky = 3, level = 2},
+	-- setting workable_with_nether_tools reduces the wear on nether:pick_nether when mining this node
+	groups = {cracky = 3, level = 2, workable_with_nether_tools = 3},
 	sounds = default.node_sound_stone_defaults(),
 })
 
@@ -81,7 +82,8 @@ minetest.register_node("nether:rack_deep", {
 	_doc_items_longdesc = S("Netherrack from deep in the mantle"),
 	tiles = {"nether_rack_deep.png"},
 	is_ground_content = true,
-	groups = {cracky = 3, level = 2},
+	-- setting workable_with_nether_tools reduces the wear on nether:pick_nether when mining this node
+	groups = {cracky = 3, level = 2, workable_with_nether_tools = 3},
 	sounds = default.node_sound_stone_defaults(),
 })
 
