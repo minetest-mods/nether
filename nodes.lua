@@ -65,6 +65,110 @@ nether.register_wormhole_node("nether:portal_alt", {
 })
 
 
+--== Transmogrification functions ==--
+-- Functions enabling selected nodes to be temporarily transformed into other nodes.
+-- (so the light staff can temporarily turn netherrack into glowstone)
+
+-- Swaps the node at `nodePos` with `newNode`, unless `newNode` is nil in which
+-- case the node is swapped back to its original type.
+-- `monoSimpleSoundSpec` is optional.
+-- returns true if a node was transmogrified
+nether.magicallyTransmogrify_node = function(nodePos, playerName, newNode, monoSimpleSoundSpec, isPermanent)
+
+	local meta         = minetest.get_meta(nodePos)
+	local playerEyePos = nodePos -- fallback value in case the player no longer exists
+	local player       = minetest.get_player_by_name(playerName)
+	if player ~= nil then
+		local playerPos = player:get_pos()
+		playerEyePos = vector.add(playerPos, {x = 0, y = 1.5, z = 0}) -- not always the cameraPos, e.g. 3rd person mode.
+	end
+
+	local oldNode = minetest.get_node(nodePos)
+	if oldNode.name == "air" then
+		-- the node has been mined or otherwise destroyed, abort the operation
+		return false
+	end
+	local oldNodeDef = minetest.registered_nodes[oldNode.name] or minetest.registered_nodes["air"]
+
+	local specialFXSize = 1 -- a specialFXSize of 1 is for full SFX, 0.5 is half-sized
+	local returningToNormal = newNode == nil
+	if returningToNormal then
+		-- This is the transmogrified node returning back to normal - a more subdued animation
+		specialFXSize = 0.5
+		-- read what the node used to be from the metadata
+		newNode = {
+			name   = meta:get_string("transmogrified_name"),
+			param1 = meta:get_string("transmogrified_param1"),
+			param2 = meta:get_string("transmogrified_param2")
+		}
+		if newNode.name == "" then
+			minetest.log("warning", "nether.magicallyTransmogrify_node() invoked to restore node which wasn't transmogrified")
+			return false
+		end
+	end
+
+	local soundSpec  = monoSimpleSoundSpec
+	if soundSpec == nil and oldNodeDef.sounds ~= nil then
+		soundSpec = oldNodeDef.sounds.dug or oldNodeDef.sounds.dig
+		if soundSpec == "__group" then soundSpec = "default_dig_cracky" end
+	end
+	if soundSpec ~= nil then
+		minetest.sound_play(soundSpec, {pos = nodePos, max_hear_distance = 50})
+	end
+
+	-- Start the particlespawner nearer the player's side of the node to create
+	-- more initial occlusion for an illusion of the old node breaking apart / falling away.
+	local dirToPlayer = vector.normalize(vector.subtract(playerEyePos, nodePos))
+	local impactPos = vector.add(nodePos, vector.multiply(dirToPlayer, 0.5))
+	local velocity = 1 + specialFXSize
+	minetest.add_particlespawner({
+		amount     = 50 * specialFXSize,
+		time       = 0.1,
+		minpos     = vector.add(impactPos, -0.3),
+		maxpos     = vector.add(impactPos,  0.3),
+		minvel     = {x = -velocity, y = -velocity,    z = -velocity},
+		maxvel     = {x =  velocity, y = 3 * velocity, z =  velocity}, -- biased upward to counter gravity in the initial stages
+		minacc     = {x=0, y=-10, z=0},
+		maxacc     = {x=0, y=-10, z=0},
+		minexptime = 1.5 * specialFXSize,
+		maxexptime = 3   * specialFXSize,
+		minsize    = 0.5,
+		maxsize    = 5,
+		node = {name = oldNodeDef.name},
+		glow = oldNodeDef.light_source
+	})
+
+	if returningToNormal or isPermanent then
+		-- clear the metadata that indicates the node is transformed
+		meta:set_string("transmogrified_name", "")
+		meta:set_int("transmogrified_param1", 0)
+		meta:set_int("transmogrified_param2", 0)
+	else
+		-- save the original node so it can be restored
+		meta:set_string("transmogrified_name", oldNode.name)
+		meta:set_int("transmogrified_param1", oldNode.param1)
+		meta:set_int("transmogrified_param2", oldNode.param2)
+	end
+
+	minetest.swap_node(nodePos, newNode)
+	return true
+end
+
+
+local function transmogrified_can_dig (pos, player)
+	if minetest.get_meta(pos):get_string("transmogrified_name") ~= "" then
+		-- This node was temporarily transformed into its current form
+		-- revert it back, rather than allow the player to mine transmogrified nodes.
+		local playerName = ""
+		if player ~= nil then playerName = player:get_player_name() end
+		nether.magicallyTransmogrify_node(pos, playerName)
+		return false
+	end
+	return true
+end
+
+
+
 -- Nether nodes
 
 minetest.register_node("nether:rack", {
@@ -105,6 +209,7 @@ minetest.register_node("nether:glowstone", {
 	paramtype = "light",
 	groups = {cracky = 3, oddly_breakable_by_hand = 3},
 	sounds = default.node_sound_glass_defaults(),
+	can_dig = transmogrified_can_dig, -- to ensure glowstone temporarily created by the lightstaff can't be kept
 })
 
 -- Deep glowstone, found in the mantle / central magma layers
@@ -116,6 +221,7 @@ minetest.register_node("nether:glowstone_deep", {
 	paramtype = "light",
 	groups = {cracky = 3, oddly_breakable_by_hand = 3},
 	sounds = default.node_sound_glass_defaults(),
+	can_dig = transmogrified_can_dig, -- to ensure glowstone temporarily created by the lightstaff can't be kept
 })
 
 minetest.register_node("nether:brick", {

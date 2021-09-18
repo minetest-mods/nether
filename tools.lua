@@ -151,3 +151,203 @@ minetest.register_craft({
 		{"group:stick"}
 	}
 })
+
+
+
+
+--===========================--
+--== Nether Staff of Light ==--
+--===========================--
+
+nether.lightstaff_recipes = {
+	["nether:rack"]                 = "nether:glowstone",
+	["nether:brick"]                = "nether:glowstone",
+	["nether:brick_cracked"]        = "nether:glowstone",
+	["nether:brick_compressed"]     = "nether:glowstone",
+	["stairs:slab_netherrack"]      = "nether:glowstone",
+	["nether:rack_deep"]            = "nether:glowstone_deep",
+	["nether:brick_deep"]           = "nether:glowstone_deep",
+	["stairs:slab_netherrack_deep"] = "nether:glowstone_deep"
+}
+nether.lightstaff_range    = 100
+nether.lightstaff_velocity = 60
+nether.lightstaff_gravity  = 0 -- using 0 instead of 10 because the particle physics doesn't seem accurate enough for curved trajectories
+nether.lightstaff_uses     = 60 -- number of times the Eternal Lightstaff can be used before wearing out
+nether.lightstaff_duration = 40 -- lifespan of glowstone created by the termporay Lightstaff
+local serverLag = 0.05 -- rough amount reduce particle effect synchronization with lightstaff node changes
+
+-- returns a pointed_thing, or nil if no solid node intersected the ray
+local function raycastForSolidNode(rayStartPos, rayEndPos)
+
+	local raycast = minetest.raycast(
+		rayStartPos,
+		rayEndPos,
+		false, -- objects - if false, only nodes will be returned. Default is `true`
+		true   -- liquids - if false, liquid nodes won't be returned. Default is `false`
+	)
+	local next_pointed = raycast:next()
+	while next_pointed do
+		local under_node = minetest.get_node(next_pointed.under)
+		local under_def = minetest.registered_nodes[under_node.name]
+
+		if (under_def and not under_def.buildable_to) or not under_def then
+			return next_pointed
+		end
+
+		next_pointed  = raycast:next(next_pointed)
+	end
+	return nil
+end
+
+-- Turns a node into a light source
+-- `lightDuration` 0 is considered permanent, lightDuration is in seconds
+-- returns true if a node is transmogrified into a glowstone
+local function light_node(pos, playerName, lightDuration)
+
+	local result = false
+	if minetest.is_protected(pos, playerName) then
+		minetest.record_protection_violation(pos, playerName)
+		return false
+	end
+
+	local oldNode = minetest.get_node(pos)
+	local litNodeName = nether.lightstaff_recipes[oldNode.name]
+
+	if litNodeName ~= nil then
+		result = nether.magicallyTransmogrify_node(
+			pos,
+			playerName,
+			{name=litNodeName},
+			{name = "nether_rack_destroy", gain = 0.8},
+			lightDuration == 0 -- isPermanent
+		)
+
+		if lightDuration > 0 then
+			minetest.after(lightDuration,
+				function()
+					-- Restore the node to its original type.
+					--
+					-- If the server crashes or shuts down before this is invoked, the node
+					-- will remain in its transmogrified state. These could be cleaned up
+					-- with an LBM, but I don't think that's necessary: if this functionality
+					-- is only being used for the Nether Lightstaff then I don't think it
+					-- matters if there's occasionally an extra glowstone left in the
+					-- netherrack.
+					nether.magicallyTransmogrify_node(pos, playerName)
+				end
+			)
+		end
+	end
+	return result
+end
+
+-- a lightDuration of 0 is considered permanent, lightDuration is in seconds
+-- returns true if a node is transmogrified into a glowstone
+local function lightstaff_on_use(user, boltColorString, lightDuration)
+
+	if not user then return false end
+	local playerName    = user:get_player_name()
+	local playerlookDir = user:get_look_dir()
+	local playerPos     = user:get_pos()
+	local playerEyePos  = vector.add(playerPos, {x = 0, y = 1.5, z = 0}) -- not always the cameraPos, e.g. 3rd person mode.
+	local target        = vector.add(playerEyePos, vector.multiply(playerlookDir, nether.lightstaff_range))
+
+	local targetHitPos  = nil
+	local targetNodePos = nil
+	local target_pointed = raycastForSolidNode(playerEyePos, target)
+	if target_pointed then
+		targetNodePos = target_pointed.under
+		targetHitPos = vector.divide(vector.add(target_pointed.under, target_pointed.above), 2)
+	end
+
+	local wieldOffset = {x= 0.5, y = -0.2, z= 0.8}
+	local lookRotation =  ({x = -user:get_look_vertical(), y = user:get_look_horizontal(), z = 0})
+	local wieldPos = vector.add(playerEyePos, vector.rotate(wieldOffset, lookRotation))
+	local aimPos = targetHitPos or target
+	local distance = math.abs(vector.length(vector.subtract(aimPos, wieldPos)))
+	aimPos.y = aimPos.y + (distance / nether.lightstaff_velocity) * nether.lightstaff_gravity
+	local boltDir = vector.normalize(vector.subtract(aimPos, wieldPos))
+
+	-- needs a proper casting sound, instead of the portal ignition
+	minetest.sound_play("nether_portal_ignite", {to_player = playerName, gain = .3, pitch = 1.7}, true)
+
+	-- animate a "magic bolt" from wieldPos to aimPos
+	local particleSpawnDef = {
+		amount = 20,
+		time = 0.4,
+		minpos = vector.add(wieldPos, -0.13),
+		maxpos = vector.add(wieldPos,  0.13),
+		minvel = vector.multiply(boltDir, nether.lightstaff_velocity - 0.3),
+		maxvel = vector.multiply(boltDir, nether.lightstaff_velocity + 0.3),
+		minacc = {x=0, y=-nether.lightstaff_gravity, z=0},
+		maxacc = {x=0, y=-nether.lightstaff_gravity, z=0},
+		minexptime = 1,
+		maxexptime = 2,
+		minsize = 4,
+		maxsize = 5,
+		collisiondetection = true,
+		collision_removal = true,
+		texture = "nether_particle_anim3.png",
+		animation = { type = "vertical_frames", aspect_w = 7, aspect_h = 7, length = 0.8 },
+		glow = 15
+	}
+	minetest.add_particlespawner(particleSpawnDef)
+	particleSpawnDef.texture = "nether_particle_anim3.png^[colorize:" .. boltColorString .. ":alpha"
+	particleSpawnDef.amount  = 12
+	particleSpawnDef.time    = 0.2
+	particleSpawnDef.minsize = 6
+	particleSpawnDef.maxsize = 7
+	particleSpawnDef.minpos  = vector.add(wieldPos, -0.35)
+	particleSpawnDef.maxpos  = vector.add(wieldPos,  0.35)
+	minetest.add_particlespawner(particleSpawnDef)
+
+	local result = false
+	if targetNodePos then
+		-- delay the impact until roughly when the particle effects will have reached the target
+		minetest.after(
+			math.max(0, (distance / nether.lightstaff_velocity) - serverLag),
+			function()
+				light_node(targetNodePos, playerName, lightDuration)
+			end
+		)
+
+		if lightDuration ~= 0 then
+			-- we don't need to care whether the transmogrify will be successful
+			result = true
+		else
+			-- check whether the transmogrify will be successful
+			local targetNode = minetest.get_node(targetNodePos)
+			result = nether.lightstaff_recipes[targetNode.name] ~= nil
+		end
+	end
+	return result
+end
+
+-- Inspired by FaceDeer's torch crossbow and Xanthin's Staff of Light
+minetest.register_tool("nether:lightstaff", {
+	description = S("Nether staff of Light\nTemporarily transforms the netherrack into glowstone"),
+	inventory_image = "nether_lightstaff.png",
+	wield_image     = "nether_lightstaff.png",
+	light_source = 11, -- used by wielded_light mod etc.
+	stack_max = 1,
+	on_use = function(itemstack, user, pointed_thing)
+		lightstaff_on_use(user, "#F70", nether.lightstaff_duration)
+	end
+})
+
+minetest.register_tool("nether:lightstaff_eternal", {
+	description = S("Nether staff of Eternal Light\nCreates glowstone from netherrack"),
+	inventory_image = "nether_lightstaff.png^[colorize:#55F:90",
+	wield_image     = "nether_lightstaff.png^[colorize:#55F:90",
+	light_source = 11, -- used by wielded_light mod etc.
+	sound = {breaks = "default_tool_breaks"},
+	stack_max = 1,
+	on_use = function(itemstack, user, pointed_thing)
+		if lightstaff_on_use(user, "#23F", 0) then -- was "#8088FF" or "#13F"
+			-- The staff of Eternal Light wears out, to limit how much
+			-- a player can alter the nether with it.
+			itemstack:add_wear(65535 / (nether.lightstaff_uses - 1))
+		end
+		return itemstack
+	end
+})
