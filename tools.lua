@@ -268,8 +268,7 @@ local function lightstaff_on_use(user, boltColorString, lightDuration)
 	aimPos.y = aimPos.y + (distance / nether.lightstaff_velocity) * nether.lightstaff_gravity
 	local boltDir = vector.normalize(vector.subtract(aimPos, wieldPos))
 
-	-- needs a proper casting sound, instead of the portal ignition
-	minetest.sound_play("nether_portal_ignite", {to_player = playerName, gain = .3, pitch = 1.7}, true)
+	minetest.sound_play("nether_lightstaff", {to_player = playerName, gain = 0.8}, true)
 
 	-- animate a "magic bolt" from wieldPos to aimPos
 	local particleSpawnDef = {
