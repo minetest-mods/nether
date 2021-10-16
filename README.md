@@ -60,6 +60,7 @@ SOFTWARE.
 ### [Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://creativecommons.org/licenses/by-sa/4.0/)
  * `nether_basalt`* (files starting with "nether_basalt"): Treer, 2020
  * `nether_book_`* (files starting with "nether_book"): Treer, 2019-2020
+ * `nether_brick_deep.png`: Treer, 2021
  * `nether_fumarole.ogg`: Treer, 2020
  * `nether_lava_bubble`* (files starting with "nether_lava_bubble"): Treer, 2020
  * `nether_lava_crust_animated.png`: Treer, 2019-2020
@@ -73,8 +74,5 @@ SOFTWARE.
  * `nether_portal.png`: [Extex101](https://github.com/Extex101), 2020
  * `nether_rack`* (files starting with "nether_rack"): Zeg9
  * `nether_tool_`* (files starting with "nether_tool_"): color adjusted versions from "[default](https://github.com/minetest/minetest_game/tree/master/mods/default)" mod, originals by BlockMen
-
-### [Unlicensed but permission for inclusion by kovaszos_uborka](https://www.planetminecraft.com/member/kovaszos_uborka/)
- * `nether_brick_deep.png` (edited by TenPlus1)
 
 All other media: Copyright © 2013 PilzAdam, licensed under CC BY-SA 3.0 by PilzAdam.
