@@ -163,7 +163,11 @@ minetest.register_node("nether:fence_nether_brick", {
 
 minetest.register_node("nether:brick_deep", {
 	description = S("Deep Nether Brick"),
-	tiles = {"nether_brick_deep.png"},
+	tiles = {{
+		name        = "nether_brick_deep.png",
+		align_style = "world",
+		scale       = 2
+	}},
 	is_ground_content = false,
 	groups = {cracky = 2, level = 2},
 	sounds = default.node_sound_stone_defaults()
