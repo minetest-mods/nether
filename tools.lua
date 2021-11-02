@@ -171,7 +171,7 @@ nether.lightstaff_recipes = {
 }
 nether.lightstaff_range    = 100
 nether.lightstaff_velocity = 60
-nether.lightstaff_gravity  = 0 -- using 0 instead of 10 because the particle physics doesn't seem accurate enough for curved trajectories
+nether.lightstaff_gravity  = 0  -- using 0 instead of 10 because projectile arcs look less magical - magic isn't affected by gravity ;) (but set this to 10 if you're making a crossbow etc.)
 nether.lightstaff_uses     = 60 -- number of times the Eternal Lightstaff can be used before wearing out
 nether.lightstaff_duration = 40 -- lifespan of glowstone created by the termporay Lightstaff
 local serverLag = 0.05 -- rough amount reduce particle effect synchronization with lightstaff node changes
@@ -265,7 +265,9 @@ local function lightstaff_on_use(user, boltColorString, lightDuration)
 	local wieldPos = vector.add(playerEyePos, vector.rotate(wieldOffset, lookRotation))
 	local aimPos = targetHitPos or target
 	local distance = math.abs(vector.length(vector.subtract(aimPos, wieldPos)))
-	aimPos.y = aimPos.y + (distance / nether.lightstaff_velocity) * nether.lightstaff_gravity
+	local flightTime = distance / nether.lightstaff_velocity
+	local dropDistance = nether.lightstaff_gravity * 0.5 * (flightTime * flightTime)
+	aimPos.y = aimPos.y + dropDistance
 	local boltDir = vector.normalize(vector.subtract(aimPos, wieldPos))
 
 	minetest.sound_play("nether_lightstaff", {to_player = playerName, gain = 0.8}, true)
