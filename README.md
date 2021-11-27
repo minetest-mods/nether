@@ -16,6 +16,8 @@ right-click/used on the frame to activate it.
 
 See portal_api.txt for how to create custom portals to your own realms.
 
+Nether Portals can allow surface fast-travel.
+
 This mod provides Nether basalts (natural, hewn, and chiseled) as nodes which
 require a player to journey to the magma ocean to obtain, so these can be used
 for gating progression through a game. For example, a portal to another realm
@@ -24,8 +26,7 @@ the nether first, or basalt might be a crafting ingredient required to reach
 a particular branch of the tech-tree.
 
 Netherbrick tools are provided (pick, shovel, axe, & sword), see tools.lua
-
-Nether Portals can allow surface fast-travel.
+The Nether pickaxe has a 10x bonus again wear when mining netherrack.
 
 
 ## License of source code:
@@ -50,9 +51,11 @@ SOFTWARE.
 ### [Public Domain Dedication (CC0 1.0)](https://creativecommons.org/publicdomain/zero/1.0/)
 
  * `nether_portal_teleport.ogg` is a timing adjusted version of "teleport" by [outroelison](https://freesound.org/people/outroelison), used under CC0 1.0
+ * `nether_rack_destroy.ogg` is from "Rock destroy" by [Bertsz](https://freesound.org/people/Bertsz/), used under CC0 1.0
 
 ### [Attribution 3.0 Unported (CC BY 3.0)](https://creativecommons.org/licenses/by/3.0/)
 
+ * `nether_lightstaff.ogg` is "Fire Burst" by [SilverIllusionist](https://freesound.org/people/SilverIllusionist/), 2019
  * `nether_portal_ambient.ogg` & `nether_portal_ambient.0.ogg` are extractions from "Deep Cinematic Rumble Stereo" by [Patrick Lieberkind](http://www.lieberkindvisuals.dk), used under CC BY 3.0
  * `nether_portal_extinguish.ogg` is an extraction from "Tight Laser Weapon Hit Scifi" by [damjancd](https://freesound.org/people/damjancd), used under CC BY 3.0
  * `nether_portal_ignite.ogg` is a derivative of "Flame Ignition" by [hykenfreak](https://freesound.org/people/hykenfreak), used under CC BY 3.0. "Nether Portal ignite" is licensed under CC BY 3.0 by Treer.
@@ -64,6 +67,7 @@ SOFTWARE.
  * `nether_fumarole.ogg`: Treer, 2020
  * `nether_lava_bubble`* (files starting with "nether_lava_bubble"): Treer, 2020
  * `nether_lava_crust_animated.png`: Treer, 2019-2020
+ * `nether_lightstaff.png`: Treer, 2021
  * `nether_particle_anim`* (files starting with "nether_particle_anim"): Treer, 2019
  * `nether_portal_ignition_failure.ogg`: Treer, 2019
  * `nether_smoke_puff.png`: Treer, 2020

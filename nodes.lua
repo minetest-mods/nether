@@ -65,13 +65,118 @@ nether.register_wormhole_node("nether:portal_alt", {
 })
 
 
+--== Transmogrification functions ==--
+-- Functions enabling selected nodes to be temporarily transformed into other nodes.
+-- (so the light staff can temporarily turn netherrack into glowstone)
+
+-- Swaps the node at `nodePos` with `newNode`, unless `newNode` is nil in which
+-- case the node is swapped back to its original type.
+-- `monoSimpleSoundSpec` is optional.
+-- returns true if a node was transmogrified
+nether.magicallyTransmogrify_node = function(nodePos, playerName, newNode, monoSimpleSoundSpec, isPermanent)
+
+	local meta         = minetest.get_meta(nodePos)
+	local playerEyePos = nodePos -- fallback value in case the player no longer exists
+	local player       = minetest.get_player_by_name(playerName)
+	if player ~= nil then
+		local playerPos = player:get_pos()
+		playerEyePos = vector.add(playerPos, {x = 0, y = 1.5, z = 0}) -- not always the cameraPos, e.g. 3rd person mode.
+	end
+
+	local oldNode = minetest.get_node(nodePos)
+	if oldNode.name == "air" then
+		-- the node has been mined or otherwise destroyed, abort the operation
+		return false
+	end
+	local oldNodeDef = minetest.registered_nodes[oldNode.name] or minetest.registered_nodes["air"]
+
+	local specialFXSize = 1 -- a specialFXSize of 1 is for full SFX, 0.5 is half-sized
+	local returningToNormal = newNode == nil
+	if returningToNormal then
+		-- This is the transmogrified node returning back to normal - a more subdued animation
+		specialFXSize = 0.5
+		-- read what the node used to be from the metadata
+		newNode = {
+			name   = meta:get_string("transmogrified_name"),
+			param1 = meta:get_string("transmogrified_param1"),
+			param2 = meta:get_string("transmogrified_param2")
+		}
+		if newNode.name == "" then
+			minetest.log("warning", "nether.magicallyTransmogrify_node() invoked to restore node which wasn't transmogrified")
+			return false
+		end
+	end
+
+	local soundSpec  = monoSimpleSoundSpec
+	if soundSpec == nil and oldNodeDef.sounds ~= nil then
+		soundSpec = oldNodeDef.sounds.dug or oldNodeDef.sounds.dig
+		if soundSpec == "__group" then soundSpec = "default_dig_cracky" end
+	end
+	if soundSpec ~= nil then
+		minetest.sound_play(soundSpec, {pos = nodePos, max_hear_distance = 50})
+	end
+
+	-- Start the particlespawner nearer the player's side of the node to create
+	-- more initial occlusion for an illusion of the old node breaking apart / falling away.
+	local dirToPlayer = vector.normalize(vector.subtract(playerEyePos, nodePos))
+	local impactPos = vector.add(nodePos, vector.multiply(dirToPlayer, 0.5))
+	local velocity = 1 + specialFXSize
+	minetest.add_particlespawner({
+		amount     = 50 * specialFXSize,
+		time       = 0.1,
+		minpos     = vector.add(impactPos, -0.3),
+		maxpos     = vector.add(impactPos,  0.3),
+		minvel     = {x = -velocity, y = -velocity,    z = -velocity},
+		maxvel     = {x =  velocity, y = 3 * velocity, z =  velocity}, -- biased upward to counter gravity in the initial stages
+		minacc     = {x=0, y=-10, z=0},
+		maxacc     = {x=0, y=-10, z=0},
+		minexptime = 1.5 * specialFXSize,
+		maxexptime = 3   * specialFXSize,
+		minsize    = 0.5,
+		maxsize    = 5,
+		node = {name = oldNodeDef.name},
+		glow = oldNodeDef.light_source
+	})
+
+	if returningToNormal or isPermanent then
+		-- clear the metadata that indicates the node is transformed
+		meta:set_string("transmogrified_name", "")
+		meta:set_int("transmogrified_param1", 0)
+		meta:set_int("transmogrified_param2", 0)
+	else
+		-- save the original node so it can be restored
+		meta:set_string("transmogrified_name", oldNode.name)
+		meta:set_int("transmogrified_param1", oldNode.param1)
+		meta:set_int("transmogrified_param2", oldNode.param2)
+	end
+
+	minetest.swap_node(nodePos, newNode)
+	return true
+end
+
+
+local function transmogrified_can_dig (pos, player)
+	if minetest.get_meta(pos):get_string("transmogrified_name") ~= "" then
+		-- This node was temporarily transformed into its current form
+		-- revert it back, rather than allow the player to mine transmogrified nodes.
+		local playerName = ""
+		if player ~= nil then playerName = player:get_player_name() end
+		nether.magicallyTransmogrify_node(pos, playerName)
+		return false
+	end
+	return true
+end
+
+
+
 -- Nether nodes
 
 minetest.register_node("nether:rack", {
 	description = S("Netherrack"),
 	tiles = {"nether_rack.png"},
 	is_ground_content = true,
-	groups = {cracky = 3, level = 2},
+	-- setting workable_with_nether_tools reduces the wear on nether:pick_nether when mining this node
+	groups = {cracky = 3, level = 2, workable_with_nether_tools = 3},
 	sounds = default.node_sound_stone_defaults(),
 })
 
@@ -81,7 +186,8 @@ minetest.register_node("nether:rack_deep", {
 	_doc_items_longdesc = S("Netherrack from deep in the mantle"),
 	tiles = {"nether_rack_deep.png"},
 	is_ground_content = true,
-	groups = {cracky = 3, level = 2},
+	-- setting workable_with_nether_tools reduces the wear on nether:pick_nether when mining this node
+	groups = {cracky = 3, level = 2, workable_with_nether_tools = 3},
 	sounds = default.node_sound_stone_defaults(),
 })
 
@@ -103,6 +209,7 @@ minetest.register_node("nether:glowstone", {
 	paramtype = "light",
 	groups = {cracky = 3, oddly_breakable_by_hand = 3},
 	sounds = default.node_sound_glass_defaults(),
+	can_dig = transmogrified_can_dig, -- to ensure glowstone temporarily created by the lightstaff can't be kept
 })
 
 -- Deep glowstone, found in the mantle / central magma layers
@@ -114,6 +221,7 @@ minetest.register_node("nether:glowstone_deep", {
 	paramtype = "light",
 	groups = {cracky = 3, oddly_breakable_by_hand = 3},
 	sounds = default.node_sound_glass_defaults(),
+	can_dig = transmogrified_can_dig, -- to ensure glowstone temporarily created by the lightstaff can't be kept
 })
 
 minetest.register_node("nether:brick", {
@@ -175,18 +283,35 @@ minetest.register_node("nether:brick_deep", {
 
 -- Register stair and slab
 
-stairs.register_stair_and_slab(
-	"nether_brick",
-	"nether:brick",
-	{cracky = 2, level = 2},
-	{"nether_brick.png"},
-	S("Nether Stair"),
-	S("Nether Slab"),
-	default.node_sound_stone_defaults(),
-	nil,
-	S("Inner Nether Stair"),
-	S("Outer Nether Stair")
+-- Nether bricks can be made into stairs, slabs, inner stairs, and outer stairs
+
+stairs.register_stair_and_slab( -- this function also registers inner and outer stairs
+	"nether_brick",                                    -- subname
+	"nether:brick",                                    -- recipeitem
+	{cracky = 2, level = 2},                           -- groups
+	{"nether_brick.png"},                              -- images
+	S("Nether Stair"),                                 -- desc_stair
+	S("Nether Slab"),                                  -- desc_slab
+	minetest.registered_nodes["nether:brick"].sounds,  -- sounds
+	false,                                             -- worldaligntex
+	S("Inner Nether Stair"),                           -- desc_stair_inner
+	S("Outer Nether Stair")                            -- desc_stair_outer
 )
+
+stairs.register_stair_and_slab( -- this function also registers inner and outer stairs
+	"nether_brick_deep",                                    -- subname
+	"nether:brick_deep",                                    -- recipeitem
+	{cracky = 2, level = 2},                                -- groups
+	{"nether_brick_deep.png"},                              -- images
+	S("Deep Nether Stair"),                                 -- desc_stair
+	S("Deep Nether Slab"),                                  -- desc_slab
+	minetest.registered_nodes["nether:brick_deep"].sounds,  -- sounds
+	false,                                                  -- worldaligntex
+	S("Inner Deep Nether Stair"),                           -- desc_stair_inner
+	S("Outer Deep Nether Stair")                            -- desc_stair_outer
+)
+
+-- Netherrack can be shaped into stairs, slabs and walls
 
 stairs.register_stair(
 	"netherrack",
@@ -194,18 +319,53 @@ stairs.register_stair(
 	{cracky = 2, level = 2},
 	{"nether_rack.png"},
 	S("Netherrack stair"),
-	default.node_sound_stone_defaults()
+	minetest.registered_nodes["nether:rack"].sounds
 )
+stairs.register_slab( -- register a slab without adding inner and outer stairs
+	"netherrack",
+	"nether:rack",
+	{cracky = 2, level = 2},
+	{"nether_rack.png"},
+	S("Deep Netherrack slab"),
+	minetest.registered_nodes["nether:rack"].sounds
+)
+
+stairs.register_stair(
+	"netherrack_deep",
+	"nether:rack_deep",
+	{cracky = 2, level = 2},
+	{"nether_rack_deep.png"},
+	S("Deep Netherrack stair"),
+	minetest.registered_nodes["nether:rack_deep"].sounds
+)
+stairs.register_slab( -- register a slab without adding inner and outer stairs
+	"netherrack_deep",
+	"nether:rack_deep",
+	{cracky = 2, level = 2},
+	{"nether_rack_deep.png"},
+	S("Deep Netherrack slab"),
+	minetest.registered_nodes["nether:rack_deep"].sounds
+)
+
+-- Connecting walls
+if minetest.get_modpath("walls") and minetest.global_exists("walls") and walls.register ~= nil then
+	walls.register("nether:rack_wall",      "A Netherrack wall",      "nether_rack.png",      "nether:rack",      minetest.registered_nodes["nether:rack"].sounds)
+	walls.register("nether:rack_deep_wall", "A Deep Netherrack wall", "nether_rack_deep.png", "nether:rack_deep", minetest.registered_nodes["nether:rack_deep"].sounds)
+end
 
 -- StairsPlus
 
 if minetest.get_modpath("moreblocks") then
+	-- Registers about 49 different shapes of nether brick, replacing the stairs & slabs registered above.
+	-- (This could also be done for deep nether brick, but I've left that out to avoid a precedent of 49 new
+	-- nodes every time the nether gets a new material. Nether structures won't be able to use them because
+	-- they can't depend on moreblocks)
 	stairsplus:register_all(
 		"nether", "brick", "nether:brick", {
 			description = S("Nether Brick"),
 			groups = {cracky = 2, level = 2},
 			tiles = {"nether_brick.png"},
-			sounds = default.node_sound_stone_defaults(),
+			sounds = minetest.registered_nodes["nether:brick"].sounds,
 	})
 end
 
