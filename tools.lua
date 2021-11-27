@@ -174,7 +174,15 @@ nether.lightstaff_velocity = 60
 nether.lightstaff_gravity  = 0  -- using 0 instead of 10 because projectile arcs look less magical - magic isn't affected by gravity ;) (but set this to 10 if you're making a crossbow etc.)
 nether.lightstaff_uses     = 60 -- number of times the Eternal Lightstaff can be used before wearing out
 nether.lightstaff_duration = 40 -- lifespan of glowstone created by the termporay Lightstaff
-local serverLag = 0.05 -- rough amount reduce particle effect synchronization with lightstaff node changes
+
+-- 'serverLag' is a rough amount to reduce the projected impact-time the server must wait before initiating the
+-- impact events (i.e. node changing to glowstone with explosion particle effect).
+-- In tests using https://github.com/jagt/clumsy to simulate network lag I've found this value to not noticeably
+-- matter. A large network lag is noticeable in the time between clicking fire and when the shooting-particleEffect
+-- begins, as well as the time between when the impact sound/particleEffect start and when the netherrack turns
+-- into glowstone. The synchronization that 'serverLag' adjusts seems to already tolerate network lag well enough (at
+-- least when lag is consistent, as I have not simulated random lag)
+local serverLag = 0.05 -- in seconds. Larger values makes impact events more premature/early.
 
 -- returns a pointed_thing, or nil if no solid node intersected the ray
 local function raycastForSolidNode(rayStartPos, rayEndPos)
