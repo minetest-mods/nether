@@ -31,6 +31,8 @@ Unknown player position=
 
 ### nodes.lua ###
 
+A Deep Netherrack wall=
+A Netherrack wall=
 A finely finished block of solid Nether Basalt.=
 A rough cut solid block of Nether Basalt.=
 A thin crust of cooled lava with liquid lava beneath=
@@ -43,12 +45,18 @@ Columns of dark basalt found only in magma oceans deep within the Nether.=
 Compressed Netherbrick=
 Cracked Nether Brick=
 Deep Glowstone=
+Deep Nether Brick=
+Deep Nether Slab=
+Deep Nether Stair=
 Deep Netherrack=
+Deep Netherrack slab=
+Deep Netherrack stair=
 Fumarolic Chimney=
 Fumarolic Chimney Corner=
 Fumarolic Chimney Slab=
 Glowstone=
 Hewn Basalt=
+Inner Deep Nether Stair=
 Inner Nether Stair=
 Lava Crust=
 
@@ -63,6 +71,7 @@ Netherrack=
 Netherrack from deep in the mantle=
 Netherrack stair=
 Nethersand=
+Outer Deep Nether Stair=
 Outer Nether Stair=
 Portal=
 
@@ -109,6 +118,13 @@ There is a floating land of hills and forests up there, over the edges of which 
 Nether Axe=
 Nether Ingot=
 Nether Lump=
-Nether Pickaxe=
+Nether Pickaxe@nWell suited for mining netherrack=
 Nether Shovel=
 Nether Sword=
+
+Nether staff of Eternal Light@nCreates glowstone from netherrack=
+
+Nether staff of Light@nTemporarily transforms the netherrack into glowstone=
+
+Uniquely suited for mining netherrack, with minimal wear when doing so. Blunts quickly on other materials.=
+

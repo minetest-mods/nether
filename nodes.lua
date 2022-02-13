@@ -349,8 +349,8 @@ stairs.register_slab( -- register a slab without adding inner and outer stairs
 
 -- Connecting walls
 if minetest.get_modpath("walls") and minetest.global_exists("walls") and walls.register ~= nil then
-	walls.register("nether:rack_wall",      "A Netherrack wall",      "nether_rack.png",      "nether:rack",      minetest.registered_nodes["nether:rack"].sounds)
-	walls.register("nether:rack_deep_wall", "A Deep Netherrack wall", "nether_rack_deep.png", "nether:rack_deep", minetest.registered_nodes["nether:rack_deep"].sounds)
+	walls.register("nether:rack_wall",      S("A Netherrack wall"),      "nether_rack.png",      "nether:rack",      minetest.registered_nodes["nether:rack"].sounds)
+	walls.register("nether:rack_deep_wall", S("A Deep Netherrack wall"), "nether_rack_deep.png", "nether:rack_deep", minetest.registered_nodes["nether:rack_deep"].sounds)
 end
 
 -- StairsPlus
