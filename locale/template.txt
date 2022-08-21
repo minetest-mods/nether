@@ -65,6 +65,7 @@ Lava crust is strong enough to walk on, but still hot enough to inflict burns.=
 Nether Basalt=
 Nether Brick=
 Nether Brick Fence=
+Nether Brick Fence Rail=
 Nether Slab=
 Nether Stair=
 Netherrack=

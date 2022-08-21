@@ -249,26 +249,6 @@ minetest.register_node("nether:brick_cracked", {
 	sounds = default.node_sound_stone_defaults(),
 })
 
-local fence_texture =
-	"default_fence_overlay.png^nether_brick.png^default_fence_overlay.png^[makealpha:255,126,126"
-
-minetest.register_node("nether:fence_nether_brick", {
-	description = S("Nether Brick Fence"),
-	drawtype = "fencelike",
-	tiles = {"nether_brick.png"},
-	inventory_image = fence_texture,
-	wield_image = fence_texture,
-	paramtype = "light",
-	sunlight_propagates = true,
-	is_ground_content = false,
-	selection_box = {
-		type = "fixed",
-		fixed = {-1/7, -1/2, -1/7, 1/7, 1/2, 1/7},
-	},
-	groups = {cracky = 2, level = 2},
-	sounds = default.node_sound_stone_defaults(),
-})
-
 minetest.register_node("nether:brick_deep", {
 	description = S("Deep Nether Brick"),
 	tiles = {{
@@ -280,6 +260,55 @@ minetest.register_node("nether:brick_deep", {
 	groups = {cracky = 2, level = 2},
 	sounds = default.node_sound_stone_defaults()
 })
+
+-- Register fence and rails
+
+local fence_texture =
+	"default_fence_overlay.png^nether_brick.png^default_fence_overlay.png^[makealpha:255,126,126"
+
+if minetest.get_modpath("default") and minetest.global_exists("default") and default.register_fence ~= nil then
+	-- The Minetest_Game fences API is available,
+	-- using it adds interop between different fences, and the "Tall fences and walls" option.
+	default.register_fence("nether:fence_nether_brick", {
+		description = S("Nether Brick Fence"),
+		texture = "nether_brick.png",
+		inventory_image = fence_texture,
+		wield_image = fence_texture,
+		material = "nether:brick",
+		groups = {cracky = 2, level = 2},
+		sounds = default.node_sound_stone_defaults()
+	})
+
+	default.register_fence_rail("nether:fence_rail_nether_brick", {
+		description = S("Nether Brick Fence Rail"),
+		texture = "nether_brick.png",
+		inventory_image = "default_fence_rail_overlay.png^nether_brick.png^" ..
+					"default_fence_rail_overlay.png^[makealpha:255,126,126",
+		wield_image = "default_fence_rail_overlay.png^nether_brick.png^" ..
+					"default_fence_rail_overlay.png^[makealpha:255,126,126",
+		material = "nether:brick",
+		groups = {cracky = 2, level = 2},
+		sounds = default.node_sound_stone_defaults()
+	})
+else
+	-- Original nether fence code, preserved to avoid deeper coupling with MTG
+	minetest.register_node("nether:fence_nether_brick", {
+		description = S("Nether Brick Fence"),
+		drawtype = "fencelike",
+		tiles = {"nether_brick.png"},
+		inventory_image = fence_texture,
+		wield_image = fence_texture,
+		paramtype = "light",
+		sunlight_propagates = true,
+		is_ground_content = false,
+		selection_box = {
+			type = "fixed",
+			fixed = {-1/7, -1/2, -1/7, 1/7, 1/2, 1/7},
+		},
+		groups = {cracky = 2, level = 2},
+		sounds = default.node_sound_stone_defaults(),
+	})
+end
 
 -- Register stair and slab
 
