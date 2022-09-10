@@ -26,7 +26,7 @@ the nether first, or basalt might be a crafting ingredient required to reach
 a particular branch of the tech-tree.
 
 Netherbrick tools are provided (pick, shovel, axe, & sword), see tools.lua
-The Nether pickaxe has a 10x bonus again wear when mining netherrack.
+The Nether pickaxe has a 10x bonus against wear when mining netherrack.
 
 
 ## License of source code:
