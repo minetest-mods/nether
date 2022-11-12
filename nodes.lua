@@ -721,6 +721,7 @@ minetest.register_node("nether:lava_crust", {
 	--liquid_viscosity = 7,
 	damage_per_second = 2,
 	groups = {oddly_breakable_by_hand = 3, cracky = 3, explody = 1, igniter = 1},
+	sounds = default.node_sound_gravel_defaults(),
 })
 
 
