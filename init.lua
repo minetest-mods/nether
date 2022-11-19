@@ -312,7 +312,7 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 		geodeSky.sky_data.base_color  = nether.fogColor.geodes
 
 		climate_api.register_weather(
-			"nether:nether",
+			"nether:caverns",
 			{ nether_biome = "nether" },
 			{ ["climate_api:skybox"] = netherSky }
 		)
