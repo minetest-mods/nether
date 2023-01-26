@@ -33,6 +33,7 @@ minetest.set_gen_notify({dungeon = true})
 local c_air              = minetest.get_content_id("air")
 local c_netherrack       = minetest.get_content_id("nether:rack")
 local c_netherrack_deep  = minetest.get_content_id("nether:rack_deep")
+local c_crystaldark      = minetest.get_content_id("nether:geode")
 local c_dungeonbrick     = minetest.get_content_id("nether:brick")
 local c_dungeonbrick_alt = minetest.get_content_id("nether:brick_cracked")
 local c_netherbrick_slab = minetest.get_content_id("stairs:slab_nether_brick")
@@ -164,7 +165,7 @@ nether.mapgen.excavate_dungeons = function(data, area, rooms)
 				vi = area:index(room_min.x, y, z)
 				for x = room_min.x, room_max.x do
 					node_id = data[vi]
-					if node_id == c_netherrack or node_id == c_netherrack_deep then data[vi] = c_air end
+					if node_id == c_netherrack or node_id == c_netherrack_deep or node_id == c_crystaldark then data[vi] = c_air end
 					vi = vi + 1
 				end
 			end
@@ -181,7 +182,7 @@ nether.mapgen.excavate_dungeons = function(data, area, rooms)
 				vi = vi + area.ystride
 				node_id = data[vi]
 				-- searching forward of the stairs could also be done
-				if node_id == c_netherrack or node_id == c_netherrack_deep then data[vi] = c_air end
+				if node_id == c_netherrack or node_id == c_netherrack_deep or node_id == c_crystaldark then data[vi] = c_air end
 			end
 		end
 	end
@@ -231,11 +232,11 @@ nether.mapgen.decorate_dungeons = function(data, area, rooms)
 			   and room_min.z > minEdge.z and room_max.z < maxEdge.z then
 				--data[area:indexp(roomInfo)] = minetest.get_content_id("default:mese_post_light") -- debug
 
-				-- Can't use glass panes because they need the param data set.
-				-- Until whisper glass is added, every window will be made of netherbrick fence (rather
-				-- than material depending on room_seed)
+				-- Glass panes can't go in the windows because we aren't setting param data.
+				-- Until a Nether glass is added, every window will be made of netherbrick fence rather
+				-- than material depending on room_seed.
 				local window_node = c_netherfence
-				--if c_netherglass ~= nil and room_seed % 20 >= 12 then window_node = c_crystallight end
+				--if c_netherglass ~= nil and room_seed % 20 >= 12 then window_node = c_netherglass end
 
 				local function placeWindow(vi, viOutsideOffset, windowNo)
 					if is_dungeon_brick(data[vi]) and is_dungeon_brick(data[vi + yStride]) then

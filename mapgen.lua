@@ -71,6 +71,7 @@ end
 -- Load specialty helper functions
 dofile(nether.path .. "/mapgen_dungeons.lua")
 dofile(nether.path .. "/mapgen_mantle.lua")
+dofile(nether.path .. "/mapgen_geodes.lua")
 
 
 -- Misc math functions
@@ -283,6 +284,7 @@ local dbuf = {}
 local c_air              = minetest.get_content_id("air")
 local c_netherrack       = minetest.get_content_id("nether:rack")
 local c_netherrack_deep  = minetest.get_content_id("nether:rack_deep")
+local c_crystaldark      = minetest.get_content_id("nether:geode")
 local c_lavasea_source   = minetest.get_content_id("nether:lava_source") -- same as lava but with staggered animation to look better as an ocean
 local c_lava_crust       = minetest.get_content_id("nether:lava_crust")
 local c_native_mapgen    = minetest.get_content_id("nether:native_mapgen")
@@ -382,7 +384,8 @@ local function on_generated(minp, maxp, seed)
 				if cave_noise > tcave then
 					-- Prime region
 					-- This was the only region in initial versions of the Nether mod.
-					-- It is the only region which portals from the surface will open into.
+					-- It is the only region which portals from the surface will open into,
+					-- getting to any other regions in the Nether will require Shanks' Pony.
 					data[vi] = c_air
 					contains_nether = true
 
@@ -392,12 +395,11 @@ local function on_generated(minp, maxp, seed)
 					-- Reaching here would require the player to first find and journey through the central region,
 					-- as it's always separated from the Prime region by the central region.
 
-					data[vi] = c_netherrack -- For now I've just left this region as solid netherrack instead of air.
+					data[vi] = mapgen.getGeodeInteriorNodeId(x, y, z)-- function from mapgen_geodes.lua
 
 					-- Only set contains_nether to true here if you want tunnels created between the secondary region
 					-- and the central region.
-					--contains_nether = true
-					--data[vi] = c_air
+					contains_nether = true
 				else
 					-- netherrack walls and/or center region/mantle
 					abs_cave_noise = math_abs(cave_noise)
@@ -414,7 +416,11 @@ local function on_generated(minp, maxp, seed)
 								data[vi] = c_netherrack_deep
 							else
 								-- the shell seperating the mantle from the rest of the nether...
-								data[vi] = c_netherrack -- excavate_dungeons() will mostly reverse this inside dungeons
+								if cave_noise > 0 then
+									data[vi] = c_netherrack -- excavate_dungeons() will mostly reverse this inside dungeons
+								else
+									data[vi] = c_crystaldark
+								end
 							end
 						end
 

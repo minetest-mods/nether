@@ -65,6 +65,8 @@ SOFTWARE.
  * `nether_book_`* (files starting with "nether_book"): Treer, 2019-2020
  * `nether_brick_deep.png`: Treer, 2021
  * `nether_fumarole.ogg`: Treer, 2020
+ * `nether_geode.png`: Treer, 2021
+ * `nether_geode_glass.png`: Treer, 2021
  * `nether_lava_bubble`* (files starting with "nether_lava_bubble"): Treer, 2020
  * `nether_lava_crust_animated.png`: Treer, 2019-2020
  * `nether_lightstaff.png`: Treer, 2021

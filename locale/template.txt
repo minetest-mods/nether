@@ -63,11 +63,19 @@ Lava Crust=
 Lava crust is strong enough to walk on, but still hot enough to inflict burns.=
 
 Nether Basalt=
+Nether Beryl=
+Nether Berylite=
 Nether Brick=
 Nether Brick Fence=
 Nether Brick Fence Rail=
+Nether Crystal Pane=
 Nether Slab=
 Nether Stair=
+
+Nether geode crystal, found lining the interior walls of Nether geodes=
+
+Nether geode crystal. A crystalline structure with faint glow found inside large Nether geodes=
+
 Netherrack=
 Netherrack from deep in the mantle=
 Netherrack stair=
