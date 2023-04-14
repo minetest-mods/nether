@@ -391,7 +391,7 @@ stairs.register_slab( -- register a slab without adding inner and outer stairs
 	"nether:rack",
 	{cracky = 2, level = 2},
 	{"nether_rack.png"},
-	S("Deep Netherrack slab"),
+	S("Netherrack slab"),
 	minetest.registered_nodes["nether:rack"].sounds
 )
 
