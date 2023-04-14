@@ -31,8 +31,8 @@ Unknown player position=
 
 ### nodes.lua ###
 
-A Deep Netherrack wall=
-A Netherrack wall=
+A Deep Netherrack Wall=
+A Netherrack Wall=
 A finely finished block of solid Nether Basalt.=
 A rough cut solid block of Nether Basalt.=
 A thin crust of cooled lava with liquid lava beneath=
@@ -49,8 +49,8 @@ Deep Nether Brick=
 Deep Nether Slab=
 Deep Nether Stair=
 Deep Netherrack=
-Deep Netherrack slab=
-Deep Netherrack stair=
+Deep Netherrack Slab=
+Deep Netherrack Stair=
 Fumarolic Chimney=
 Fumarolic Chimney Corner=
 Fumarolic Chimney Slab=
@@ -79,7 +79,7 @@ Nether geode crystal. A crystalline structure with faint glow found inside large
 Netherrack=
 Netherrack from deep in the mantle=
 Netherrack Slab=
-Netherrack stair=
+Netherrack Stair=
 Nethersand=
 Outer Deep Nether Stair=
 Outer Nether Stair=
