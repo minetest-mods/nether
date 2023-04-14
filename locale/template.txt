@@ -78,6 +78,7 @@ Nether geode crystal. A crystalline structure with faint glow found inside large
 
 Netherrack=
 Netherrack from deep in the mantle=
+Netherrack Slab=
 Netherrack stair=
 Nethersand=
 Outer Deep Nether Stair=
