@@ -383,7 +383,7 @@ stairs.register_stair(
 	"nether:rack",
 	{cracky = 2, level = 2},
 	{"nether_rack.png"},
-	S("Netherrack stair"),
+	S("Netherrack Stair"),
 	minetest.registered_nodes["nether:rack"].sounds
 )
 stairs.register_slab( -- register a slab without adding inner and outer stairs
@@ -391,7 +391,7 @@ stairs.register_slab( -- register a slab without adding inner and outer stairs
 	"nether:rack",
 	{cracky = 2, level = 2},
 	{"nether_rack.png"},
-	S("Deep Netherrack slab"),
+	S("Netherrack Slab"),
 	minetest.registered_nodes["nether:rack"].sounds
 )
 
@@ -400,7 +400,7 @@ stairs.register_stair(
 	"nether:rack_deep",
 	{cracky = 2, level = 2},
 	{"nether_rack_deep.png"},
-	S("Deep Netherrack stair"),
+	S("Deep Netherrack Stair"),
 	minetest.registered_nodes["nether:rack_deep"].sounds
 )
 stairs.register_slab( -- register a slab without adding inner and outer stairs
@@ -408,14 +408,14 @@ stairs.register_slab( -- register a slab without adding inner and outer stairs
 	"nether:rack_deep",
 	{cracky = 2, level = 2},
 	{"nether_rack_deep.png"},
-	S("Deep Netherrack slab"),
+	S("Deep Netherrack Slab"),
 	minetest.registered_nodes["nether:rack_deep"].sounds
 )
 
 -- Connecting walls
 if minetest.get_modpath("walls") and minetest.global_exists("walls") and walls.register ~= nil then
-	walls.register("nether:rack_wall",      S("A Netherrack wall"),      "nether_rack.png",      "nether:rack",      minetest.registered_nodes["nether:rack"].sounds)
-	walls.register("nether:rack_deep_wall", S("A Deep Netherrack wall"), "nether_rack_deep.png", "nether:rack_deep", minetest.registered_nodes["nether:rack_deep"].sounds)
+	walls.register("nether:rack_wall",      S("A Netherrack Wall"),      "nether_rack.png",      "nether:rack",      minetest.registered_nodes["nether:rack"].sounds)
+	walls.register("nether:rack_deep_wall", S("A Deep Netherrack Wall"), "nether_rack_deep.png", "nether:rack_deep", minetest.registered_nodes["nether:rack_deep"].sounds)
 end
 
 -- StairsPlus
