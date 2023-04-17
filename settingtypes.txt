@@ -3,7 +3,7 @@
 # A factor of 10 might be a better value for Minetest, since there's no sprint, but ex-Minecraft players will be mathing for 8.
 nether_fasttravel_factor (Nether fast-travel factor) int 8
 
-# The likelyhood of finding a Book containing all the portal plans in a dungeon chest. 
+# The likelyhood of finding a Book containing all the portal plans in a dungeon chest.
 # Set to 0 to disable, or 10 to have it extremely common.
 #
 # (This value will be treated as 0 when the Nether portal is the only type of portal available, or when the help modpack is installed)
@@ -21,5 +21,5 @@ nether_enable_portal_example_surfacetravel (Enable example portal: Surface-trave
 [Nether depth]
 #The depth where the Nether begins / the Nether ceiling
 nether_depth_ymax (Upper limit of Nether) int -5000 -30000 32767
-#The lower limit of the Nether must be at least 1000 lower than the upper limit, and more than 3000 lower is recommended.
-nether_depth_ymin (Lower limit of Nether) int -11000 -32768 30000
+#The lower limit of the Nether must be at least 1000 lower than the upper limit, and more than 3000 lower is recommended. A value that's on a chunk boundary is also recommended.
+nether_depth_ymin (Lower limit of Nether) int -11072 -32768 30000
