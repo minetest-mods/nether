@@ -47,6 +47,9 @@ local S1 = {name = "stairs:stair_netherrack", prob = 255, force_place = true, pa
 local S2 = {name = "stairs:stair_netherrack", prob = 255, force_place = true, param2 = 7}
 local S3 = {name = "stairs:stair_netherrack", prob = 255, force_place = true, param2 = 12}
 local S4 = {name = "stairs:stair_netherrack", prob = 255, force_place = true, param2 = 16}
+local M1 = {name = "nether:hinge",			  prob = 255}
+local M2 = {name = "nether:hinge_growing",	  prob = 255}
+local M3 = {name = "nether:hinge_glow",		  prob = 255}
 
 
 -- =================
@@ -584,6 +587,80 @@ minetest.register_decoration({
             _, _,  _,  _,
             _, _,  _,  _,
             _, _,  _,  _
+        }
+    },
+    flags = "place_center_x,place_center_z,all_floors",
+    place_offset_y = -2,
+    rotation = "random"
+})
+
+    minetest.register_decoration({
+        name = "Hades Hinge",
+        deco_type = "schematic",
+        place_on = "nether:rack",
+        sidelen = 80,
+        fill_ratio = 0.002,
+        biomes = {"nether_caverns"},
+        y_max = decoration_ceiling,
+        y_min = decoration_floor,
+        schematic = {
+        size = {x = 12, y = 7, z = 7},
+        data = { -- note that data is upside down
+            _,  _,  _,  _,  _,  _,  _, H1, H1,  _,  _,  _,	--1
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+
+            _,  _,  _,  _,  _, H1, H1, H1, H1,  _,  _,  _,	--2
+            _,  _,  _,  _,  _,  _,  _, H1, H1, H1,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+
+            _,  _,  _, H1, H1, H1, H1,  _,  _,  _,  _,  _,	--3
+            _,  _,  _,  _,  _, H1, H1, H1, H1,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _, H1, H3, H1,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _, H1,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _, H1,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _, H2,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+
+            _, H1, H1, H1, H1,  _,  _,  _,  _,  _,  _,  _,	--4
+            _,  _, H1, H1, H1, H1, H1,  _,  _,  _,  _,  _,
+            _,  _,  _,  _, H1, H1, H1, H1, H1,  _,  _,  _,
+            _,  _,  _,  _,  _,  _, H1, H1,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+
+           H1, H1, H1,  _,  _,  _,  _,  _,  _,  _,  _,  _,	--5
+           H1, H1, H1, H1, H1,  _,  _,  _,  _,  _,  _,  _,
+            _,  _, H1, H1, H1, H1,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _, H1, H1, H3, H1,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _, H1,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _, H1,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _, H2,  _,  _,  _,  _,
+
+           H1, H1,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,	--6
+           H1, H1, H1, H1,  _,  _,  _,  _,  _,  _,  _,  _,
+            _, H1, H1, H3, H1,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _, H1,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _, H1,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _, H1,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _, H2,  _,  _,  _,  _,  _,  _,  _,
+
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,	--7
+            _, H1,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+           H1,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+           H2,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,
+            _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _
         }
     },
     flags = "place_center_x,place_center_z,all_floors",

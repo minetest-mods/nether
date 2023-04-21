@@ -269,6 +269,89 @@ minetest.register_node("nether:glowstone", {
 	can_dig = transmogrified_can_dig, -- to ensure glowstone temporarily created by the lightstaff can't be kept
 })
 
+-- Murexium, like iron, but faster
+
+minetest.register_node("nether:rack_with_murexium", {
+	description = S("Murexium Ore"),
+	tiles = {"nether_rack.png^nether_mineral_murexium.png"},
+	groups = {cracky = 2},
+	drop = "nether:murexium_lump",
+	sounds = default.node_sound_stone_defaults(),
+})
+
+minetest.register_node("nether:murexium_block", {
+	description = S("Murexium Block"),
+	tiles = {"nether_murexium_block.png"},
+	is_ground_content = false,
+	groups = {cracky = 1, level = 2},
+	sounds = default.node_sound_metal_defaults(),
+})
+
+-- Hades Hinge, the only source of wood down here
+
+minetest.register_node("nether:hinge", {
+	description = S("Hades Hinge"),
+	tiles = {"nether_hinge_top.png", "nether_hinge_top.png", "nether_hinge.png"},
+	paramtype2 = "facedir",
+	place_param2 = 0,
+	is_ground_content = false,
+	groups = {choppy = 3, oddly_breakable_by_hand = 1},
+	sounds = default.node_sound_wood_defaults(),
+})
+
+minetest.register_node("nether:hinge_growing", {
+	description = S("Growing Hades Hinge Tip"),
+	drop = "nether:hinge_spawn",
+	drawtype = "plantlike",
+	tiles = {"nether_hinge_growing.png"},
+	inventory_image = "nether_hinge_growing.png",
+	wield_image = "nether_hinge_growing.png",
+	sunlight_propagates = true,
+	is_ground_content = false,
+	groups = {dig_immediate = 2, oddly_breakable_by_hand = 3, attached_node = 1},
+	sounds = default.node_sound_wood_defaults(),
+})
+
+minetest.register_node("nether:hinge_spawn", {
+	description = S("Hades Hinge Spawn"),
+	drawtype = "plantlike",
+	tiles = {"nether_hinge_spawn.png"},
+	inventory_image = "nether_hinge_spawn.png",
+	wield_image = "nether_hinge_spawn.png",
+	sunlight_propagates = true,
+	is_ground_content = false,
+	on_timer = grow_sapling,
+	groups = {dig_immediate = 2, oddly_breakable_by_hand = 3, attached_node = 1, sapling = 1},
+	sounds = default.node_sound_wood_defaults(),
+
+	on_construct = function(pos)
+		minetest.get_node_timer(pos):start(math.random(300, 1500))
+	end,
+
+	on_place = function(itemstack, placer, pointed_thing)
+		itemstack = default.sapling_on_place(itemstack, placer, pointed_thing,
+			"nether:hinge_spawn",
+			-- minp, maxp to be checked, relative to sapling pos
+			-- minp_relative.y = 1 because sapling pos has been checked
+			{x = -3, y = 1, z = -3},
+			{x = 3, y = 6, z = 3},
+			-- maximum interval of interior volume check
+			4)
+
+		return itemstack
+	end,
+})
+
+minetest.register_node("nether:hinge_glowing", {
+	description = S("Glowing Hades Hinge"),
+	tiles = {"nether_hinge_glowing.png"},
+	is_ground_content = false,
+	paramtype = "light",
+	light_source = 10,
+	groups = {choppy = 3, oddly_breakable_by_hand = 3},
+	sounds = default.node_sound_wood_defaults(),
+})
+
 -- Deep glowstone, found in the mantle / central magma layers
 minetest.register_node("nether:glowstone_deep", {
 	description = S("Deep Glowstone"),
