@@ -47,9 +47,9 @@ local S1 = {name = "stairs:stair_netherrack", prob = 255, force_place = true, pa
 local S2 = {name = "stairs:stair_netherrack", prob = 255, force_place = true, param2 = 7}
 local S3 = {name = "stairs:stair_netherrack", prob = 255, force_place = true, param2 = 12}
 local S4 = {name = "stairs:stair_netherrack", prob = 255, force_place = true, param2 = 16}
-local M1 = {name = "nether:hinge",			  prob = 255}
-local M2 = {name = "nether:hinge_growing",	  prob = 255}
-local M3 = {name = "nether:hinge_glow",		  prob = 255}
+local H1 = {name = "nether:hinge",			  prob = 255}
+local H2 = {name = "nether:hinge_growing",	  prob = 255}
+local H3 = {name = "nether:hinge_glowing",		  prob = 255}
 
 
 -- =================
