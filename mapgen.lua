@@ -171,7 +171,11 @@ mapgen.shift_existing_biomes(NETHER_FLOOR, NETHER_CEILING)
 -- Ores and decorations can be registered against "nether:rack" instead, and the lua
 -- on_generate() callback will carve the Nether with nether:rack before invoking
 -- generate_decorations and generate_ores.
-minetest.register_node("nether:native_mapgen", {})
+-- It is disguised as stone to hide any bug where it leaks out of the nether, such as
+-- https://github.com/minetest/minetest/issues/13440 or if on_generated() somehow was aborted.
+local stone_copy_def = table.copy(minetest.registered_nodes["default:stone"] or {})
+stone_copy_def.drop = stone_copy_def.drop or "default:stone" -- probably already defined as cobblestone
+minetest.register_node("nether:native_mapgen", stone_copy_def)
 
 minetest.register_biome({
 	name = "nether_caverns",
