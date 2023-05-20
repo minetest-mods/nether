@@ -18,9 +18,11 @@
 ]]--
 
 local S = nether.get_translator
+local toolranks_loaded = minetest.get_modpath("toolranks")
 
+local pickaxe_desc = S("Nether Pickaxe\nWell suited for mining netherrack")
 minetest.register_tool("nether:pick_nether", {
-	description = S("Nether Pickaxe\nWell suited for mining netherrack"),
+	description = toolranks_loaded and toolranks.create_description(pickaxe_desc) or pickaxe_desc,
 	_doc_items_longdesc = S("Uniquely suited for mining netherrack, with minimal wear when doing so. Blunts quickly on other materials."),
 	inventory_image = "nether_tool_netherpick.png",
 	tool_capabilities = {
@@ -34,7 +36,9 @@ minetest.register_tool("nether:pick_nether", {
 	sound = {breaks = "default_tool_breaks"},
 	groups = {pickaxe = 1},
 
-	after_use = function(itemstack, user, node, digparams)
+        original_description = toolranks_loaded and pickaxe_desc or nil,
+	after_use = toolranks_loaded and toolranks.new_afteruse or nil,
+		function(itemstack, user, node, digparams)
 		local wearDivisor = 1
 		local nodeDef = minetest.registered_nodes[node.name]
 		if nodeDef ~= nil and nodeDef.groups ~= nil then
