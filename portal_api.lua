@@ -2166,7 +2166,7 @@ function nether.unregister_portal(name)
 end
 
 function nether.register_portal_ignition_item(item_name, ignition_failure_sound)
-	old_on_place = minetest.registered_items[item_name].on_place or minetest.item_place
+	local old_on_place = minetest.registered_items[item_name].on_place or minetest.item_place
 	minetest.override_item(item_name, {
 		on_place = function(stack, placer, pt, ...)
 			if pt.under and nether.is_frame_node[minetest.get_node(pt.under).name] then
