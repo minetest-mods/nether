@@ -2166,22 +2166,20 @@ function nether.unregister_portal(name)
 end
 
 function nether.register_portal_ignition_item(item_name, ignition_failure_sound)
-
+	local old_on_place = minetest.registered_items[item_name].on_place or minetest.item_place
 	minetest.override_item(item_name, {
-		on_place = function(stack, placer, pt)
-			local done = false
+		on_place = function(stack, placer, pt, ...)
 			if pt.under and nether.is_frame_node[minetest.get_node(pt.under).name] then
-				done = ignite_portal(pt.under, placer:get_player_name())
+				local done = ignite_portal(pt.under, placer:get_player_name())
 				if done and not minetest.settings:get_bool("creative_mode") then
 					stack:take_item()
 				end
+				if not done and ignition_failure_sound ~= nil then
+					minetest.sound_play(ignition_failure_sound, {pos = pt.under, max_hear_distance = 10})
+				end
+				return stack
 			end
-			if not done and ignition_failure_sound ~= nil then
-				minetest.sound_play(ignition_failure_sound, {pos = pt.under, max_hear_distance = 10})
-			end
-
-
-			return stack
+			return old_on_place(stack, placer, pt, ...)
 		end,
 	})
 
