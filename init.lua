@@ -144,7 +144,9 @@ if nether.NETHER_REALM_ENABLED then
 	end
 end
 dofile(nether.path .. "/portal_examples.lua")
-
+if minetest.get_modpath("technic") then
+	dofile(nether.path .. "/nether-compressor-recipe.lua")
+end
 
 -- Portals are ignited by right-clicking with a mese crystal fragment
 nether.register_portal_ignition_item(
