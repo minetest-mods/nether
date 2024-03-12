@@ -151,7 +151,132 @@ minetest.register_craft({
 		{"group:stick"}
 	}
 })
+-- Murexium
+minetest.register_tool("nether:pick_murexium", {
+	description = S("Murexium Pickaxe"),
+	inventory_image = "nether_tool_murexium_pick.png",
+	tool_capabilities = {
+		full_punch_interval = 1.0,
+		max_drop_level=1,
+		groupcaps={
+			cracky = {times={[1]=1.00, [2]=0.50, [3]=0.10}, uses=20, maxlevel=2},
+		},
+		damage_groups = {fleshy=4},
+	},
+	sound = {breaks = "default_tool_breaks"},
+	groups = {pickaxe = 1}
+})
 
+minetest.register_tool("nether:shovel_murexium", {
+	description = S("Murexium Shovel"),
+	inventory_image = "nether_tool_murexium_shovel.png",
+	wield_image = "nether_tool_murexium_shovel.png^[transformR90",
+	tool_capabilities = {
+		full_punch_interval = 1.1,
+		max_drop_level=1,
+		groupcaps={
+			crumbly = {times={[1]=0.80, [2]=0.40, [3]=0.10}, uses=30, maxlevel=2},
+		},
+		damage_groups = {fleshy=3},
+	},
+	sound = {breaks = "default_tool_breaks"},
+	groups = {shovel = 1}
+})
+
+minetest.register_tool("nether:axe_murexium", {
+	description = S("Murexium Axe"),
+	inventory_image = "nether_tool_murexium_axe.png",
+	tool_capabilities = {
+		full_punch_interval = 1.0,
+		max_drop_level=1,
+		groupcaps={
+			choppy={times={[1]=0.80, [2]=0.40, [3]=0.10}, uses=20, maxlevel=2},
+		},
+		damage_groups = {fleshy=4},
+	},
+	sound = {breaks = "default_tool_breaks"},
+	groups = {axe = 1}
+})
+
+minetest.register_tool("nether:sword_nether", {
+	description = S("Nether Sword"),
+	inventory_image = "nether_tool_nethersword.png",
+	tool_capabilities = {
+		full_punch_interval = 0.7,
+		max_drop_level=1,
+		groupcaps={
+			snappy={times={[1]=1.0, [2]=0.6, [3]=0.1}, uses=45, maxlevel=3},
+		},
+		damage_groups = {fleshy=10},
+	},
+	sound = {breaks = "default_tool_breaks"},
+	groups = {sword = 1}
+})
+
+if minetest.get_modpath("farming") ~= nil then
+farming.register_hoe(":nether:hoe_murexium", {
+	description = S("Murexium Hoe"),
+	inventory_image = "nether_tool_murexium_hoe.png",
+	max_uses = 500,
+	material = "nether:murexium_ingot",
+	groups = {hoe = 1}
+})
+end
+minetest.register_craftitem("nether:murexium_ingot", {
+	description = S("Murexium Ingot"),
+	inventory_image = "nether_murexium_ingot.png"
+})
+minetest.register_craftitem("nether:murexium_lump", {
+	description = S("Murexium Lump"),
+	inventory_image = "nether_murexium_lump.png",
+})
+
+minetest.register_craft({
+	type = "cooking",
+	output = "nether:murexium_ingot",
+	recipe = "nether:murexium_lump",
+	cooktime = 30,
+})
+minetest.register_craft({
+	output = "nether:pick_murexium",
+	recipe = {
+		{"nether:murexium_ingot","nether:murexium_ingot","nether:murexium_ingot"},
+		{"", "group:stick", ""},
+		{"", "group:stick", ""}
+	}
+})
+minetest.register_craft({
+	output = "nether:shovel_murexium",
+	recipe = {
+		{"nether:murexium_ingot"},
+		{"group:stick"},
+		{"group:stick"}
+	}
+})
+minetest.register_craft({
+	output = "nether:axe_murexium",
+	recipe = {
+		{"nether:murexium_ingot","nether:murexium_ingot"},
+		{"nether:murexium_ingot","group:stick"},
+		{"","group:stick"}
+	}
+})
+minetest.register_craft({
+	output = "nether:sword_murexium",
+	recipe = {
+		{"nether:murexium_ingot"},
+		{"nether:murexium_ingot"},
+		{"group:stick"}
+	}
+})
+minetest.register_craft({
+	output = "nether:hoe_murexium",
+	recipe = {
+		{"nether:murexium_ingot","nether:murexium_ingot"},
+		{"","group:stick"},
+		{"","group:stick"}
+	}
+})
 
 
 
