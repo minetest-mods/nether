@@ -49,6 +49,9 @@ minetest.register_tool("nether:pick_nether", {
 	end
 })
 
+-- Add toolrank support to tool
+toolranks.add_tool("nether:pick_nether")
+
 minetest.register_tool("nether:shovel_nether", {
 	description = S("Nether Shovel"),
 	inventory_image = "nether_tool_nethershovel.png",
@@ -65,6 +68,9 @@ minetest.register_tool("nether:shovel_nether", {
 	groups = {shovel = 1}
 })
 
+-- Add toolrank support to tool
+toolranks.add_tool("nether:shovel_nether")
+
 minetest.register_tool("nether:axe_nether", {
 	description = S("Nether Axe"),
 	inventory_image = "nether_tool_netheraxe.png",
@@ -80,6 +86,9 @@ minetest.register_tool("nether:axe_nether", {
 	groups = {axe = 1}
 })
 
+-- Add toolrank support to tool
+toolranks.add_tool("nether:axe_nether")
+
 minetest.register_tool("nether:sword_nether", {
 	description = S("Nether Sword"),
 	inventory_image = "nether_tool_nethersword.png",
@@ -94,6 +103,9 @@ minetest.register_tool("nether:sword_nether", {
 	sound = {breaks = "default_tool_breaks"},
 	groups = {sword = 1}
 })
+
+-- Add toolrank support to tool
+toolranks.add_tool("nether:sword_nether")
 
 minetest.register_craftitem("nether:nether_ingot", {
 	description = S("Nether Ingot"),
@@ -344,6 +356,9 @@ minetest.register_tool("nether:lightstaff", {
 	end
 })
 
+-- Add toolrank support to tool
+toolranks.add_tool("nether:lightstaff")
+
 minetest.register_tool("nether:lightstaff_eternal", {
 	description = S("Nether staff of Eternal Light\nCreates glowstone from netherrack"),
 	inventory_image = "nether_lightstaff.png^[colorize:#55F:90",
@@ -360,3 +375,6 @@ minetest.register_tool("nether:lightstaff_eternal", {
 		return itemstack
 	end
 })
+
+-- Add toolrank support to tool
+toolranks.add_tool("nether:lightstaff_eternal")
