@@ -48,7 +48,8 @@ minetest.register_tool("nether:pick_nether", {
 		return itemstack
 	end
 })
-
+-- Add toolrank support to tools
+toolranks.add_tool("nether:pick_nether")
 
 minetest.register_tool("nether:shovel_nether", {
 	description = S("Nether Shovel"),
@@ -65,7 +66,7 @@ minetest.register_tool("nether:shovel_nether", {
 	sound = {breaks = "default_tool_breaks"},
 	groups = {shovel = 1}
 })
-
+toolranks.add_tool("nether:shovel_nether")
 
 minetest.register_tool("nether:axe_nether", {
 	description = S("Nether Axe"),
@@ -81,7 +82,7 @@ minetest.register_tool("nether:axe_nether", {
 	sound = {breaks = "default_tool_breaks"},
 	groups = {axe = 1}
 })
-
+toolranks.add_tool("nether:axe_nether")
 
 minetest.register_tool("nether:sword_nether", {
 	description = S("Nether Sword"),
@@ -97,7 +98,7 @@ minetest.register_tool("nether:sword_nether", {
 	sound = {breaks = "default_tool_breaks"},
 	groups = {sword = 1}
 })
-
+toolranks.add_tool("nether:sword_nether")
 
 minetest.register_craftitem("nether:nether_ingot", {
 	description = S("Nether Ingot"),
@@ -347,7 +348,7 @@ minetest.register_tool("nether:lightstaff", {
 		lightstaff_on_use(user, "#F70", nether.lightstaff_duration)
 	end
 })
-
+toolranks.add_tool("nether:lightstaff")
 
 minetest.register_tool("nether:lightstaff_eternal", {
 	description = S("Nether staff of Eternal Light\nCreates glowstone from netherrack"),
@@ -365,3 +366,4 @@ minetest.register_tool("nether:lightstaff_eternal", {
 		return itemstack
 	end
 })
+toolranks.add_tool("nether:lightstaff_eternal")
