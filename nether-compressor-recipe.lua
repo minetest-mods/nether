@@ -15,25 +15,13 @@ local recipes = {
 
 }
 -- clear craft recipe
-minetest.clear_craft({
-	recipe = {
-		{"nether:rack", "nether:rack"},
-		{"nether:rack", "nether:rack"},
-	}
-})
+-- But allow brick blocks to be crafted like the other bricks from Minetest Game
 
 minetest.clear_craft({
 	recipe = {
 		{"nether:brick","nether:brick","nether:brick"},
 		{"nether:brick","nether:brick","nether:brick"},
 		{"nether:brick","nether:brick","nether:brick"},
-	}
-})
-
-minetest.clear_craft({
-	recipe = {
-		{"nether:rack_deep", "nether:rack_deep"},
-		{"nether:rack_deep", "nether:rack_deep"}
 	}
 })
 
