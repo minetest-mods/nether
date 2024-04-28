@@ -153,6 +153,38 @@ minetest.register_craft({
 })
 
 
+if minetest.get_modpath("toolranks") then
+
+	local function add_toolranks(name)
+		local nethertool_after_use = ItemStack(name):get_definition().after_use
+		toolranks.add_tool(name)
+		local toolranks_after_use  = ItemStack(name):get_definition().after_use
+
+		if nethertool_after_use == nil or nethertool_after_use == toolranks_after_use then
+			return
+		end
+
+		minetest.override_item(name, {
+			after_use = function(itemstack, user, node, digparams)
+				-- combine nethertool_after_use and toolranks_after_use by allowing
+				-- nethertool_after_use() to calculate the wear...
+				local initial_wear = itemstack:get_wear()
+				itemstack = nethertool_after_use(itemstack, user, node, digparams)
+				local wear = itemstack:get_wear() - initial_wear
+				itemstack:set_wear(initial_wear) -- restore/undo the wear
+
+				-- ...and have toolranks_after_use() apply the wear.
+				digparams.wear = wear
+				return toolranks_after_use(itemstack, user, node, digparams)
+			end
+		})
+	end
+
+	add_toolranks("nether:pick_nether")
+	add_toolranks("nether:shovel_nether")
+	add_toolranks("nether:axe_nether")
+	add_toolranks("nether:sword_nether")
+end
 
 
 --===========================--
