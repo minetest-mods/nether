@@ -384,10 +384,11 @@ minetest.register_tool("nether:lightstaff_eternal", {
 	sound = {breaks = "default_tool_breaks"},
 	stack_max = 1,
 	on_use = function(itemstack, user, pointed_thing)
-		if lightstaff_on_use(user, "#23F", 0) then -- was "#8088FF" or "#13F"
+		if lightstaff_on_use(user, "#23F", 0) -- was "#8088FF" or "#13F"
+		   and not minetest.is_creative_enabled(user) then
 			-- The staff of Eternal Light wears out, to limit how much
 			-- a player can alter the nether with it.
-			itemstack:add_wear(65535 / (nether.lightstaff_uses - 1))
+			itemstack:add_wear_by_uses(nether.lightstaff_uses)
 		end
 		return itemstack
 	end
