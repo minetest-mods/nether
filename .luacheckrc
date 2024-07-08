@@ -27,7 +27,6 @@ read_globals = {
 	"stairsplus",
 	"string.split",
 	table = { fields = { "copy", "getn" } },
-	"technic",
 	"toolranks",
 	"vector",
 	"VoxelArea",
