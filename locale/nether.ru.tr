@@ -1,0 +1,140 @@
+# textdomain: nether
+
+
+
+### init.lua ###
+
+Construction requires 14 blocks of obsidian, which we found deep underground where water had solidified molten rock. The finished frame is four blocks wide, five blocks high, and stands vertically, like a doorway.@n@nThis opens to a truly hellish place, though for small mercies the air there is still breathable. There is an intriguing dimensional mismatch happening between this realm and ours, as after opening the second portal into it we observed that 10 strides taken in the Nether appear to be an equivalent of @1 in the natural world.@n@nThe expedition parties have found no diamonds or gold, and after an experienced search party failed to return from the trail of a missing expedition party, I must conclude this is a dangerous place.=Конструкция требует 14 блоков обсидиана, который можно найти глубоко под землей, где с помощью воды затвердевает расплавленный камень. Законченная рамка в 4 блока шириной, 5 в высоту, стоящая вертикально как дверной проем.@n@nОткрывает действительно адское место, к счастью воздух здесь все еще пригоден для дыхания. После открытия второго портала в Незер мы обнаружили, что между этим миром и нашим происходит некое искривление простанства, благодаря которому 10 шагов в Незере равны @1 в нашем мире.@n@nРазведывательные команды не нашли золота или алмазов, и после того как опытная исследовательская команда сбилась со следа пропавшей команды, я вынужден констатировать, что это действительно опасное место.
+
+
+### init.lua ###
+### nodes.lua ###
+
+Nether Portal=Незер-портал
+
+### mapgen_mantle.lua ###
+
+, @1m above lava-sea level=, @1м над уровнем моря лавы
+, @1m below lava-sea level=, @1м под уровнем моря лавы
+, approaching y boundary of Nether=, приближаетесь к y границы Незера
+@1@2@3@4=
+Center/Mantle, but outside the caverns=Центр/мантия, но вне пещер
+Center/Mantle, inside cavern=Центр/мантия, внутри пещеры
+Describes which region of the nether the player is in=Описывает в каком регионе Незера находится игрок
+Negative nether=Отрицательный Незер
+Positive nether=Положительный Незер
+Shell between negative nether and center region=Оболочка между отрицательным Незер и центральным регионом
+Shell between positive nether and center region=Оболочка между положительным Незер и центральным регионом
+The Overworld=Внешний мир
+Unknown player position=Неизвестная положение игрока
+[Perlin @1] =
+
+### nodes.lua ###
+
+A Deep Netherrack Wall=Стена глубинного адского камня
+A Netherrack Wall=Стена адского камня
+A finely finished block of solid Nether Basalt.=Прекрасно обработанный блок незер-базальта.
+A rough cut solid block of Nether Basalt.=Грубо разрезанный блок незер-базальта.
+A thin crust of cooled lava with liquid lava beneath=Тонкая корка охлажденной лавы с жидкой лавой под ней.
+A vent in the earth emitting steam and gas=Отверстие в земле, испускающее пар и газ
+Can be repurposed to provide puffs of smoke in a chimney=Может быть использован для создания клубов дыма в дымоходе
+Chiselled Basalt=Высеченный базальт
+
+Columns of dark basalt found only in magma oceans deep within the Nether.=Колонный темного базальта можно наяти только в океанах магмы глубоко внутри Незера.
+
+Compressed Netherbrick=Сжаты незер-кирпич
+Cracked Nether Brick=Треснутый незер-кирпич
+Deep Glowstone=Глубинный светокамень
+Deep Nether Brick=Глубинный незер-кирпич
+Deep Nether Slab=Глубинные незер (плита)
+Deep Nether Stair=Глубинные незер (ступени)
+Deep Netherrack=Глубинный адский камень
+Deep Netherrack Slab=Глубинный адский камень (плита)
+Deep Netherrack Stair=Глубинный адский камень (ступени)
+Fumarolic Chimney=Фумарольный дымоход
+Fumarolic Chimney Corner=Уголь фумарольного дымохода
+Fumarolic Chimney Slab=Плита фумарольного дымохода
+Glowstone=Светокамень
+Hewn Basalt=Высеченный базальт
+Inner Deep Nether Stair=Внутренние ступени из глубинного незера
+Inner Nether Stair=Внутренние ступени из незера
+Lava Crust=Лавовая корка
+
+Lava crust is strong enough to walk on, but still hot enough to inflict burns.=Лавовая кока достаточно прочна, чтобы по ней ходить, однако также достаточно горяча, чтобы вызвать ожоги.
+
+Nether Basalt=Незер-базальт
+Nether Beryl=Незер-берилл
+Nether Berylite=Незер-бериллит
+Nether Brick=Незер-кирпич
+Nether Brick Fence=Забор из незер-кирпича
+Nether Brick Fence Rail=Перила забора из незер-кирпича
+Nether Crystal Pane=Панель из незер-кристалла
+Nether Slab=Незер-плита
+Nether Stair=Незер-ступени
+
+Nether geode crystal, found lining the interior walls of Nether geodes=Кристалл жеоды Незера, выстилает изнутри стены жеод Незера.
+
+Nether geode crystal. A crystalline structure with faint glow found inside large Nether geodes=Кристалл жеоды Незера. Кристаллическая структура со слабым свечением, которую можно обнаружить внутри больших жеод Незера.
+
+Netherrack=Адский камень
+Netherrack from deep in the mantle=Адский камень из глубины мантии
+Netherrack Slab=Адский камень (плита)
+Netherrack Stair=Адский камень (ступени)
+Nethersand=Незер-песок
+Outer Deep Nether Stair=Внешние ступени из глубинного незера
+Outer Nether Stair=Внешние ступени из незера
+Portal=Портал
+
+### portal_api.lua ###
+
+@n@nThe key to opening such a doorway is to strike the frame with a @1, at which point the very air inside begins to crackle and glow.=@n@nКлюч к открытию такого прохода - это высечь пламя с помощью @1, при этом сам воздух внутри начинает трещать и светиться.
+
+A definitive guide to Rifts and Portals=Полное руководство по разломам и порталам
+
+A guidebook for how to build portals to other realms. It can sometimes be found in dungeon chests, however a copy of this book is not needed as its contents are included in this Encyclopedia.=Руководство по стоительству порталов в другие миры. Может быть иногда обнаружено в сундуках подземелий, хотя копия этой книги не требуется, так как ее содержимое включено в эту Энциклопедию.
+
+Book of Portals=Книга порталов
+Building Portals=Строительство порталов
+
+In all my travels, and time spent in the Great Libraries, I have encountered no shortage of legends surrounding preternatural doorways said to open into other worlds, yet only @1 can I confirm as being more than merely stories.=Во время своих путешествий и долгих часов, проведённых в Великих Библиотеках, я обнаружил множество легенд о сверхъестественных порталах в иные миры. Лишь в @n случаях я могу подтвердить, что это не просто сказки.
+
+In all my travels, and time spent in the Great Libraries, I have encountered no shortage of legends surrounding preternatural doorways said to open into other worlds, yet only one can I confirm as being more than merely a story.=Во время своих путешествий и долгих часов, проведённых в Великих Библиотеках, я обнаружил множество легенд о сверхъестественных порталах в иные миры. Лишь в одном случае я могу подтвердить, что это не просто сказки.
+
+Mysterious forces prevented you from opening that portal. Please try another location=Мистические силы не дают Вам открыть этот портал. Пожалуйста, попробуйте в другом месте.
+
+Portal wormhole=Червоточина портала
+
+Portals to other realms can be opened by building a frame in the right shape with the right blocks, then using an item to activate it. A local copy of the guidebook to portals is published below.@n---@n@n=Порталы в другие миры могут быть открыты с помощью рамки нужной формы из правильных блоков, а также с помощью предмета для активации. Локальная копия руководства по порталам находится ниже.@n---@n@n
+
+Refer: "Help" > "Basics" > "Building Portals"=Оглавление: "Помощь" > "Основы" > "Строительство порталов"
+Untitled portal=Портал без названия
+We know almost nothing about this portal=Мы ничего не знаем об этом портале
+
+### portal_examples.lua ###
+
+Floatlands Portal=Портал на Парящие Острова
+
+Requiring 16 blocks of tin and constructed in a circular fashion, a finished frame is seven blocks wide, seven blocks high, and stands vertically like a doorway.@n@nThese travel a distance along the ground, and even when constructed deep underground will link back up to the surface. They appear to favor a strange direction, with the exit portal linking back only for as long as the portal stays open — attempting to reopen a portal from the exit doorway leads to a new destination along this favored direction. It has stymied our ability to study the behavior of these portals because without constructing dual portals and keeping both open it's hard to step through more than one and still be able to return home.@n@nDue to such difficulties, we never learned what determines the direction and distance where the matching twin portal will appear, and I have lost my friend and protégé. In cavalier youth and with little more than a rucksack, Coudreau has decided to follow the chain as far as it goes, and has not been seen since. Coudreau believes it works in epicycles, but I am not convinced. Still, I cling to the hope that one day the portal will open and Coudreau will step out from whichever place leads to this one, perhaps with an epic tale to tell.=Для создания портала требуется 16 блоков олова, выложенных по кругу; готовая рама достигает семи блоков в ширину и высоту, стоя вертикально, подобно двери.@n@nЭти порталы могут вести на большое расстояние, и даже если они построены глубоко под землёй, их выход зачастую находится на поверхности. Порталы, похоже, следуют странному направлению, где выход ведёт обратно только до тех пор, пока портал остаётся открытым. Если попытаться открыть портал заново из выходной точки, он приведёт в новое место по этому загадочному маршруту. Это осложняет наше изучение этих порталов, ведь без одновременного поддержания работы двух порталов трудно пройти через один из них и всё же вернуться обратно.@n@nИз-за таких трудностей мы так и не выяснили, что определяет направление и расстояние, на котором появится связанный портал. Я потерял друга и ученика. С юношеской бесшабашностью и с одним лишь рюкзаком на плечах, Кудро решил следовать по цепи порталов до самого конца и с тех пор не давал о себе знать. Кудро полагает, что порталы работают по принципу эпициклов, но я не убеждён. Тем не менее, я надеюсь, что однажды портал откроется и Кудро выйдет из него — оттуда, куда ведёт этот портал, — и, возможно, расскажет нам эпическую историю о своих странствиях.
+
+Requiring 21 blocks of ice, and constructed in the shape of a 3 × 3 platform with walls, or like a bowl. A finished platform is 2 blocks high, and 5 blocks wide at the widest in both directions.@n@nThis portal is different to the others, rather than acting akin to a doorway it appears to the eye more like a small pool of water which can be stepped into. Upon setting foot in the portal we found ourselves at a tremendous altitude.@1=Для создания этого портала требуется 21 блок льда, выложенных в форме платформы 3 × 3 с боковыми стенками, напоминающей чашу. Завершённая конструкция достигает высоты двух блоков и в самой широкой части составляет пять блоков в обе стороны.@n@nВ отличие от других порталов, этот скорее напоминает маленький водоём, в который можно шагнуть, чем обычную дверную арку. Когда мы ступили на поверхность портала, то внезапно оказались на невероятной высоте.@1
+
+Surface Portal=Поверхностный портал
+
+There is a floating land of hills and forests up there, over the edges of which is a perilous drop all the way back down to sea level. We have not found how far these pristine lands extend. I have half a mind to retire there one day.=Там, наверху, простирается парящий мир холмов и лесов, с опасными обрывами, за которыми — головокружительное падение обратно до самого уровня моря. Насколько далеко раскинулись эти нетронутые земли, мы пока не знаем. Порой я ловлю себя на мысли, что однажды стоило бы уйти туда навсегда.
+
+
+### tools.lua ###
+
+Nether Axe=Незер-топор
+Nether Ingot=Незер-слиток
+Nether Lump=Кусок незера
+Nether Pickaxe@nWell suited for mining netherrack=Незер-кирка@nХорошо подходит для копания адского камня
+Nether Shovel=Незер-лопата
+Nether Sword=Незер-меч
+
+Nether staff of Eternal Light@nCreates glowstone from netherrack=Незер-посох Вечного Света@nСоздает светокамень из адского камня
+
+Nether staff of Light@nTemporarily transforms the netherrack into glowstone=Незер-посох Света@nВременно превращает адский камень в светокамень
+
+Uniquely suited for mining netherrack, with minimal wear when doing so. Blunts quickly on other materials.=Идеально подходит для добычи адского камня, почти не изнашиваясь при этом. Однако быстро тупится при работе с другими материалами.
+
