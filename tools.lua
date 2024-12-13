@@ -19,6 +19,8 @@
 
 local S = nether.get_translator
 
+local math_floor = math.floor -- localise math function
+
 minetest.register_tool("nether:pick_nether", {
 	description = S("Nether Pickaxe\nWell suited for mining netherrack"),
 	_doc_items_longdesc = S("Uniquely suited for mining netherrack, with minimal wear when doing so. Blunts quickly on other materials."),
@@ -43,7 +45,7 @@ minetest.register_tool("nether:pick_nether", {
 			wearDivisor =  1 + (3 * workable) -- 10 for netherrack, 1 otherwise. Making it able to mine 350 netherrack nodes, instead of 35.
 		end
 
-		local wear = math.floor(digparams.wear / wearDivisor)
+		local wear = math_floor(digparams.wear / wearDivisor)
 		itemstack:add_wear(wear)  -- apply the adjusted wear as usual
 		return itemstack
 	end
