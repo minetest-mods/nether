@@ -36,9 +36,9 @@ local c_crystal          = minetest.get_content_id("nether:geodelite") -- geodel
 local c_netherrack       = minetest.get_content_id("nether:rack")
 local c_glowstone        = minetest.get_content_id("nether:glowstone")
 
--- Math funcs
-local math_max, math_min, math_abs, math_floor, math_pi = math.max, math.min, math.abs, math.floor, math.pi -- avoid needing table lookups each time a common math function is invoked
-
+-- Math funcs (avoid needing table lookups each time a common math function is invoked)
+local math_max, math_min, math_abs, math_floor, math_pi = math.max, math.min, math.abs, math.floor, math.pi
+local math_cos, math_sin = math.cos, math.sin
 
 -- Create a tiling space of close-packed spheres, using Hexagonal close packing
 -- of spheres with radius 0.5.
@@ -141,15 +141,15 @@ mapgen.getGeodeInteriorNodeId = function(x, y, z)
 		lastz = z
 		-- Calculate structure warping
 		-- To avoid calculating this for each node there's no warping as you look along the x axis :(
-		adj_y = math.sin(math_pi / 222 * y) * 30
+		adj_y = math_sin(math_pi / 222 * y) * 30
 
 		if y ~= lasty then
 			lasty = y
-			warpx = math.sin(math_pi / 100 * y) * 10
-			warpz = math.sin(math_pi /  43 * y) * 15
+			warpx = math_sin(math_pi / 100 * y) * 10
+			warpz = math_sin(math_pi /  43 * y) * 15
 		end
 		local twistRadians = math_pi / 73 * y
-		local sinTwist, cosTwist = math.sin(twistRadians), math.cos(twistRadians)
+		local sinTwist, cosTwist = math_sin(twistRadians), math_cos(twistRadians)
 		adj_x = cosTwist * warpx - sinTwist * warpz
 		adj_z = sinTwist * warpx + cosTwist * warpz
 	end
