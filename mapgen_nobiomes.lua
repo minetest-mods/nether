@@ -54,7 +54,6 @@ local yblmin = NETHER_FLOOR   + BLEND * 2
 local yblmax = NETHER_CEILING - BLEND * 2
 
 
-
 -- Mapgen
 
 dofile(nether.path .. "/mapgen_decorations.lua")
@@ -97,6 +96,9 @@ local c_netherbrick = minetest.get_content_id("nether:brick")
 local c_netherrack = minetest.get_content_id("nether:rack")
 
 
+-- Math functions
+local math_min, math_max = math.min, math.max
+
 -- On-generated function
 
 minetest.register_on_generated(function(minp, maxp, seed)
@@ -105,10 +107,10 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	end
 
 	local x1 = maxp.x
-	local y1 = math.min(maxp.y, NETHER_CEILING)
+	local y1 = math_min(maxp.y, NETHER_CEILING)
 	local z1 = maxp.z
 	local x0 = minp.x
-	local y0 = math.max(minp.y, NETHER_FLOOR)
+	local y0 = math_max(minp.y, NETHER_FLOOR)
 	local z0 = minp.z
 
 	local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
@@ -215,7 +217,7 @@ function nether.find_nether_ground_y(target_x, target_z, start_y, player_name)
 	local minp = {x = minp_schem.x, y = 0, z = minp_schem.z}
 	local maxp = {x = maxp_schem.x, y = 0, z = maxp_schem.z}
 
-	for y = start_y, math.max(NETHER_FLOOR + BLEND, start_y - 4096), -1 do
+	for y = start_y, math_max(NETHER_FLOOR + BLEND, start_y - 4096), -1 do
 		local nval_cave = nobj_cave_point:get_3d({x = target_x, y = y, z = target_z})
 
 		if nval_cave > TCAVE then -- Cavern
@@ -237,5 +239,5 @@ function nether.find_nether_ground_y(target_x, target_z, start_y, player_name)
 		end
 	end
 
-	return math.max(start_y, NETHER_FLOOR + BLEND) -- Fallback
+	return math_max(start_y, NETHER_FLOOR + BLEND) -- Fallback
 end
