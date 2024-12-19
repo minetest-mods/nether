@@ -668,11 +668,11 @@ local function smash_lava_crust(pos, playsound)
 		maxexptime = 1,
 		minsize = .2,
 		maxsize = .8,
-		texture = "^[colorize:#A00:255",
+		texture = "blank.png^[noalpha^[colorize:#A00:255",
 		glow = 8
 	}
 	minetest.add_particlespawner(lava_particlespawn_def)
-	lava_particlespawn_def.texture = "^[colorize:#FB0:255"
+	lava_particlespawn_def.texture = "blank.png^[noalpha^[colorize:#FB0:255"
 	lava_particlespawn_def.maxvel.y = 3
 	lava_particlespawn_def.glow = 12
 	minetest.add_particlespawner(lava_particlespawn_def)
@@ -874,11 +874,11 @@ local function fumarole_onTimer(pos, elapsed)
 				maxexptime = 1.4,
 				minsize = .2,
 				maxsize = .8,
-				texture = "^[colorize:#A00:255",
+				texture = "blank.png^[noalpha^[colorize:#A00:255",
 				glow = 8
 			}
 			minetest.add_particlespawner(embers_particlespawn_def)
-			embers_particlespawn_def.texture = "^[colorize:#A50:255"
+			embers_particlespawn_def.texture = "blank.png^[noalpha^[colorize:#A50:255"
 			embers_particlespawn_def.maxvel.y = 3
 			embers_particlespawn_def.glow = 12
 			minetest.add_particlespawner(embers_particlespawn_def)
