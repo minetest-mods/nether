@@ -57,6 +57,10 @@ nether.portal_destination_not_found_message =
 	S("Mysterious forces prevented you from opening that portal. Please try another location")
 
 
+-- Math functions
+local math_floor, math_min, math_max, math_sin, math_cos = math.floor, math.min, math.max, math.sin, math.cos
+local math_random, math_hypot = math.random, math.hypot
+
 --[[
 
 Positions
@@ -691,9 +695,9 @@ local function get_timerPos_from_p1_and_p2(p1, p2)
 	-- and if someone want to make a circular portal then that positon will still likely be part
 	-- of the frame.
 	return {
-		x = math.floor((p1.x + p2.x) / 2),
+		x = math_floor((p1.x + p2.x) / 2),
 		y = p1.y,
-		z = math.floor((p1.z + p2.z) / 2),
+		z = math_floor((p1.z + p2.z) / 2),
 	}
 end
 
@@ -704,7 +708,7 @@ local function get_colorfacedir_from_color_and_orientation(color, orientation, p
 	assert(orientation, "no orientation passed")
 
 	local axis_direction, rotation
-	local dir = math.floor((orientation % 360) / 90 + 0.5)
+	local dir = math_floor((orientation % 360) / 90 + 0.5)
 
 	-- if the portal is vertical then node axis direction will be +Y (up) and portal orientation
 	-- will set the node's rotation.
@@ -715,7 +719,7 @@ local function get_colorfacedir_from_color_and_orientation(color, orientation, p
 		if dir == 1 then axis_direction = 3 end -- East
 		if dir == 2 then axis_direction = 2 end -- South
 		if dir == 3 then axis_direction = 4 end -- West
-		rotation = math.floor(axis_direction / 2); -- a rotation is only needed if axis_direction is east or west
+		rotation = math_floor(axis_direction / 2); -- a rotation is only needed if axis_direction is east or west
 	else
 		axis_direction = 0 -- 0 is up, or +Y
 		rotation = dir
@@ -875,7 +879,7 @@ local function list_closest_portals(portal_definition, anchorPos, distance_limit
 						local x = anchorPos.x - found_anchorPos.x
 						local y = anchorPos.y - found_anchorPos.y
 						local z = anchorPos.z - found_anchorPos.z
-						local distance = math.hypot(y * y_factor, math.hypot(x, z))
+						local distance = math_hypot(y * y_factor, math_hypot(x, z))
 						if distance <= distance_limit or distance_limit < 0 then
 							local info = minetest.deserialize(value) or {}
 							debugf("found %s listed at distance %.2f (within %.2f) from dest %s, found: %s orientation %s", found_name, distance, distance_limit, anchorPos, found_anchorPos, info.orientation)
@@ -1176,7 +1180,7 @@ local function set_schematic_param2(schematic_table, frame_node_name, frame_node
 		for _, node in ipairs(schematic_table.facedirNodes) do
 			if isFacedir and node.facedir ~= nil then
 				-- frame_node_color can be nil
-				local colorBits = (frame_node_color or math.floor((node.param2 or 0) / 32)) * 32
+				local colorBits = (frame_node_color or math_floor((node.param2 or 0) / 32)) * 32
 				node.param2 = node.facedir + colorBits
 			else
 				node.param2 = 0
@@ -1465,9 +1469,9 @@ local function ensure_remote_portal_then_teleport(playerName, portal_definition,
 			end
 
 			-- rotate the player if the destination portal is a different orientation
-			local rotation_angle = math.rad(destination_orientation - local_orientation)
+			local rotation_angle = math_rad(destination_orientation - local_orientation)
 			local offset = vector.subtract(playerPos, local_wormholePos) -- preserve player's position in the portal
-			local rotated_offset = {x = math.cos(rotation_angle) * offset.x - math.sin(rotation_angle) * offset.z, y = offset.y, z = math.sin(rotation_angle) * offset.x + math.cos(rotation_angle) * offset.z}
+			local rotated_offset = {x = math.cos(rotation_angle) * offset.x - math_sin(rotation_angle) * offset.z, y = offset.y, z = math_sin(rotation_angle) * offset.x + math_cos(rotation_angle) * offset.z}
 			local new_playerPos = vector.add(destination_wormholePos, rotated_offset)
 			player:set_pos(new_playerPos)
 			player:set_look_horizontal(player:get_look_horizontal() + rotation_angle)
@@ -1528,7 +1532,7 @@ function run_wormhole(timerPos, time_elapsed)
 
 	local run_wormhole_node_func = function(pos)
 
-		if math.random(2) == 1 then -- lets run only 3 particlespawners instead of 6 per portal
+		if math_random(2) == 1 then -- lets run only 3 particlespawners instead of 6 per portal
 			minetest.add_particlespawner({
 				amount = 16,
 				time   = 2,
@@ -1621,7 +1625,7 @@ local function create_book(item_name, inventory_description, inventory_image, ti
 	local display_book = function(itemstack, user, pointed_thing)
 		local player_name = user:get_player_name()
 
-		minetest.sound_play("nether_book_open", {to_player = player_name, gain = 0.25})
+		minetest.sound_play("nether_book_open", {to_player = player_name, gain = 0.25}, true)
 
 		local formspec =
 		"size[18,12.122]" ..
@@ -1641,7 +1645,7 @@ local function create_book(item_name, inventory_description, inventory_image, ti
 			local width = 7.9
 			local height = 12.0
 			local item_number = i
-			local items_on_page = math.floor(#chapters / 2)
+			local items_on_page = math_floor(#chapters / 2)
 			if i > items_on_page then
 				-- page 2
 				left_margin = 10.1
@@ -2262,8 +2266,8 @@ function nether.get_schematic_volume(anchor_pos, orientation, portal_name)
 		-- schematic then we will also need to check orientations 3 and 4.
 		-- (The currently existing portal-shapes are not affected)
 		return
-			{x = math.min(minp0.x, minp1.x), y = math.min(minp0.y, minp1.y), z = math.min(minp0.z, minp1.z)},
-			{x = math.max(maxp0.x, maxp1.x), y = math.max(maxp0.y, maxp1.y), z = math.max(maxp0.z, maxp1.z)}
+			{x = math_min(minp0.x, minp1.x), y = math_min(minp0.y, minp1.y), z = math_min(minp0.z, minp1.z)},
+			{x = math_max(maxp0.x, maxp1.x), y = math_max(maxp0.y, maxp1.y), z = math_max(maxp0.z, maxp1.z)}
 	end
 
 	-- Assume the largest possible portal shape unless we know it's a smaller one.

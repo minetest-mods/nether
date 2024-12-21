@@ -46,7 +46,7 @@ local c_lava_source      = minetest.get_content_id("default:lava_source")
 -- Misc math functions
 
 -- avoid needing table lookups each time a common math function is invoked
-local math_max, math_min  = math.max, math.min
+local math_max, math_min, math_floor  = math.max, math.min, math.floor
 
 
 -- Dungeon excavation functions
@@ -275,14 +275,14 @@ nether.mapgen.decorate_dungeons = function(data, area, rooms)
 
 				local pillar_vi    = {}
 				local pillarHeight = 0
-				local wallDist = 1 + math.floor((roomWidth + roomLength) / 14)
+				local wallDist = 1 + math_floor((roomWidth + roomLength) / 14)
 
 				local roomHeight = room_max.y - room_min.y
 				if roomHeight >= 7 then
 					-- mezzanine floor
 					local mezzMax = {
-						x = room_min.x + math.floor(roomWidth / 7 * 4),
-						y = room_min.y + math.floor(roomHeight / 5 * 3),
+						x = room_min.x + math_floor(roomWidth / 7 * 4),
+						y = room_min.y + math_floor(roomHeight / 5 * 3),
 						z = room_max.z
 					}
 
