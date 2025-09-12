@@ -495,8 +495,13 @@ function nether.find_nether_ground_y(target_x, target_z, start_y, player_name)
 	local minp = {x = minp_schem.x, y = 0, z = minp_schem.z}
 	local maxp = {x = maxp_schem.x, y = 0, z = maxp_schem.z}
 
-	for y = start_y, math_max(NETHER_FLOOR + BLEND, start_y - 4096), -1 do
-		local nval_cave = nobj_cave_point:get_3d({x = target_x, y = y, z = target_z})
+	local sample_pos = vector.new(target_x, 0, target_z) -- reuse to avoid making new tables
+	local y = start_y
+	local limit_y = math_max(NETHER_FLOOR + BLEND, start_y - 4096)
+
+	while y >= limit_y do
+		sample_pos.y = y
+		local nval_cave = nobj_cave_point:get_3d(sample_pos)
 
 		if nval_cave > TCAVE then -- Cavern
 			air = air + 1
@@ -509,12 +514,14 @@ function nether.find_nether_ground_y(target_x, target_z, start_y, player_name)
 				if nether.volume_is_natural_and_unprotected(minp, maxp, player_name) then
 					return portal_y
 				else -- Restart search a little lower
-					nether.find_nether_ground_y(target_x, target_z, y - 16, player_name)
+					air = 0 -- space above is unsuitable
+					y = y - 16
 				end
 			else -- Not enough space, reset air to zero
 				air = 0
 			end
 		end
+		y = y - 1
 	end
 
 	return math_max(start_y, NETHER_FLOOR + BLEND) -- Fallback
