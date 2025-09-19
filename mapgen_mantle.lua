@@ -61,14 +61,15 @@ local c_lava_crust       = minetest.get_content_id("nether:lava_crust")
 local c_basalt           = minetest.get_content_id("nether:basalt")
 
 
--- Math funcs
-local math_max, math_min, math_abs, math_floor = math.max, math.min, math.abs, math.floor -- avoid needing table lookups each time a common math function is invoked
+-- Math funcs (avoid needing table lookups each time a common math function is invoked)
+local math_max, math_min, math_abs, math_floor = math.max, math.min, math.abs, math.floor
+local math_random, math_randomseed = math.random, math.randomseed
 
 function random_unit_vector()
 	return vector.normalize({
-		x = math.random() - 0.5,
-		y = math.random() - 0.5,
-		z = math.random() - 0.5
+		x = math_random() - 0.5,
+		y = math_random() - 0.5,
+		z = math_random() - 0.5
 	})
 end
 
@@ -88,7 +89,7 @@ mapgen.find_nearest_lava_sealevel = function(y)
 	-- todo: put oceans near the bottom of chunks to improve ability to generate tunnels to the center
 	-- todo: constrain y to be not near the bounds of the nether
 	-- todo: add some random adj at each level, seeded only by the level height
-	local sealevel = math.floor((y + 100) / 200) * 200
+	local sealevel = math_floor((y + 100) / 200) * 200
 	--local sealevel = math.floor((y + 80) / 160) * 160
 	--local sealevel = math.floor((y + 120) / 240) * 240
 
@@ -103,8 +104,6 @@ mapgen.find_nearest_lava_sealevel = function(y)
 
 	return sealevel, cavern_limits_fraction
 end
-
-
 
 
 mapgen.add_basalt_columns = function(data, area, minp, maxp)
@@ -230,7 +229,7 @@ function excavate_pathway(data, area, nether_pos, center_pos, minp, maxp)
 	local ystride = area.ystride
 	local zstride = area.zstride
 
-	math.randomseed(nether_pos.x + 10 * nether_pos.y + 100 * nether_pos.z) -- so each tunnel generates deterministically (this doesn't have to be a quality seed)
+	math_randomseed(nether_pos.x + 10 * nether_pos.y + 100 * nether_pos.z) -- so each tunnel generates deterministically (this doesn't have to be a quality seed)
 	local dist = math_floor(vector.distance(nether_pos, center_pos))
 	local waypoints = generate_waypoints(nether_pos, center_pos, minp, maxp)
 
