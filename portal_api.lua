@@ -1469,7 +1469,7 @@ local function ensure_remote_portal_then_teleport(playerName, portal_definition,
 			end
 
 			-- rotate the player if the destination portal is a different orientation
-			local rotation_angle = math_rad(destination_orientation - local_orientation)
+			local rotation_angle = math.rad(destination_orientation - local_orientation)
 			local offset = vector.subtract(playerPos, local_wormholePos) -- preserve player's position in the portal
 			local rotated_offset = {x = math.cos(rotation_angle) * offset.x - math_sin(rotation_angle) * offset.z, y = offset.y, z = math_sin(rotation_angle) * offset.x + math_cos(rotation_angle) * offset.z}
 			local new_playerPos = vector.add(destination_wormholePos, rotated_offset)
