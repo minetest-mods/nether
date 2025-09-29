@@ -6,7 +6,7 @@ minetest.register_node("nether:rack_with_gold", {
 	description = S("Nether Gold"),
 	tiles = {"nether_rack.png^default_mineral_gold.png"},
 	is_ground_content = true,
-	groups = {cracky = 3, level = 2, workable_with_nether_tools = 3},
+	groups = {cracky = 3, level = 2, workable_with_nether_tools = 3, not_in_creative_inventory = 1},
 	drop = "default:gold_lump",
 	sounds = default.node_sound_stone_defaults()
 })
@@ -15,7 +15,7 @@ minetest.register_node("nether:rack_deep_with_mese", {
 	description = S("Nether Mese"),
 	tiles = {"nether_rack_deep.png^default_mineral_mese.png"},
 	is_ground_content = true,
-	groups = {cracky = 3, level = 2, workable_with_nether_tools = 3},
+	groups = {cracky = 3, level = 2, workable_with_nether_tools = 3, not_in_creative_inventory = 1},
 	drop = "default:mese_crystal_fragment 4",
 	sounds = default.node_sound_stone_defaults(),
 })
