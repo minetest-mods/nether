@@ -144,7 +144,7 @@ if nether.NETHER_REALM_ENABLED then
 	end
 end
 dofile(nether.path .. "/portal_examples.lua")
-
+dofile(nether.path .. "/ores.lua")
 
 -- Portals are ignited by right-clicking with a mese crystal fragment
 nether.register_portal_ignition_item(
