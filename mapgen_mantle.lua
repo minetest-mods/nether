@@ -119,7 +119,7 @@ mapgen.add_basalt_columns = function(data, area, minp, maxp)
 	local yCaveStride = x1 - x0 + 1
 
 	local cavePerlin = mapgen.get_cave_point_perlin()
-	nobj_basalt = nobj_basalt or minetest.get_perlin_map(np_basalt, {x = yCaveStride, y = yCaveStride})
+	nobj_basalt = nobj_basalt or minetest.get_perlin_map(np_basalt, {x = yCaveStride, y = yCaveStride, z = 0})
 	local nvals_basalt = nobj_basalt:get_2d_map_flat({x=minp.x, y=minp.z}, {x=yCaveStride, y=yCaveStride}, nbuf_basalt)
 
 	local nearest_sea_level, _ = mapgen.find_nearest_lava_sealevel(math_floor((y0 + y1) / 2))
@@ -509,3 +509,4 @@ minetest.register_chatcommand("nether_whereami",
 		end
 	}
 )
+
