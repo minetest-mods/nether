@@ -318,6 +318,14 @@ minetest.register_node("nether:brick_deep", {
 	sounds = default.node_sound_stone_defaults()
 })
 
+minetest.register_node("nether:nether_block", {
+	description = S("Nether Block"),
+	tiles = {"nether_nether_block.png"},
+	is_ground_content = false,
+	groups = {cracky = 1, level = 2, workable_with_nether_tools = 2},
+	sounds = default.node_sound_metal_defaults()
+})
+
 -- Register fence and rails
 
 local fence_texture =

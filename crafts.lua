@@ -69,4 +69,19 @@ minetest.register_craft({
   }
 })
 
+minetest.register_craft({
+	output = "nether:nether_block",
+	recipe = {
+		{"nether:nether_ingot", "nether:nether_ingot", "nether:nether_ingot"},
+		{"nether:nether_ingot", "nether:nether_ingot", "nether:nether_ingot"},
+		{"nether:nether_ingot", "nether:nether_ingot", "nether:nether_ingot"},
+	}
+})
+
+minetest.register_craft({
+	output = "nether:nether_ingot 9",
+	recipe = {{"nether:nether_block"}}
+})
+
 -- See tools.lua for tools related crafting
+

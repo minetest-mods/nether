@@ -80,5 +80,6 @@ SOFTWARE.
  * `nether_portal.png`: [Extex101](https://github.com/Extex101), 2020
  * `nether_rack`* (files starting with "nether_rack"): Zeg9
  * `nether_tool_`* (files starting with "nether_tool_"): color adjusted versions from "[default](https://github.com/minetest/minetest_game/tree/master/mods/default)" mod, originals by BlockMen
+ * `nether_nether_block.png`: color adjusted from "[default](https://github.com/minetest/minetest_game/tree/master/mods/default)" mod, original by kilbith
 
 All other media: Copyright © 2013 PilzAdam, licensed under CC BY-SA 3.0 by PilzAdam.
