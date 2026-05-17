@@ -336,7 +336,7 @@ end -- end of "if nether.NETHER_REALM_ENABLED..."
 -- Play bubbling lava sounds if player killed by lava
 minetest.register_on_dieplayer(
 	function(player, reason)
-		if reason.node ~= nil and minetest.get_node_group(reason.node, "lava") > 0 or reason.node == "nether:lava_crust" then
+		if reason.node ~= nil and minetest.get_item_group(reason.node, "lava") > 0 or reason.node == "nether:lava_crust" then
 			minetest.sound_play(
 				"nether_lava_bubble",
 				-- this sample was encoded at 3x speed to reduce .ogg file size
