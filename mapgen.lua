@@ -1,11 +1,11 @@
 --[[
 
-  Nether mod for minetest
+  Nether mod for Luanti
 
   "mapgen.lua" is the modern biomes-based Nether mapgen, which
-    requires Minetest v5.1 or greater
+    requires Luanti v5.1 or greater
   "mapgen_nobiomes.lua" is the legacy version of the mapgen, only used
-    in older versions of Minetest or in v6 worlds.
+    in older versions of Luanti or in v6 worlds.
 
 
   Copyright (C) 2013 PilzAdam
@@ -59,13 +59,13 @@ mapgen.ore_floor   = NETHER_FLOOR   + BLEND
 
 local debugf = nether.debug
 
-if minetest.read_schematic == nil then
+if core.read_schematic == nil then
 	-- Using biomes to create the Nether requires the ability for biomes to set "node_cave_liquid = air".
 	-- This feature was introduced by paramat in b1b40fef1 on 2019-05-19, but we can't test for
 	-- it directly. However b2065756c was merged a few months later (in 2019-08-14) and it is easy
-	-- to directly test for - it adds minetest.read_schematic() - so we use this as a proxy-test
-	-- for whether the Minetest engine is recent enough to have implemented node_cave_liquid=air
-	error("This " .. nether.modname .. " mapgen requires Minetest v5.1 or greater, use mapgen_nobiomes.lua instead.", 0)
+	-- to directly test for - it adds core.read_schematic() - so we use this as a proxy-test
+	-- for whether the Luanti engine is recent enough to have implemented node_cave_liquid=air
+	error("This " .. nether.modname .. " mapgen requires Luanti v5.1 or greater, use mapgen_nobiomes.lua instead.", 0)
 end
 
 -- Load specialty helper functions
@@ -84,7 +84,7 @@ local math_max, math_min, math_abs, math_floor = math.max, math.min, math.abs, m
 
 -- Move any existing biomes out of the y-range specified by 'floor_y' and 'ceiling_y'
 mapgen.shift_existing_biomes = function(floor_y, ceiling_y)
-	-- https://forum.minetest.net/viewtopic.php?p=257522#p257522
+	-- https://forum.luanti.org/viewtopic.php?p=257522#p257522
 	-- Q: Is there a way to override an already-registered biome so I can get it out of the
 	--    way of my own underground biomes without disturbing the other biomes registered by
 	--    default?
@@ -97,25 +97,25 @@ mapgen.shift_existing_biomes = function(floor_y, ceiling_y)
 
 	-- take a copy of all biomes, decorations, and ores. Regregistering a biome changes its ID, so
 	-- any decorations or ores using the 'biomes' field must afterwards be cleared and re-registered.
-	-- https://github.com/minetest/minetest/issues/9288
+	-- https://github.com/luanti-org/luanti/issues/9288
 	local registered_biomes_copy      = {}
 	local registered_decorations_copy = {}
 	local registered_ores_copy        = {}
 
-	for old_biome_key, old_biome_def in pairs(minetest.registered_biomes) do
+	for old_biome_key, old_biome_def in pairs(core.registered_biomes) do
 	   registered_biomes_copy[old_biome_key] = old_biome_def
 	end
-	for old_decoration_key, old_decoration_def in pairs(minetest.registered_decorations) do
+	for old_decoration_key, old_decoration_def in pairs(core.registered_decorations) do
 	   registered_decorations_copy[old_decoration_key] = old_decoration_def
 	end
-	for old_ore_key, old_ore_def in pairs(minetest.registered_ores) do
+	for old_ore_key, old_ore_def in pairs(core.registered_ores) do
 		registered_ores_copy[old_ore_key] = old_ore_def
 	end
 
 	-- clear biomes, decorations, and ores
-	minetest.clear_registered_decorations()
-	minetest.clear_registered_ores()
-	minetest.clear_registered_biomes()
+	core.clear_registered_decorations()
+	core.clear_registered_ores()
+	core.clear_registered_biomes()
 
 	-- Restore biomes, adjusted to not overlap the Nether
 	for biome_key, new_biome_def in pairs(registered_biomes_copy) do
@@ -150,16 +150,16 @@ mapgen.shift_existing_biomes = function(floor_y, ceiling_y)
 			new_biome_def.y_min = new_y_min -- Ensure the new heights are saved, even if original biome never specified one
 			new_biome_def.y_max = new_y_max
 		end
-		minetest.register_biome(new_biome_def)
+		core.register_biome(new_biome_def)
 	end
 
 	-- Restore biome decorations
 	for decoration_key, new_decoration_def in pairs(registered_decorations_copy) do
-	   minetest.register_decoration(new_decoration_def)
+	   core.register_decoration(new_decoration_def)
 	end
 	-- Restore biome ores
 	for ore_key, new_ore_def in pairs(registered_ores_copy) do
-		minetest.register_ore(new_ore_def)
+		core.register_ore(new_ore_def)
 	 end
  end
 
@@ -172,12 +172,12 @@ mapgen.shift_existing_biomes(NETHER_FLOOR, NETHER_CEILING)
 -- on_generate() callback will carve the Nether with nether:rack before invoking
 -- generate_decorations and generate_ores.
 -- It is disguised as stone to hide any bug where it leaks out of the nether, such as
--- https://github.com/minetest/minetest/issues/13440 or if on_generated() somehow was aborted.
-local stone_copy_def = table.copy(minetest.registered_nodes["default:stone"] or {})
+-- https://github.com/luanti-org/luanti/issues/13440 or if on_generated() somehow was aborted.
+local stone_copy_def = table.copy(core.registered_nodes["default:stone"] or {})
 stone_copy_def.drop = stone_copy_def.drop or "default:stone" -- probably already defined as cobblestone
-minetest.register_node("nether:native_mapgen", stone_copy_def)
+core.register_node("nether:native_mapgen", stone_copy_def)
 
-minetest.register_biome({
+core.register_biome({
 	name = "nether_caverns",
 	node_stone  = "nether:native_mapgen", -- nether:native_mapgen is used here to prevent the native mapgen from placing ores and decorations.
 	node_filler = "nether:native_mapgen", -- The lua on_generate will transform nether:native_mapgen into nether:rack then decorate and add ores.
@@ -187,10 +187,10 @@ minetest.register_biome({
 	-- Setting node_cave_liquid to "air" avoids the need to filter lava and water out of the mapchunk and
 	-- surrounding shell (overdraw nodes beyond the mapchunk).
 	-- This feature was introduced by paramat in b1b40fef1 on 2019-05-19, and this mapgen.lua file should only
-	-- be run if the Minetest version includes it. The earliest tag made after 2019-05-19 is 5.1.0 on 2019-10-13,
-	-- however we shouldn't test version numbers. minetest.read_schematic() was added by b2065756c and merged in
+	-- be run if the Luanti version includes it. The earliest tag made after 2019-05-19 is 5.1.0 on 2019-10-13,
+	-- however we shouldn't test version numbers. core.read_schematic() was added by b2065756c and merged in
 	-- 2019-08-14 and is easy to test for, we don't use it but it should make a good proxy-test for whether the
-	-- Minetest version is recent enough to have implemented node_cave_liquid=air
+	-- Luanti version is recent enough to have implemented node_cave_liquid=air
 	node_cave_liquid = "air",
 	y_max = NETHER_CEILING,
 	y_min = NETHER_FLOOR,
@@ -204,7 +204,7 @@ minetest.register_biome({
 
 dofile(nether.path .. "/mapgen_decorations.lua")
 
-minetest.register_ore({
+core.register_ore({
 	ore_type       = "scatter",
 	ore            = "nether:glowstone",
 	wherein        = "nether:rack",
@@ -215,7 +215,7 @@ minetest.register_ore({
 	y_min = mapgen.ore_floor
 })
 
-minetest.register_ore({
+core.register_ore({
 	ore_type       = "scatter",
 	ore            = "nether:lava_crust", -- crusted lava replaces scattered glowstone in the mantle
 	wherein        = "nether:rack_deep",
@@ -226,7 +226,7 @@ minetest.register_ore({
 	y_min = mapgen.ore_floor
 })
 
-minetest.register_ore({
+core.register_ore({
 	ore_type       = "scatter",
 	ore            = "default:lava_source",
 	wherein        = {"nether:rack", "nether:rack_deep"},
@@ -237,7 +237,7 @@ minetest.register_ore({
 	y_min = mapgen.ore_floor
 })
 
-minetest.register_ore({
+core.register_ore({
 	ore_type        = "blob",
 	ore             = "nether:sand",
 	wherein         = "nether:rack",
@@ -266,12 +266,12 @@ mapgen.np_cave = {
 local cavePointPerlin = nil
 
 mapgen.get_cave_point_perlin = function()
-	cavePointPerlin = cavePointPerlin or minetest.get_perlin(mapgen.np_cave)
+	cavePointPerlin = cavePointPerlin or core.get_perlin(mapgen.np_cave)
 	return cavePointPerlin
 end
 
 mapgen.get_cave_perlin_at = function(pos)
-	cavePointPerlin = cavePointPerlin or minetest.get_perlin(mapgen.np_cave)
+	cavePointPerlin = cavePointPerlin or core.get_perlin(mapgen.np_cave)
 	return cavePointPerlin:get_3d(pos)
 end
 
@@ -285,13 +285,13 @@ local dbuf = {}
 
 -- Content ids
 
-local c_air              = minetest.get_content_id("air")
-local c_netherrack       = minetest.get_content_id("nether:rack")
-local c_netherrack_deep  = minetest.get_content_id("nether:rack_deep")
-local c_crystaldark      = minetest.get_content_id("nether:geode")
-local c_lavasea_source   = minetest.get_content_id("nether:lava_source") -- same as lava but with staggered animation to look better as an ocean
-local c_lava_crust       = minetest.get_content_id("nether:lava_crust")
-local c_native_mapgen    = minetest.get_content_id("nether:native_mapgen")
+local c_air              = core.get_content_id("air")
+local c_netherrack       = core.get_content_id("nether:rack")
+local c_netherrack_deep  = core.get_content_id("nether:rack_deep")
+local c_crystaldark      = core.get_content_id("nether:geode")
+local c_lavasea_source   = core.get_content_id("nether:lava_source") -- same as lava but with staggered animation to look better as an ocean
+local c_lava_crust       = core.get_content_id("nether:lava_crust")
+local c_native_mapgen    = core.get_content_id("nether:native_mapgen")
 
 
 
@@ -338,7 +338,7 @@ local function on_generated(minp, maxp, seed)
 		return
 	end
 
-	local vm, emerge_min, emerge_max = minetest.get_mapgen_object("voxelmanip")
+	local vm, emerge_min, emerge_max = core.get_mapgen_object("voxelmanip")
 	local area = VoxelArea:new{MinEdge=emerge_min, MaxEdge=emerge_max}
 	local data = vm:get_data(dbuf)
 
@@ -349,7 +349,7 @@ local function on_generated(minp, maxp, seed)
 	local zCaveStride = yCaveStride * yCaveStride
 	local chulens = {x = yCaveStride, y = yCaveStride, z = yCaveStride}
 
-	nobj_cave = nobj_cave or minetest.get_perlin_map(mapgen.np_cave, chulens)
+	nobj_cave = nobj_cave or core.get_perlin_map(mapgen.np_cave, chulens)
 	local nvals_cave = nobj_cave:get_3d_map_flat(minp, nbuf_cave)
 
 	local dungeonRooms = mapgen.build_dungeon_room_list(data, area) -- function from mapgen_dungeons.lua
@@ -475,8 +475,8 @@ local function on_generated(minp, maxp, seed)
 
 	vm:set_data(data)
 
-	minetest.generate_ores(vm)
-	minetest.generate_decorations(vm)
+	core.generate_ores(vm)
+	core.generate_decorations(vm)
 
 	vm:set_lighting({day = 0, night = 0}, minp, maxp)
 	vm:calc_lighting()
@@ -527,4 +527,4 @@ function nether.find_nether_ground_y(target_x, target_z, start_y, player_name)
 	return math_max(start_y, NETHER_FLOOR + BLEND) -- Fallback
 end
 
-minetest.register_on_generated(on_generated)
+core.register_on_generated(on_generated)

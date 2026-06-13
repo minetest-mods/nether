@@ -1,6 +1,6 @@
 --[[
 
-  Nether mod for minetest
+  Nether mod for Luanti
 
   This file contains helper functions for generating geode interiors,
   a proof-of-concept to demonstrate how the secondary/spare region
@@ -31,10 +31,10 @@ local mapgen = nether.mapgen
 
 -- Content ids
 
-local c_air              = minetest.get_content_id("air")
-local c_crystal          = minetest.get_content_id("nether:geodelite") -- geodelite has a faint glow
-local c_netherrack       = minetest.get_content_id("nether:rack")
-local c_glowstone        = minetest.get_content_id("nether:glowstone")
+local c_air              = core.get_content_id("air")
+local c_crystal          = core.get_content_id("nether:geodelite") -- geodelite has a faint glow
+local c_netherrack       = core.get_content_id("nether:rack")
+local c_glowstone        = core.get_content_id("nether:glowstone")
 
 -- Math funcs
 local math_max, math_min, math_abs, math_floor, math_pi = math.max, math.min, math.abs, math.floor, math.pi -- avoid needing table lookups each time a common math function is invoked

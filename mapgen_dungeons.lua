@@ -1,6 +1,6 @@
 --[[
 
-  Nether mod for minetest
+  Nether mod for Luanti
 
   All the Dungeon related functions used by the biomes-based mapgen are here.
 
@@ -25,22 +25,22 @@
 
 -- We don't need to be gen-notified of temples because only dungeons will be generated
 -- if a biome defines the dungeon nodes
-minetest.set_gen_notify({dungeon = true})
+core.set_gen_notify({dungeon = true})
 
 
 -- Content ids
 
-local c_air              = minetest.get_content_id("air")
-local c_netherrack       = minetest.get_content_id("nether:rack")
-local c_netherrack_deep  = minetest.get_content_id("nether:rack_deep")
-local c_crystaldark      = minetest.get_content_id("nether:geode")
-local c_dungeonbrick     = minetest.get_content_id("nether:brick")
-local c_dungeonbrick_alt = minetest.get_content_id("nether:brick_cracked")
-local c_netherbrick_slab = minetest.get_content_id("stairs:slab_nether_brick")
-local c_netherfence      = minetest.get_content_id("nether:fence_nether_brick")
-local c_glowstone        = minetest.get_content_id("nether:glowstone")
-local c_glowstone_deep   = minetest.get_content_id("nether:glowstone_deep")
-local c_lava_source      = minetest.get_content_id("default:lava_source")
+local c_air              = core.get_content_id("air")
+local c_netherrack       = core.get_content_id("nether:rack")
+local c_netherrack_deep  = core.get_content_id("nether:rack_deep")
+local c_crystaldark      = core.get_content_id("nether:geode")
+local c_dungeonbrick     = core.get_content_id("nether:brick")
+local c_dungeonbrick_alt = core.get_content_id("nether:brick_cracked")
+local c_netherbrick_slab = core.get_content_id("stairs:slab_nether_brick")
+local c_netherfence      = core.get_content_id("nether:fence_nether_brick")
+local c_glowstone        = core.get_content_id("nether:glowstone")
+local c_glowstone_deep   = core.get_content_id("nether:glowstone_deep")
+local c_lava_source      = core.get_content_id("default:lava_source")
 
 
 -- Misc math functions
@@ -64,7 +64,7 @@ nether.mapgen.build_dungeon_room_list = function(data, area)
 	-- Unfortunately gennotify only returns dungeon rooms, not corridors.
 	-- We don't need to check for temples because only dungeons are generated in biomes
 	-- that define their own dungeon nodes.
-	local gennotify = minetest.get_mapgen_object("gennotify")
+	local gennotify = core.get_mapgen_object("gennotify")
 	local roomLocations = gennotify["dungeon"] or {}
 
 	-- Excavation should still know to stop if a cave or corridor has removed the dungeon wall.
@@ -80,7 +80,7 @@ nether.mapgen.build_dungeon_room_list = function(data, area)
 		if area:containsp(roomPos) then -- this safety check does not appear to be necessary, but lets make it explicit
 
 			local room_vi = area:indexp(roomPos)
-			--data[room_vi] = minetest.get_content_id("default:torch") -- debug
+			--data[room_vi] = core.get_content_id("default:torch") -- debug
 
 			local startPos = vector.new(roomPos)
 			if roomPos.y + 1 <= maxEdge.y and data[room_vi + yStride] == c_air then
@@ -174,7 +174,7 @@ nether.mapgen.excavate_dungeons = function(data, area, rooms)
 
 	-- clear netherrack from dungeon stairways
 	if #rooms > 0 then
-		local stairPositions = minetest.find_nodes_in_area(area.MinEdge, area.MaxEdge, minetest.registered_biomes["nether_caverns"].node_dungeon_stair)
+		local stairPositions = core.find_nodes_in_area(area.MinEdge, area.MaxEdge, core.registered_biomes["nether_caverns"].node_dungeon_stair)
 		for _, stairPos in ipairs(stairPositions) do
 			vi = area:indexp(stairPos)
 			for i = 1, 4 do
@@ -230,7 +230,7 @@ nether.mapgen.decorate_dungeons = function(data, area, rooms)
 			   and window_y >= minEdge.y and window_y + 1 <= maxEdge.y
 			   and room_min.x > minEdge.x and room_max.x < maxEdge.x
 			   and room_min.z > minEdge.z and room_max.z < maxEdge.z then
-				--data[area:indexp(roomInfo)] = minetest.get_content_id("default:mese_post_light") -- debug
+				--data[area:indexp(roomInfo)] = core.get_content_id("default:mese_post_light") -- debug
 
 				-- Glass panes can't go in the windows because we aren't setting param data.
 				-- Until a Nether glass is added, every window will be made of netherbrick fence rather

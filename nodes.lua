@@ -1,6 +1,6 @@
 --[[
 
-  Nether mod for minetest
+  Nether mod for Luanti
 
   Copyright (C) 2013 PilzAdam
 
@@ -26,7 +26,7 @@ local S = nether.get_translator
 nether.register_wormhole_node("nether:portal", {
 	description = S("Nether Portal"),
 	post_effect_color = {
-		-- post_effect_color can't be changed dynamically in Minetest like the portal colour is.
+		-- post_effect_color can't be changed dynamically in Luanti like the portal colour is.
 		-- If you need a different post_effect_color then use register_wormhole_node to create
 		-- another wormhole node and set it as the wormhole_node_name in your portaldef.
 		-- Hopefully this colour is close enough to magenta to work with the traditional magenta
@@ -75,20 +75,20 @@ nether.register_wormhole_node("nether:portal_alt", {
 -- returns true if a node was transmogrified
 nether.magicallyTransmogrify_node = function(nodePos, playerName, newNode, monoSimpleSoundSpec, isPermanent)
 
-	local meta         = minetest.get_meta(nodePos)
+	local meta         = core.get_meta(nodePos)
 	local playerEyePos = nodePos -- fallback value in case the player no longer exists
-	local player       = minetest.get_player_by_name(playerName)
+	local player       = core.get_player_by_name(playerName)
 	if player ~= nil then
 		local playerPos = player:get_pos()
 		playerEyePos = vector.add(playerPos, {x = 0, y = 1.5, z = 0}) -- not always the cameraPos, e.g. 3rd person mode.
 	end
 
-	local oldNode = minetest.get_node(nodePos)
+	local oldNode = core.get_node(nodePos)
 	if oldNode.name == "air" then
 		-- the node has been mined or otherwise destroyed, abort the operation
 		return false
 	end
-	local oldNodeDef = minetest.registered_nodes[oldNode.name] or minetest.registered_nodes["air"]
+	local oldNodeDef = core.registered_nodes[oldNode.name] or core.registered_nodes["air"]
 
 	local specialFXSize = 1 -- a specialFXSize of 1 is for full SFX, 0.5 is half-sized
 	local returningToNormal = newNode == nil
@@ -102,7 +102,7 @@ nether.magicallyTransmogrify_node = function(nodePos, playerName, newNode, monoS
 			param2 = meta:get_string("transmogrified_param2")
 		}
 		if newNode.name == "" then
-			minetest.log("warning", "nether.magicallyTransmogrify_node() invoked to restore node which wasn't transmogrified")
+			core.log("warning", "nether.magicallyTransmogrify_node() invoked to restore node which wasn't transmogrified")
 			return false
 		end
 	end
@@ -113,7 +113,7 @@ nether.magicallyTransmogrify_node = function(nodePos, playerName, newNode, monoS
 		if soundSpec == "__group" then soundSpec = "default_dig_cracky" end
 	end
 	if soundSpec ~= nil then
-		minetest.sound_play(soundSpec, {pos = nodePos, max_hear_distance = 50})
+		core.sound_play(soundSpec, {pos = nodePos, max_hear_distance = 50})
 	end
 
 	-- Start the particlespawner nearer the player's side of the node to create
@@ -121,7 +121,7 @@ nether.magicallyTransmogrify_node = function(nodePos, playerName, newNode, monoS
 	local dirToPlayer = vector.normalize(vector.subtract(playerEyePos, nodePos))
 	local impactPos = vector.add(nodePos, vector.multiply(dirToPlayer, 0.5))
 	local velocity = 1 + specialFXSize
-	minetest.add_particlespawner({
+	core.add_particlespawner({
 		amount     = 50 * specialFXSize,
 		time       = 0.1,
 		minpos     = vector.add(impactPos, -0.3),
@@ -150,13 +150,13 @@ nether.magicallyTransmogrify_node = function(nodePos, playerName, newNode, monoS
 		meta:set_int("transmogrified_param2", oldNode.param2)
 	end
 
-	minetest.swap_node(nodePos, newNode)
+	core.swap_node(nodePos, newNode)
 	return true
 end
 
 
 local function transmogrified_can_dig (pos, player)
-	if minetest.get_meta(pos):get_string("transmogrified_name") ~= "" then
+	if core.get_meta(pos):get_string("transmogrified_name") ~= "" then
 		-- This node was temporarily transformed into its current form
 		-- revert it back, rather than allow the player to mine transmogrified nodes.
 		local playerName = ""
@@ -171,7 +171,7 @@ end
 
 -- Nether nodes
 
-minetest.register_node("nether:rack", {
+core.register_node("nether:rack", {
 	description = S("Netherrack"),
 	tiles = {"nether_rack.png"},
 	is_ground_content = true,
@@ -182,7 +182,7 @@ minetest.register_node("nether:rack", {
 
 -- Geode crystals can only be introduced by the biomes-based mapgen, since it requires the
 -- MT 5.0 world-align texture features.
-minetest.register_node("nether:geode", {
+core.register_node("nether:geode", {
 	description = S("Nether Beryl"),
 	_doc_items_longdesc = S("Nether geode crystal, found lining the interior walls of Nether geodes"),
 	tiles = {{
@@ -198,7 +198,7 @@ minetest.register_node("nether:geode", {
 -- Nether Berylite is a Beryl that can seen in the dark, used to light up the internal structure
 -- of the geode, so to avoid player confusion we'll just have it drop plain Beryl, and have only
 -- plain Beryl in the creative inventory.
-minetest.register_node("nether:geodelite", {
+core.register_node("nether:geodelite", {
 	description = S("Nether Berylite"),
 	_doc_items_longdesc = S("Nether geode crystal. A crystalline structure with faint glow found inside large Nether geodes"),
 	tiles = {{
@@ -213,7 +213,7 @@ minetest.register_node("nether:geodelite", {
 	sounds = default.node_sound_glass_defaults(),
 })
 
-if minetest.get_modpath("xpanes") and minetest.global_exists("xpanes") and xpanes.register_pane ~= nil then
+if core.get_modpath("xpanes") and core.global_exists("xpanes") and xpanes.register_pane ~= nil then
 	xpanes.register_pane("nether_crystal_pane", {
 		description = S("Nether Crystal Pane"),
 		textures = {
@@ -238,7 +238,7 @@ end
 
 
 -- Deep Netherrack, found in the mantle / central magma layers
-minetest.register_node("nether:rack_deep", {
+core.register_node("nether:rack_deep", {
 	description = S("Deep Netherrack"),
 	_doc_items_longdesc = S("Netherrack from deep in the mantle"),
 	tiles = {"nether_rack_deep.png"},
@@ -248,7 +248,7 @@ minetest.register_node("nether:rack_deep", {
 	sounds = default.node_sound_stone_defaults(),
 })
 
-minetest.register_node("nether:sand", {
+core.register_node("nether:sand", {
 	description = S("Nethersand"),
 	tiles = {"nether_sand.png"},
 	is_ground_content = true,
@@ -258,7 +258,7 @@ minetest.register_node("nether:sand", {
 	}),
 })
 
-minetest.register_node("nether:glowstone", {
+core.register_node("nether:glowstone", {
 	description = S("Glowstone"),
 	tiles = {"nether_glowstone.png"},
 	is_ground_content = true,
@@ -270,7 +270,7 @@ minetest.register_node("nether:glowstone", {
 })
 
 -- Deep glowstone, found in the mantle / central magma layers
-minetest.register_node("nether:glowstone_deep", {
+core.register_node("nether:glowstone_deep", {
 	description = S("Deep Glowstone"),
 	tiles = {"nether_glowstone_deep.png"},
 	is_ground_content = true,
@@ -281,7 +281,7 @@ minetest.register_node("nether:glowstone_deep", {
 	can_dig = transmogrified_can_dig, -- to ensure glowstone temporarily created by the lightstaff can't be kept
 })
 
-minetest.register_node("nether:brick", {
+core.register_node("nether:brick", {
 	description = S("Nether Brick"),
 	tiles = {"nether_brick.png"},
 	is_ground_content = false,
@@ -289,7 +289,7 @@ minetest.register_node("nether:brick", {
 	sounds = default.node_sound_stone_defaults(),
 })
 
-minetest.register_node("nether:brick_compressed", {
+core.register_node("nether:brick_compressed", {
 	description = S("Compressed Netherbrick"),
 	tiles = {"nether_brick_compressed.png"},
 	groups = {cracky = 3, level = 2},
@@ -298,7 +298,7 @@ minetest.register_node("nether:brick_compressed", {
 })
 
 -- A decorative node which can only be obtained from dungeons or structures
-minetest.register_node("nether:brick_cracked", {
+core.register_node("nether:brick_cracked", {
 	description = S("Cracked Nether Brick"),
 	tiles = {"nether_brick_cracked.png"},
 	is_ground_content = false,
@@ -306,7 +306,7 @@ minetest.register_node("nether:brick_cracked", {
 	sounds = default.node_sound_stone_defaults(),
 })
 
-minetest.register_node("nether:brick_deep", {
+core.register_node("nether:brick_deep", {
 	description = S("Deep Nether Brick"),
 	tiles = {{
 		name        = "nether_brick_deep.png",
@@ -318,7 +318,7 @@ minetest.register_node("nether:brick_deep", {
 	sounds = default.node_sound_stone_defaults()
 })
 
-minetest.register_node("nether:nether_block", {
+core.register_node("nether:nether_block", {
 	description = S("Nether Block"),
 	tiles = {"nether_nether_block.png"},
 	is_ground_content = false,
@@ -365,7 +365,7 @@ stairs.register_stair_and_slab( -- this function also registers inner and outer 
 	{"nether_brick.png"},                              -- images
 	S("Nether Stair"),                                 -- desc_stair
 	S("Nether Slab"),                                  -- desc_slab
-	minetest.registered_nodes["nether:brick"].sounds,  -- sounds
+	core.registered_nodes["nether:brick"].sounds,  -- sounds
 	false,                                             -- worldaligntex
 	S("Inner Nether Stair"),                           -- desc_stair_inner
 	S("Outer Nether Stair")                            -- desc_stair_outer
@@ -378,7 +378,7 @@ stairs.register_stair_and_slab( -- this function also registers inner and outer 
 	{"nether_brick_deep.png"},                              -- images
 	S("Deep Nether Stair"),                                 -- desc_stair
 	S("Deep Nether Slab"),                                  -- desc_slab
-	minetest.registered_nodes["nether:brick_deep"].sounds,  -- sounds
+	core.registered_nodes["nether:brick_deep"].sounds,  -- sounds
 	false,                                                  -- worldaligntex
 	S("Inner Deep Nether Stair"),                           -- desc_stair_inner
 	S("Outer Deep Nether Stair")                            -- desc_stair_outer
@@ -392,7 +392,7 @@ stairs.register_stair(
 	{cracky = 2, level = 2},
 	{"nether_rack.png"},
 	S("Netherrack Stair"),
-	minetest.registered_nodes["nether:rack"].sounds
+	core.registered_nodes["nether:rack"].sounds
 )
 stairs.register_slab( -- register a slab without adding inner and outer stairs
 	"netherrack",
@@ -400,7 +400,7 @@ stairs.register_slab( -- register a slab without adding inner and outer stairs
 	{cracky = 2, level = 2},
 	{"nether_rack.png"},
 	S("Netherrack Slab"),
-	minetest.registered_nodes["nether:rack"].sounds
+	core.registered_nodes["nether:rack"].sounds
 )
 
 stairs.register_stair(
@@ -409,7 +409,7 @@ stairs.register_stair(
 	{cracky = 2, level = 2},
 	{"nether_rack_deep.png"},
 	S("Deep Netherrack Stair"),
-	minetest.registered_nodes["nether:rack_deep"].sounds
+	core.registered_nodes["nether:rack_deep"].sounds
 )
 stairs.register_slab( -- register a slab without adding inner and outer stairs
 	"netherrack_deep",
@@ -417,18 +417,18 @@ stairs.register_slab( -- register a slab without adding inner and outer stairs
 	{cracky = 2, level = 2},
 	{"nether_rack_deep.png"},
 	S("Deep Netherrack Slab"),
-	minetest.registered_nodes["nether:rack_deep"].sounds
+	core.registered_nodes["nether:rack_deep"].sounds
 )
 
 -- Connecting walls
-if minetest.get_modpath("walls") and minetest.global_exists("walls") and walls.register ~= nil then
-	walls.register("nether:rack_wall",      S("A Netherrack Wall"),      "nether_rack.png",      "nether:rack",      minetest.registered_nodes["nether:rack"].sounds)
-	walls.register("nether:rack_deep_wall", S("A Deep Netherrack Wall"), "nether_rack_deep.png", "nether:rack_deep", minetest.registered_nodes["nether:rack_deep"].sounds)
+if core.get_modpath("walls") and core.global_exists("walls") and walls.register ~= nil then
+	walls.register("nether:rack_wall",      S("A Netherrack Wall"),      "nether_rack.png",      "nether:rack",      core.registered_nodes["nether:rack"].sounds)
+	walls.register("nether:rack_deep_wall", S("A Deep Netherrack Wall"), "nether_rack_deep.png", "nether:rack_deep", core.registered_nodes["nether:rack_deep"].sounds)
 end
 
 -- StairsPlus
 
-if minetest.get_modpath("moreblocks") then
+if core.get_modpath("moreblocks") then
 	-- Registers about 49 different shapes of nether brick, replacing the stairs & slabs registered above.
 	-- (This could also be done for deep nether brick, but I've left that out to avoid a precedent of 49 new
 	-- nodes every time the nether gets a new material. Nether structures won't be able to use them because
@@ -438,7 +438,7 @@ if minetest.get_modpath("moreblocks") then
 			description = S("Nether Brick"),
 			groups = {cracky = 2, level = 2},
 			tiles = {"nether_brick.png"},
-			sounds = minetest.registered_nodes["nether:brick"].sounds,
+			sounds = core.registered_nodes["nether:brick"].sounds,
 	})
 end
 
@@ -448,7 +448,7 @@ end
 -- Nether basalt is intended as a valuable material and possible portalstone - an alternative to
 -- obsidian that's available for other mods to use.
 -- It cannot be found in the regions of the nether where Nether portals link to, so requires a journey to obtain.
-minetest.register_node("nether:basalt", {
+core.register_node("nether:basalt", {
 	description = S("Nether Basalt"),
 	_doc_items_longdesc = S("Columns of dark basalt found only in magma oceans deep within the Nether."),
 	tiles = {
@@ -469,7 +469,7 @@ minetest.register_node("nether:basalt", {
 -- and chiseled basalt.
 -- It can only be introduced by the biomes-based mapgen, since it requires the
 -- MT 5.0 world-align texture features.
-minetest.register_node("nether:basalt_hewn", {
+core.register_node("nether:basalt_hewn", {
 	description = S("Hewn Basalt"),
 	_doc_items_longdesc = S("A rough cut solid block of Nether Basalt."),
 	tiles = {{
@@ -477,7 +477,7 @@ minetest.register_node("nether:basalt_hewn", {
 		align_style = "world",
 		scale       = 2
 	}},
-	inventory_image = minetest.inventorycube(
+	inventory_image = core.inventorycube(
 		"nether_basalt_hewn.png^[sheet:2x2:0,0",
 		"nether_basalt_hewn.png^[sheet:2x2:0,1",
 		"nether_basalt_hewn.png^[sheet:2x2:1,1"
@@ -492,7 +492,7 @@ minetest.register_node("nether:basalt_hewn", {
 -- available for other mods to use. It is crafted from Hewn Basalt.
 -- It should only be introduced by the biomes-based mapgen, since in future it may
 -- require the MT 5.0 world-align texture features.
-minetest.register_node("nether:basalt_chiselled", {
+core.register_node("nether:basalt_chiselled", {
 	description = S("Chiselled Basalt"),
 	_doc_items_longdesc = S("A finely finished block of solid Nether Basalt."),
 	tiles = {
@@ -503,7 +503,7 @@ minetest.register_node("nether:basalt_chiselled", {
 		"nether_basalt_chiselled_side.png",
 		"nether_basalt_chiselled_side.png"
 	},
-	inventory_image = minetest.inventorycube(
+	inventory_image = core.inventorycube(
 		"nether_basalt_chiselled_top.png",
 		"nether_basalt_chiselled_side.png",
 		"nether_basalt_chiselled_side.png"
@@ -523,7 +523,7 @@ minetest.register_node("nether:basalt_chiselled", {
 -- It can only be used by the biomes-based mapgen, since it requires the MT 5.0
 -- world-align texture features.
 local lavasea_source = {}
-local lava_source = minetest.registered_nodes["default:lava_source"]
+local lava_source = core.registered_nodes["default:lava_source"]
 for key, value in pairs(lava_source) do lavasea_source[key] = value end
 lavasea_source.name = nil
 lavasea_source.tiles = {
@@ -555,12 +555,12 @@ lavasea_source.tiles = {
 lavasea_source.groups = { not_in_creative_inventory = 1 } -- Avoid having two lava source blocks in the inv.
 for key, value in pairs(lava_source.groups) do lavasea_source.groups[key] = value end
 lavasea_source.liquid_alternative_source = "nether:lava_source"
-lavasea_source.inventory_image = minetest.inventorycube(
+lavasea_source.inventory_image = core.inventorycube(
 	"nether_lava_source_animated.png^[sheet:2x16:0,0",
 	"nether_lava_source_animated.png^[sheet:2x16:0,1",
 	"nether_lava_source_animated.png^[sheet:2x16:1,1"
 )
-minetest.register_node("nether:lava_source", lavasea_source)
+core.register_node("nether:lava_source", lavasea_source)
 
 
 -- a place to store the original ABM function so nether.cool_lava() can call it
@@ -569,19 +569,19 @@ local original_cool_lava_action
 nether.cool_lava = function(pos, node)
 
 	local pos_above = {x = pos.x, y = pos.y + 1, z = pos.z}
-	local node_above = minetest.get_node(pos_above)
+	local node_above = core.get_node(pos_above)
 
 	-- Evaporate water sitting above lava, if it's in the Nether.
 	-- (we don't want Nether mod to affect overworld lava mechanics)
-	if minetest.get_item_group(node_above.name, "water") > 0 and
+	if core.get_item_group(node_above.name, "water") > 0 and
 		pos.y < nether.DEPTH_CEILING and pos.y > nether.DEPTH_FLOOR_LAYERS then
 		-- cools_lava might be a better group to check for, but perhaps there's
 		-- something in that group that isn't a liquid and shouldn't be evaporated?
-		minetest.swap_node(pos_above, {name="air"})
+		core.swap_node(pos_above, {name="air"})
 	end
 
 	-- add steam to cooling lava
-	minetest.add_particlespawner({
+	core.add_particlespawner({
 		amount = 20,
 		time = 0.15,
 		minpos = {x=pos.x - 0.4, y=pos.y - 0,   z=pos.z - 0.4},
@@ -605,9 +605,9 @@ nether.cool_lava = function(pos, node)
 
 	if node.name == "nether:lava_source" or node.name == "nether:lava_crust" then
 		-- use swap_node to avoid triggering the lava_crust's after_destruct
-		minetest.swap_node(pos, {name = "nether:basalt"})
+		core.swap_node(pos, {name = "nether:basalt"})
 
-		minetest.sound_play("default_cool_lava",
+		core.sound_play("default_cool_lava",
 			{pos = pos, max_hear_distance = 16, gain = 0.25}, true)
 	else
 		-- chain the original ABM action to handle conventional lava
@@ -616,11 +616,11 @@ nether.cool_lava = function(pos, node)
 end
 
 
-minetest.register_on_mods_loaded(function()
+core.register_on_mods_loaded(function()
 
 	-- register a bucket of Lava-sea source - but make it just the same bucket as default lava.
 	-- (by doing this in register_on_mods_loaded we don't need to declare a soft dependency)
-	if minetest.get_modpath("bucket") and minetest.global_exists("bucket") and type(bucket.liquids) == "table" then
+	if core.get_modpath("bucket") and core.global_exists("bucket") and type(bucket.liquids) == "table" then
 		local lava_bucket = bucket.liquids["default:lava_source"]
 		if lava_bucket ~= nil then
 			local lavasea_bucket = {}
@@ -643,7 +643,7 @@ minetest.register_on_mods_loaded(function()
 		end
 	end
 
-	for _, abm in pairs(minetest.registered_abms) do
+	for _, abm in pairs(core.registered_abms) do
 		include_nether_lava(abm.nodenames)
 		include_nether_lava(abm.neighbors)
 		if abm.label == "Lava cooling" and abm.action ~= nil then
@@ -653,11 +653,11 @@ minetest.register_on_mods_loaded(function()
 			table.insert(abm.nodenames, "nether:lava_crust")
 		end
 	end
-	for _, lbm in pairs(minetest.registered_lbms) do
+	for _, lbm in pairs(core.registered_lbms) do
 		include_nether_lava(lbm.nodenames)
 	end
-	--minetest.log("minetest.registered_abms" .. dump(minetest.registered_abms))
-	--minetest.log("minetest.registered_lbms" .. dump(minetest.registered_lbms))
+	--core.log("core.registered_abms" .. dump(core.registered_abms))
+	--core.log("core.registered_lbms" .. dump(core.registered_lbms))
 end)
 
 -- creates a lava splash, and leaves lava_source in place of the lava_crust
@@ -679,32 +679,32 @@ local function smash_lava_crust(pos, playsound)
 		texture = "blank.png^[noalpha^[colorize:#A00:255",
 		glow = 8
 	}
-	minetest.add_particlespawner(lava_particlespawn_def)
+	core.add_particlespawner(lava_particlespawn_def)
 	lava_particlespawn_def.texture = "blank.png^[noalpha^[colorize:#FB0:255"
 	lava_particlespawn_def.maxvel.y = 3
 	lava_particlespawn_def.glow = 12
-	minetest.add_particlespawner(lava_particlespawn_def)
+	core.add_particlespawner(lava_particlespawn_def)
 
-	minetest.set_node(pos, {name = "default:lava_source"})
+	core.set_node(pos, {name = "default:lava_source"})
 
-	if math.random(1, 3) == 1 and minetest.registered_nodes["fire:basic_flame"] ~= nil then
+	if math.random(1, 3) == 1 and core.registered_nodes["fire:basic_flame"] ~= nil then
 		-- occasionally brief flames will be seen when breaking lava crust
 		local posAbove = {x = pos.x, y = pos.y + 1, z = pos.z}
-		if minetest.get_node(posAbove).name == "air" then
-			minetest.set_node(posAbove, {name = "fire:basic_flame"})
-			minetest.get_node_timer(posAbove):set(math.random(7, 15) / 10, 0)
+		if core.get_node(posAbove).name == "air" then
+			core.set_node(posAbove, {name = "fire:basic_flame"})
+			core.get_node_timer(posAbove):set(math.random(7, 15) / 10, 0)
 			--[[ commented out because the flame sound plays for too long
-			if minetest.global_exists("fire") and fire.update_player_sound ~= nil then
+			if core.global_exists("fire") and fire.update_player_sound ~= nil then
 				-- The fire mod only updates its sound every 3 seconds, these flames will be
 				-- out by then, so start the sound immediately
-				local players = minetest.get_connected_players()
+				local players = core.get_connected_players()
 				for n = 1, #players do fire.update_player_sound(players[n]) end
 			end]]
 		end
 	end
 
 	if playsound then
-		minetest.sound_play(
+		core.sound_play(
 			"nether_lava_bubble",
 			-- this sample was encoded at 3x speed to reduce .ogg file size
 			-- at the expense of higher frequencies, so pitch it down ~3x
@@ -716,7 +716,7 @@ end
 
 -- lava_crust nodes can only be used in the biomes-based mapgen, since they require
 -- the MT 5.0 world-align texture features.
-minetest.register_node("nether:lava_crust", {
+core.register_node("nether:lava_crust", {
 	description = S("Lava Crust"),
 	_doc_items_longdesc = S("A thin crust of cooled lava with liquid lava beneath"),
 	_doc_items_usagehelp = S("Lava crust is strong enough to walk on, but still hot enough to inflict burns."),
@@ -736,7 +736,7 @@ minetest.register_node("nether:lava_crust", {
 			},
 		}
 	},
-	inventory_image = minetest.inventorycube(
+	inventory_image = core.inventorycube(
 		"nether_lava_crust_animated.png^[sheet:2x48:0,0",
 		"nether_lava_crust_animated.png^[sheet:2x48:0,1",
 		"nether_lava_crust_animated.png^[sheet:2x48:1,1"
@@ -797,18 +797,18 @@ local function fumarole_startTimer(pos, timeout_factor)
 	if timeout_factor == nil then timeout_factor = 1 end
 	local next_timeout = (math.random(50, 900) / 10) * timeout_factor
 
-	minetest.get_meta(pos):set_float("expected_timeout", next_timeout)
-	minetest.get_node_timer(pos):start(next_timeout)
+	core.get_meta(pos):set_float("expected_timeout", next_timeout)
+	core.get_node_timer(pos):start(next_timeout)
 end
 
 -- Create an LBM to start fumarole node timers
-minetest.register_lbm({
+core.register_lbm({
 	label = "Start fumarole smoke",
 	name  = "nether:start_fumarole",
 	nodenames = {"nether:fumarole"},
 	run_at_every_load = true,
 	action = function(pos, node)
-		local node_above = minetest.get_node({x = pos.x, y = pos.y + 1, z = pos.z})
+		local node_above = core.get_node({x = pos.x, y = pos.y + 1, z = pos.z})
 		if node_above.name == "air" then --and node.param2 % 4 == 0 then
 			fumarole_startTimer(pos)
 		end
@@ -819,19 +819,19 @@ local function set_fire(pos, extinguish)
 	local posBelow  = {x = pos.x, y = pos.y - 1, z = pos.z}
 
 	if extinguish then
-		if minetest.get_node(pos).name      == "fire:permanent_flame" then minetest.set_node(pos,      {name="air"}) end
-		if minetest.get_node(posBelow).name == "fire:permanent_flame" then minetest.set_node(posBelow, {name="air"}) end
+		if core.get_node(pos).name      == "fire:permanent_flame" then core.set_node(pos,      {name="air"}) end
+		if core.get_node(posBelow).name == "fire:permanent_flame" then core.set_node(posBelow, {name="air"}) end
 
-	elseif minetest.get_node(posBelow).name == "air" then
-		minetest.set_node(posBelow, {name="fire:permanent_flame"})
-	elseif minetest.get_node(pos).name == "air" then
-		minetest.set_node(pos, {name="fire:permanent_flame"})
+	elseif core.get_node(posBelow).name == "air" then
+		core.set_node(posBelow, {name="fire:permanent_flame"})
+	elseif core.get_node(pos).name == "air" then
+		core.set_node(pos, {name="fire:permanent_flame"})
 	end
 end
 
 local function fumarole_onTimer(pos, elapsed)
 
-	local expected_timeout = minetest.get_meta(pos):get_float("expected_timeout")
+	local expected_timeout = core.get_meta(pos):get_float("expected_timeout")
 	if elapsed > expected_timeout + 10 then
 		-- The timer didn't fire when it was supposed to, so the chunk was probably inactive and has
 		-- just been approached again, meaning *every* fumarole's on_timer is about to go off.
@@ -843,13 +843,13 @@ local function fumarole_onTimer(pos, elapsed)
 	-- Fumaroles in the Nether can catch fire.
 	-- (if taken to the surface and used as cottage chimneys, they don't catch fire)
 	local inNether = pos.y <= nether.DEPTH and pos.y >= nether.DEPTH_FLOOR_LAYERS
-	local canCatchFire = inNether and minetest.registered_nodes["fire:permanent_flame"] ~= nil
+	local canCatchFire = inNether and core.registered_nodes["fire:permanent_flame"] ~= nil
 	local smoke_offset   = 0
 	local timeout_factor = 1
 	local smoke_time_adj = 1
 
 	local posAbove = {x = pos.x, y = pos.y + 1, z = pos.z}
-	local extinguish = inNether and minetest.get_node(posAbove).name ~= "air"
+	local extinguish = inNether and core.get_node(posAbove).name ~= "air"
 
 	if extinguish or (canCatchFire and math.floor(elapsed) % 7 == 0) then
 
@@ -885,15 +885,15 @@ local function fumarole_onTimer(pos, elapsed)
 				texture = "blank.png^[noalpha^[colorize:#A00:255",
 				glow = 8
 			}
-			minetest.add_particlespawner(embers_particlespawn_def)
+			core.add_particlespawner(embers_particlespawn_def)
 			embers_particlespawn_def.texture = "blank.png^[noalpha^[colorize:#A50:255"
 			embers_particlespawn_def.maxvel.y = 3
 			embers_particlespawn_def.glow = 12
-			minetest.add_particlespawner(embers_particlespawn_def)
+			core.add_particlespawner(embers_particlespawn_def)
 
 		else
 			-- gas noises
-			minetest.sound_play("nether_fumarole", {
+			core.sound_play("nether_fumarole", {
 				pos = pos,
 				max_hear_distance = 60,
 				gain = 0.24,
@@ -908,7 +908,7 @@ local function fumarole_onTimer(pos, elapsed)
 	end
 
 	-- let out some smoke
-	minetest.add_particlespawner({
+	core.add_particlespawner({
 		amount = 12 * smoke_time_adj,
 		time = math.random(40, 60) / 10 * smoke_time_adj,
 		minpos = {x=pos.x - 0.2, y=pos.y + smoke_offset, z=pos.z - 0.2},
@@ -929,7 +929,7 @@ local function fumarole_onTimer(pos, elapsed)
 end
 
 
-minetest.register_node("nether:fumarole", {
+core.register_node("nether:fumarole", {
 	description=S("Fumarolic Chimney"),
 	_doc_items_longdesc = S("A vent in the earth emitting steam and gas"),
 	_doc_items_usagehelp = S("Can be repurposed to provide puffs of smoke in a chimney"),
@@ -955,7 +955,7 @@ minetest.register_node("nether:fumarole", {
 	selection_box = {type = 'fixed', fixed = {-.5, -.5, -.5, .5, .5, .5}}
 })
 
-minetest.register_node("nether:fumarole_slab", {
+core.register_node("nether:fumarole_slab", {
 	description=S("Fumarolic Chimney Slab"),
 	_doc_items_longdesc = S("A vent in the earth emitting steam and gas"),
 	_doc_items_usagehelp = S("Can be repurposed to provide puffs of smoke in a chimney"),
@@ -982,7 +982,7 @@ minetest.register_node("nether:fumarole_slab", {
 	collision_box = {type = 'fixed', fixed = {-.5, -.5, -.5, .5, 0, .5}}
 })
 
-minetest.register_node("nether:fumarole_corner", {
+core.register_node("nether:fumarole_corner", {
 	description=S("Fumarolic Chimney Corner"),
 	tiles = {"nether_rack.png"},
 	is_ground_content = true,
@@ -1015,6 +1015,6 @@ minetest.register_node("nether:fumarole_corner", {
 -- since engine limitations mean any mesh or nodebox node will light up if it has lava
 -- below it.
 local airlike_darkness = {}
-for k,v in pairs(minetest.registered_nodes["air"]) do airlike_darkness[k] = v end
+for k,v in pairs(core.registered_nodes["air"]) do airlike_darkness[k] = v end
 airlike_darkness.paramtype = "none"
-minetest.register_node("nether:airlike_darkness", airlike_darkness)
+core.register_node("nether:airlike_darkness", airlike_darkness)

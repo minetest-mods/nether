@@ -1,6 +1,6 @@
 --[[
 
-  Nether mod for minetest
+  Nether mod for Luanti
 
   Copyright (C) 2013 PilzAdam
 
@@ -22,13 +22,13 @@
 -- Set DEBUG_FLAGS to determine the behavior of nether.debug():
 --   0 = off
 --   1 = print(...)
---   2 = minetest.chat_send_all(...)
---   4 = minetest.log("info", ...)
+--   2 = core.chat_send_all(...)
+--   4 = core.log("info", ...)
 local DEBUG_FLAGS = 0
 
 local S
-if minetest.get_translator ~= nil then
-	S = minetest.get_translator("nether")
+if core.get_translator ~= nil then
+	S = core.get_translator("nether")
 else
 	-- mock the translator function for MT 0.4
 	S = function(str, ...)
@@ -43,12 +43,12 @@ end
 -- Global Nether namespace
 nether                = {}
 nether.mapgen         = {} -- Shared Nether mapgen namespace, for mapgen files to expose functions and constants
-nether.modname        = minetest.get_current_modname()
-nether.path           = minetest.get_modpath(nether.modname)
+nether.modname        = core.get_current_modname()
+nether.path           = core.get_modpath(nether.modname)
 nether.get_translator = S
                      -- nether.useBiomes allows other mods to know whether they can register ores etc. in the Nether.
-                     -- See mapgen.lua for an explanation of why minetest.read_schematic is being checked
-nether.useBiomes      = minetest.get_mapgen_setting("mg_name") ~= "v6" and minetest.read_schematic ~= nil
+                     -- See mapgen.lua for an explanation of why core.read_schematic is being checked
+nether.useBiomes      = core.get_mapgen_setting("mg_name") ~= "v6" and core.read_schematic ~= nil
 nether.fogColor = {	           -- only used if climate_api is installed
 	netherCaverns = "#1D0504", -- Distance-fog colour for classic nether
 	mantle        = "#070916", -- Distance-fog colour for the Mantle region
@@ -59,17 +59,17 @@ nether.fogColor = {	           -- only used if climate_api is installed
 -- Settings
 nether.DEPTH_CEILING              =  -5000 -- The y location of the Nether's celing
 nether.DEPTH_FLOOR                = -11000 -- The y location of the Nether's floor
-nether.FASTTRAVEL_FACTOR          =      8 -- 10 could be better value for Minetest, since there's no sprint, but ex-Minecraft players will be mathing for 8
+nether.FASTTRAVEL_FACTOR          =      8 -- 10 could be better value for Luanti, since there's no sprint, but ex-Minecraft players will be mathing for 8
 nether.PORTAL_BOOK_LOOT_WEIGHTING =    0.9 -- Likelyhood of finding the Book of Portals (guide) in dungeon chests. Set to 0 to disable.
 nether.NETHER_REALM_ENABLED       =   true -- Setting to false disables the Nether and Nether portal
 
 
 -- Override default settings with values from the .conf file, if any are present.
-nether.FASTTRAVEL_FACTOR          = tonumber(minetest.settings:get("nether_fasttravel_factor") or nether.FASTTRAVEL_FACTOR)
-nether.PORTAL_BOOK_LOOT_WEIGHTING = tonumber(minetest.settings:get("nether_portalBook_loot_weighting") or nether.PORTAL_BOOK_LOOT_WEIGHTING)
-nether.NETHER_REALM_ENABLED       = minetest.settings:get_bool("nether_realm_enabled", nether.NETHER_REALM_ENABLED)
-nether.DEPTH_CEILING              = tonumber(minetest.settings:get("nether_depth_ymax") or nether.DEPTH_CEILING)
-nether.DEPTH_FLOOR                = tonumber(minetest.settings:get("nether_depth_ymin") or nether.DEPTH_FLOOR)
+nether.FASTTRAVEL_FACTOR          = tonumber(core.settings:get("nether_fasttravel_factor") or nether.FASTTRAVEL_FACTOR)
+nether.PORTAL_BOOK_LOOT_WEIGHTING = tonumber(core.settings:get("nether_portalBook_loot_weighting") or nether.PORTAL_BOOK_LOOT_WEIGHTING)
+nether.NETHER_REALM_ENABLED       = core.settings:get_bool("nether_realm_enabled", nether.NETHER_REALM_ENABLED)
+nether.DEPTH_CEILING              = tonumber(core.settings:get("nether_depth_ymax") or nether.DEPTH_CEILING)
+nether.DEPTH_FLOOR                = tonumber(core.settings:get("nether_depth_ymin") or nether.DEPTH_FLOOR)
 
 if nether.DEPTH_FLOOR + 1000 > nether.DEPTH_CEILING then
 	error("The lower limit of the Nether must be set at least 1000 lower than the upper limit, and more than 3000 is recommended. Set settingtypes.txt, or 'All Settings' -> 'Mods' -> 'nether' -> 'Nether depth'", 0)
@@ -110,7 +110,7 @@ function nether.debug(message, ...)
 			for _,_ in pairs(arg) do tableCount = tableCount + 1 end
 			if tableCount == 3 and arg.x ~= nil and arg.y ~= nil and arg.z ~= nil then
 				-- convert vectors to strings
-				args[i] = minetest.pos_to_string(arg)
+				args[i] = core.pos_to_string(arg)
 			else
 				-- convert tables to strings
 				-- (calling function can use dump() if a multi-line listing is desired)
@@ -122,8 +122,8 @@ function nether.debug(message, ...)
 	local composed_message = "nether: " .. string.format(message, unpack(args))
 
 	if math.floor(DEBUG_FLAGS / 1) % 2 == 1 then print(composed_message) end
-	if math.floor(DEBUG_FLAGS / 2) % 2 == 1 then minetest.chat_send_all(composed_message) end
-	if math.floor(DEBUG_FLAGS / 4) % 2 == 1 then minetest.log("info", composed_message) end
+	if math.floor(DEBUG_FLAGS / 2) % 2 == 1 then core.chat_send_all(composed_message) end
+	if math.floor(DEBUG_FLAGS / 4) % 2 == 1 then core.log("info", composed_message) end
 end
 if DEBUG_FLAGS == 0 then
 	-- do as little evaluation as possible
@@ -224,7 +224,7 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 			local textureName = portalDef.particle_texture
 			if type(textureName) == "table" then textureName = textureName.name end
 
-			minetest.add_particlespawner({
+			core.add_particlespawner({
 				amount = 110,
 				time   = 0.1,
 				minpos = {x = pos.x - 0.5, y = pos.y - 1.2, z = pos.z - 0.5},
@@ -256,7 +256,7 @@ The expedition parties have found no diamonds or gold, and after an experienced 
 	-- here as well. However skylayer doesn't provide a position-based method of specifying sky
 	-- colours out-of-the-box, so the nether mod will have to monitor when players enter and
 	-- leave the nether.
-	if minetest.get_modpath("climate_api") and minetest.global_exists("climate_api") and climate_api.register_weather ~= nil then
+	if core.get_modpath("climate_api") and core.global_exists("climate_api") and climate_api.register_weather ~= nil then
 
 		climate_api.register_influence(
 			"nether_biome",
@@ -334,10 +334,10 @@ end -- end of "if nether.NETHER_REALM_ENABLED..."
 
 
 -- Play bubbling lava sounds if player killed by lava
-minetest.register_on_dieplayer(
+core.register_on_dieplayer(
 	function(player, reason)
-		if reason.node ~= nil and minetest.get_item_group(reason.node, "lava") > 0 or reason.node == "nether:lava_crust" then
-			minetest.sound_play(
+		if reason.node ~= nil and core.get_item_group(reason.node, "lava") > 0 or reason.node == "nether:lava_crust" then
+			core.sound_play(
 				"nether_lava_bubble",
 				-- this sample was encoded at 3x speed to reduce .ogg file size
 				-- at the expense of higher frequencies, so pitch it down ~3x

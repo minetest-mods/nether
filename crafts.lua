@@ -19,7 +19,7 @@
 
 ]]--
 
-minetest.register_craft({
+core.register_craft({
 	output = "nether:brick 4",
 	recipe = {
 		{"nether:rack", "nether:rack"},
@@ -27,7 +27,7 @@ minetest.register_craft({
 	}
 })
 
-minetest.register_craft({
+core.register_craft({
 	output = "nether:fence_nether_brick 6",
 	recipe = {
 		{"nether:brick", "nether:brick", "nether:brick"},
@@ -35,7 +35,7 @@ minetest.register_craft({
 	},
 })
 
-minetest.register_craft({
+core.register_craft({
 	output = "nether:brick_compressed",
 	recipe = {
 		{"nether:brick","nether:brick","nether:brick"},
@@ -44,7 +44,7 @@ minetest.register_craft({
 	}
 })
 
-minetest.register_craft({
+core.register_craft({
 	output = "nether:brick_deep 4",
 	recipe = {
 		{"nether:rack_deep", "nether:rack_deep"},
@@ -52,7 +52,7 @@ minetest.register_craft({
 	}
 })
 
-minetest.register_craft({
+core.register_craft({
     output = "nether:basalt_hewn",
     type = "shapeless",
     recipe = {
@@ -61,7 +61,7 @@ minetest.register_craft({
     },
 })
 
-minetest.register_craft({
+core.register_craft({
   output = "nether:basalt_chiselled 4",
   recipe = {
     {"nether:basalt_hewn", "nether:basalt_hewn"},
@@ -69,7 +69,7 @@ minetest.register_craft({
   }
 })
 
-minetest.register_craft({
+core.register_craft({
 	output = "nether:nether_block",
 	recipe = {
 		{"nether:nether_ingot", "nether:nether_ingot", "nether:nether_ingot"},
@@ -78,7 +78,7 @@ minetest.register_craft({
 	}
 })
 
-minetest.register_craft({
+core.register_craft({
 	output = "nether:nether_ingot 9",
 	recipe = {{"nether:nether_block"}}
 })

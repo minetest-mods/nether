@@ -1,8 +1,7 @@
+local S = core.get_translator("nether")
 
-local S = minetest.get_translator("nether")
 
-
-minetest.register_node("nether:rack_with_gold", {
+core.register_node("nether:rack_with_gold", {
 	description = S("Nether Gold"),
 	tiles = {"nether_rack.png^default_mineral_gold.png"},
 	is_ground_content = true,
@@ -11,7 +10,7 @@ minetest.register_node("nether:rack_with_gold", {
 	sounds = default.node_sound_stone_defaults()
 })
 
-minetest.register_node("nether:rack_deep_with_mese", {
+core.register_node("nether:rack_deep_with_mese", {
 	description = S("Nether Mese"),
 	tiles = {"nether_rack_deep.png^default_mineral_mese.png"},
 	is_ground_content = true,
@@ -25,7 +24,7 @@ local ore_ceiling = nether.DEPTH_CEILING - 128
 local ore_floor   = nether.DEPTH_FLOOR   + 128
 
 
-minetest.register_ore({
+core.register_ore({
 	ore_type       = "scatter",
 	ore            = "nether:rack_with_gold",
 	wherein        = "nether:rack",
@@ -36,7 +35,7 @@ minetest.register_ore({
 	y_min          = ore_floor
 })
 
-minetest.register_ore({
+core.register_ore({
 	ore_type       = "scatter",
 	ore            = "nether:rack_deep_with_mese",
 	wherein        = "nether:rack_deep",

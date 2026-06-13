@@ -1,4 +1,4 @@
-# Nether Mod for Minetest, with Portals API.
+# Nether Mod for Luanti, with Portals API.
 
 Allows Nether portals to be constructed, opening a gateway between the surface
 realm and one of lava and netherrack, with rumors of a passageway through the
@@ -76,10 +76,10 @@ SOFTWARE.
 
 ### [Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)](http://creativecommons.org/licenses/by-sa/3.0/)
  * `nether_glowstone`* (files starting with "nether_glowstone"): BlockMen
- * `nether_nether_ingot.png` & `nether_nether_lump.png`: color adjusted versions from "[default](https://github.com/minetest/minetest_game/tree/master/mods/default)" mod, originally by Gambit
+ * `nether_nether_ingot.png` & `nether_nether_lump.png`: color adjusted versions from "[default](https://github.com/luanti-org/minetest_game/tree/master/mods/default)" mod, originally by Gambit
  * `nether_portal.png`: [Extex101](https://github.com/Extex101), 2020
  * `nether_rack`* (files starting with "nether_rack"): Zeg9
- * `nether_tool_`* (files starting with "nether_tool_"): color adjusted versions from "[default](https://github.com/minetest/minetest_game/tree/master/mods/default)" mod, originals by BlockMen
- * `nether_nether_block.png`: color adjusted from "[default](https://github.com/minetest/minetest_game/tree/master/mods/default)" mod, original by kilbith
+ * `nether_tool_`* (files starting with "nether_tool_"): color adjusted versions from "[default](https://github.com/luanti-org/minetest_game/tree/master/mods/default)" mod, originals by BlockMen
+ * `nether_nether_block.png`: color adjusted from "[default](https://github.com/luanti-org/minetest_game/tree/master/mods/default)" mod, original by kilbith
 
 All other media: Copyright © 2013 PilzAdam, licensed under CC BY-SA 3.0 by PilzAdam.

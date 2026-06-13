@@ -1,6 +1,6 @@
 --[[
 
-  Nether mod for minetest
+  Nether mod for Luanti
 
   This file contains helper functions for generating the Mantle
   (AKA center region), which are moved into a separate file to keep the
@@ -53,12 +53,12 @@ local nbuf_basalt = {}
 
 -- Content ids
 
-local c_air              = minetest.get_content_id("air")
-local c_netherrack_deep  = minetest.get_content_id("nether:rack_deep")
-local c_glowstone        = minetest.get_content_id("nether:glowstone")
-local c_lavasea_source   = minetest.get_content_id("nether:lava_source") -- same as lava but with staggered animation to look better as an ocean
-local c_lava_crust       = minetest.get_content_id("nether:lava_crust")
-local c_basalt           = minetest.get_content_id("nether:basalt")
+local c_air              = core.get_content_id("air")
+local c_netherrack_deep  = core.get_content_id("nether:rack_deep")
+local c_glowstone        = core.get_content_id("nether:glowstone")
+local c_lavasea_source   = core.get_content_id("nether:lava_source") -- same as lava but with staggered animation to look better as an ocean
+local c_lava_crust       = core.get_content_id("nether:lava_crust")
+local c_basalt           = core.get_content_id("nether:basalt")
 
 
 -- Math funcs
@@ -120,7 +120,7 @@ mapgen.add_basalt_columns = function(data, area, minp, maxp)
 	local yCaveStride = x1 - x0 + 1
 
 	local cavePerlin = mapgen.get_cave_point_perlin()
-	nobj_basalt = nobj_basalt or minetest.get_perlin_map(np_basalt, {x = yCaveStride, y = yCaveStride, z = 0})
+	nobj_basalt = nobj_basalt or core.get_perlin_map(np_basalt, {x = yCaveStride, y = yCaveStride, z = 0})
 	local nvals_basalt = nobj_basalt:get_2d_map_flat({x=minp.x, y=minp.z}, {x=yCaveStride, y=yCaveStride}, nbuf_basalt)
 
 	local nearest_sea_level, _ = mapgen.find_nearest_lava_sealevel(math_floor((y0 + y1) / 2))
@@ -472,13 +472,13 @@ mapgen.get_region = function(pos)
 end
 
 
-minetest.register_chatcommand("nether_whereami",
+core.register_chatcommand("nether_whereami",
 	{
 		description = S("Describes which region of the nether the player is in"),
 		privs = {debug = true},
 		func = function(name, param)
 
-			local player = minetest.get_player_by_name(name)
+			local player = core.get_player_by_name(name)
 			if player == nil then return false, S("Unknown player position") end
 			local playerPos = vector.round(player:get_pos())
 

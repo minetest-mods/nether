@@ -124,7 +124,7 @@ local schematic_GlowstoneStalactite = {
     }
 }
 
-minetest.register_decoration({
+core.register_decoration({
     name = "Glowstone stalactite",
     deco_type = "schematic",
     place_on = "nether:rack",
@@ -138,7 +138,7 @@ minetest.register_decoration({
     place_offset_y=-3
 })
 
-minetest.register_decoration({
+core.register_decoration({
     name = "Netherrack stalactite",
     deco_type = "schematic",
     place_on = "nether:rack",
@@ -279,7 +279,7 @@ for i, node in ipairs(schematic_GreaterStalactite.yslice_prob) do
     }
 end
 
-minetest.register_decoration({
+core.register_decoration({
     name = "Deep-glowstone stalactite",
     deco_type = "schematic",
     place_on = "nether:rack_deep",
@@ -294,7 +294,7 @@ minetest.register_decoration({
     place_offset_y=-3
 })
 
-minetest.register_decoration({
+core.register_decoration({
     name = "Deep-glowstone stalactite outgrowth",
     deco_type = "schematic",
     place_on = "nether:glowstone_deep",
@@ -311,7 +311,7 @@ minetest.register_decoration({
     flags = "place_center_x,place_center_z,all_ceilings",
 })
 
-minetest.register_decoration({
+core.register_decoration({
     name = "Deep-netherrack stalactite",
     deco_type = "schematic",
     place_on = "nether:rack_deep",
@@ -326,7 +326,7 @@ minetest.register_decoration({
     place_offset_y=-3
 })
 
-minetest.register_decoration({
+core.register_decoration({
     name = "Deep-netherrack towering stalagmite",
     deco_type = "schematic",
     place_on = "nether:rack_deep",
@@ -347,7 +347,7 @@ minetest.register_decoration({
 -- if player places a torch/block on this sand or digs it while standing on it, it sinks into lava
 
 if allow_lava_decorations then
-    minetest.register_decoration({
+    core.register_decoration({
         name = "Weak trap",
         deco_type = "schematic",
         place_on = "nether:rack",
@@ -409,7 +409,7 @@ local replacements_slab = {}
 local replacements_full = {["nether:fumarole_slab"] = "nether:fumarole"}
 
 if allow_lava_decorations then
-    -- Minetest engine limitations mean any mesh or nodebox node (like nether:fumarole)
+    -- Luanti engine limitations mean any mesh or nodebox node (like nether:fumarole)
     -- will light up if it has lava below it, so replace the air node over the lava with
     -- a node that prevents light propagation.
     -- (Unfortunately this also means if a player digs down to get the lava block it'll
@@ -449,7 +449,7 @@ local schematic_fumarole = {
 
 -- Common fumarole decoration that's flush with the floor and spawns everywhere
 
-minetest.register_decoration({
+core.register_decoration({
     name = "Sunken nether fumarole",
     deco_type = "schematic",
     place_on = {"nether:rack"},
@@ -478,7 +478,7 @@ local fumarole_clump_noise = {
 }
 
 fumarole_clump_noise.offset = fumarole_clump_noise_offset - 0.035
-minetest.register_decoration({
+core.register_decoration({
     name = "Raised Nether fumarole",
     deco_type = "schematic",
     place_on = {"nether:rack"},
@@ -494,7 +494,7 @@ minetest.register_decoration({
 })
 
 fumarole_clump_noise.offset = fumarole_clump_noise_offset
-minetest.register_decoration({
+core.register_decoration({
     name = "Half-raised Nether fumarole",
     deco_type = "schematic",
     place_on = {"nether:rack"},
@@ -510,7 +510,7 @@ minetest.register_decoration({
 })
 
 fumarole_clump_noise.offset = fumarole_clump_noise_offset - 0.035
-minetest.register_decoration({
+core.register_decoration({
     name = "Nether fumarole mound",
     deco_type = "schematic",
     place_on = {"nether:rack"},
@@ -549,7 +549,7 @@ minetest.register_decoration({
 })
 
 fumarole_clump_noise.offset = fumarole_clump_noise_offset - 0.01
-minetest.register_decoration({
+core.register_decoration({
     name = "Double Nether fumarole",
     deco_type = "schematic",
     place_on = {"nether:rack"},

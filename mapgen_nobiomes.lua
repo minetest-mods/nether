@@ -1,11 +1,11 @@
 --[[
 
-  Nether mod for minetest
+  Nether mod for Luanti
 
   "mapgen_nobiomes.lua" is the legacy version of the mapgen, only used
-    in older versions of Minetest or in v6 worlds.
+    in older versions of Luanti or in v6 worlds.
   "mapgen.lua" is the modern biomes-based Nether mapgen, which
-    requires Minetest v5.1 or greater
+    requires Luanti v5.1 or greater
 
 
   Copyright (C) 2013 PilzAdam
@@ -68,38 +68,38 @@ local dbuf = {}
 
 -- Content ids
 
-local c_air = minetest.get_content_id("air")
+local c_air = core.get_content_id("air")
 
---local c_stone_with_coal = minetest.get_content_id("default:stone_with_coal")
---local c_stone_with_iron = minetest.get_content_id("default:stone_with_iron")
-local c_stone_with_mese = minetest.get_content_id("default:stone_with_mese")
-local c_stone_with_diamond = minetest.get_content_id("default:stone_with_diamond")
-local c_stone_with_gold = minetest.get_content_id("default:stone_with_gold")
---local c_stone_with_copper = minetest.get_content_id("default:stone_with_copper")
-local c_mese = minetest.get_content_id("default:mese")
+--local c_stone_with_coal = core.get_content_id("default:stone_with_coal")
+--local c_stone_with_iron = core.get_content_id("default:stone_with_iron")
+local c_stone_with_mese = core.get_content_id("default:stone_with_mese")
+local c_stone_with_diamond = core.get_content_id("default:stone_with_diamond")
+local c_stone_with_gold = core.get_content_id("default:stone_with_gold")
+--local c_stone_with_copper = core.get_content_id("default:stone_with_copper")
+local c_mese = core.get_content_id("default:mese")
 
-local c_gravel = minetest.get_content_id("default:gravel")
-local c_dirt = minetest.get_content_id("default:dirt")
-local c_sand = minetest.get_content_id("default:sand")
+local c_gravel = core.get_content_id("default:gravel")
+local c_dirt = core.get_content_id("default:dirt")
+local c_sand = core.get_content_id("default:sand")
 
-local c_cobble = minetest.get_content_id("default:cobble")
-local c_mossycobble = minetest.get_content_id("default:mossycobble")
-local c_stair_cobble = minetest.get_content_id("stairs:stair_cobble")
+local c_cobble = core.get_content_id("default:cobble")
+local c_mossycobble = core.get_content_id("default:mossycobble")
+local c_stair_cobble = core.get_content_id("stairs:stair_cobble")
 
-local c_lava_source = minetest.get_content_id("default:lava_source")
-local c_lava_flowing = minetest.get_content_id("default:lava_flowing")
-local c_water_source = minetest.get_content_id("default:water_source")
-local c_water_flowing = minetest.get_content_id("default:water_flowing")
+local c_lava_source = core.get_content_id("default:lava_source")
+local c_lava_flowing = core.get_content_id("default:lava_flowing")
+local c_water_source = core.get_content_id("default:water_source")
+local c_water_flowing = core.get_content_id("default:water_flowing")
 
-local c_glowstone = minetest.get_content_id("nether:glowstone")
-local c_nethersand = minetest.get_content_id("nether:sand")
-local c_netherbrick = minetest.get_content_id("nether:brick")
-local c_netherrack = minetest.get_content_id("nether:rack")
+local c_glowstone = core.get_content_id("nether:glowstone")
+local c_nethersand = core.get_content_id("nether:sand")
+local c_netherbrick = core.get_content_id("nether:brick")
+local c_netherrack = core.get_content_id("nether:rack")
 
 
 -- On-generated function
 
-minetest.register_on_generated(function(minp, maxp, seed)
+core.register_on_generated(function(minp, maxp, seed)
 	if minp.y > NETHER_CEILING or maxp.y < NETHER_FLOOR then
 		return
 	end
@@ -111,7 +111,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local y0 = math.max(minp.y, NETHER_FLOOR)
 	local z0 = minp.z
 
-	local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
+	local vm, emin, emax = core.get_mapgen_object("voxelmanip")
 	local area = VoxelArea:new{MinEdge = emin, MaxEdge = emax}
 	local data = vm:get_data(dbuf)
 
@@ -127,7 +127,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local chulens = {x = ystride, y = ystride, z = ystride}
 	local minposxyz = {x = x0, y = y0, z = z0}
 
-	nobj_cave = nobj_cave or minetest.get_perlin_map(np_cave, chulens)
+	nobj_cave = nobj_cave or core.get_perlin_map(np_cave, chulens)
 	local nvals_cave = nobj_cave:get_3d_map_flat(minposxyz, nbuf_cave)
 
 	for y = y00, y11 do -- Y loop first to minimise tcave calculations
@@ -196,7 +196,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 
 	vm:set_data(data)
 
-	minetest.generate_decorations(vm)
+	core.generate_decorations(vm)
 
 	vm:set_lighting({day = 0, night = 0}, minp, maxp)
 	vm:calc_lighting()
@@ -208,7 +208,7 @@ end)
 -- use knowledge of the nether mapgen algorithm to return a suitable ground level for placing a portal.
 -- player_name is optional, allowing a player to spawn a remote portal in their own protected areas.
 function nether.find_nether_ground_y(target_x, target_z, start_y, player_name)
-	local nobj_cave_point = minetest.get_perlin(np_cave)
+	local nobj_cave_point = core.get_perlin(np_cave)
 	local air = 0 -- Consecutive air nodes found
 
 	local minp_schem, maxp_schem = nether.get_schematic_volume({x = target_x, y = 0, z = target_z}, nil, "nether_portal")

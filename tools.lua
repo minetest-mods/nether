@@ -19,7 +19,7 @@
 
 local S = nether.get_translator
 
-minetest.register_tool("nether:pick_nether", {
+core.register_tool("nether:pick_nether", {
 	description = S("Nether Pickaxe\nWell suited for mining netherrack"),
 	_doc_items_longdesc = S("Uniquely suited for mining netherrack, with minimal wear when doing so. Blunts quickly on other materials."),
 	inventory_image = "nether_tool_netherpick.png",
@@ -36,7 +36,7 @@ minetest.register_tool("nether:pick_nether", {
 
 	after_use = function(itemstack, user, node, digparams)
 		local wearDivisor = 1
-		local nodeDef = minetest.registered_nodes[node.name]
+		local nodeDef = core.registered_nodes[node.name]
 		if nodeDef ~= nil and nodeDef.groups ~= nil then
 			-- The nether pick hardly wears out when mining netherrack
 			local workable = nodeDef.groups.workable_with_nether_tools or 0
@@ -49,7 +49,7 @@ minetest.register_tool("nether:pick_nether", {
 	end
 })
 
-minetest.register_tool("nether:shovel_nether", {
+core.register_tool("nether:shovel_nether", {
 	description = S("Nether Shovel"),
 	inventory_image = "nether_tool_nethershovel.png",
 	wield_image = "nether_tool_nethershovel.png^[transformR90",
@@ -65,7 +65,7 @@ minetest.register_tool("nether:shovel_nether", {
 	groups = {shovel = 1}
 })
 
-minetest.register_tool("nether:axe_nether", {
+core.register_tool("nether:axe_nether", {
 	description = S("Nether Axe"),
 	inventory_image = "nether_tool_netheraxe.png",
 	tool_capabilities = {
@@ -80,7 +80,7 @@ minetest.register_tool("nether:axe_nether", {
 	groups = {axe = 1}
 })
 
-minetest.register_tool("nether:sword_nether", {
+core.register_tool("nether:sword_nether", {
 	description = S("Nether Sword"),
 	inventory_image = "nether_tool_nethersword.png",
 	tool_capabilities = {
@@ -95,22 +95,22 @@ minetest.register_tool("nether:sword_nether", {
 	groups = {sword = 1}
 })
 
-minetest.register_craftitem("nether:nether_ingot", {
+core.register_craftitem("nether:nether_ingot", {
 	description = S("Nether Ingot"),
 	inventory_image = "nether_nether_ingot.png"
 })
-minetest.register_craftitem("nether:nether_lump", {
+core.register_craftitem("nether:nether_lump", {
 	description = S("Nether Lump"),
 	inventory_image = "nether_nether_lump.png",
 })
 
-minetest.register_craft({
+core.register_craft({
 	type = "cooking",
 	output = "nether:nether_ingot",
 	recipe = "nether:nether_lump",
 	cooktime = 30,
 })
-minetest.register_craft({
+core.register_craft({
 	output = "nether:nether_lump",
 	recipe = {
 		{"nether:brick_compressed","nether:brick_compressed","nether:brick_compressed"},
@@ -119,7 +119,7 @@ minetest.register_craft({
 	}
 })
 
-minetest.register_craft({
+core.register_craft({
 	output = "nether:pick_nether",
 	recipe = {
 		{"nether:nether_ingot","nether:nether_ingot","nether:nether_ingot"},
@@ -127,7 +127,7 @@ minetest.register_craft({
 		{"", "group:stick", ""}
 	}
 })
-minetest.register_craft({
+core.register_craft({
 	output = "nether:shovel_nether",
 	recipe = {
 		{"nether:nether_ingot"},
@@ -135,7 +135,7 @@ minetest.register_craft({
 		{"group:stick"}
 	}
 })
-minetest.register_craft({
+core.register_craft({
 	output = "nether:axe_nether",
 	recipe = {
 		{"nether:nether_ingot","nether:nether_ingot"},
@@ -143,7 +143,7 @@ minetest.register_craft({
 		{"","group:stick"}
 	}
 })
-minetest.register_craft({
+core.register_craft({
 	output = "nether:sword_nether",
 	recipe = {
 		{"nether:nether_ingot"},
@@ -153,7 +153,7 @@ minetest.register_craft({
 })
 
 
-if minetest.get_modpath("toolranks") then
+if core.get_modpath("toolranks") then
 
 	local function add_toolranks(name)
 		local nethertool_after_use = ItemStack(name):get_definition().after_use
@@ -164,7 +164,7 @@ if minetest.get_modpath("toolranks") then
 			return
 		end
 
-		minetest.override_item(name, {
+		core.override_item(name, {
 			after_use = function(itemstack, user, node, digparams)
 				-- combine nethertool_after_use and toolranks_after_use by allowing
 				-- nethertool_after_use() to calculate the wear...
@@ -219,7 +219,7 @@ local serverLag = 0.05 -- in seconds. Larger values makes impact events more pre
 -- returns a pointed_thing, or nil if no solid node intersected the ray
 local function raycastForSolidNode(rayStartPos, rayEndPos)
 
-	local raycast = minetest.raycast(
+	local raycast = core.raycast(
 		rayStartPos,
 		rayEndPos,
 		false, -- objects - if false, only nodes will be returned. Default is `true`
@@ -227,8 +227,8 @@ local function raycastForSolidNode(rayStartPos, rayEndPos)
 	)
 	local next_pointed = raycast:next()
 	while next_pointed do
-		local under_node = minetest.get_node(next_pointed.under)
-		local under_def = minetest.registered_nodes[under_node.name]
+		local under_node = core.get_node(next_pointed.under)
+		local under_def = core.registered_nodes[under_node.name]
 
 		if (under_def and not under_def.buildable_to) or not under_def then
 			return next_pointed
@@ -245,12 +245,12 @@ end
 local function light_node(pos, playerName, lightDuration)
 
 	local result = false
-	if minetest.is_protected(pos, playerName) then
-		minetest.record_protection_violation(pos, playerName)
+	if core.is_protected(pos, playerName) then
+		core.record_protection_violation(pos, playerName)
 		return false
 	end
 
-	local oldNode = minetest.get_node(pos)
+	local oldNode = core.get_node(pos)
 	local litNodeName = nether.lightstaff_recipes[oldNode.name]
 
 	if litNodeName ~= nil then
@@ -263,7 +263,7 @@ local function light_node(pos, playerName, lightDuration)
 		)
 
 		if lightDuration > 0 then
-			minetest.after(lightDuration,
+			core.after(lightDuration,
 				function()
 					-- Restore the node to its original type.
 					--
@@ -310,7 +310,7 @@ local function lightstaff_on_use(user, boltColorString, lightDuration)
 	aimPos.y = aimPos.y + dropDistance
 	local boltDir = vector.normalize(vector.subtract(aimPos, wieldPos))
 
-	minetest.sound_play("nether_lightstaff", {to_player = playerName, gain = 0.8}, true)
+	core.sound_play("nether_lightstaff", {to_player = playerName, gain = 0.8}, true)
 
 	-- animate a "magic bolt" from wieldPos to aimPos
 	local particleSpawnDef = {
@@ -332,7 +332,7 @@ local function lightstaff_on_use(user, boltColorString, lightDuration)
 		animation = { type = "vertical_frames", aspect_w = 7, aspect_h = 7, length = 0.8 },
 		glow = 15
 	}
-	minetest.add_particlespawner(particleSpawnDef)
+	core.add_particlespawner(particleSpawnDef)
 	particleSpawnDef.texture = "nether_particle_anim3.png^[colorize:" .. boltColorString .. ":alpha"
 	particleSpawnDef.amount  = 12
 	particleSpawnDef.time    = 0.2
@@ -340,12 +340,12 @@ local function lightstaff_on_use(user, boltColorString, lightDuration)
 	particleSpawnDef.maxsize = 7
 	particleSpawnDef.minpos  = vector.add(wieldPos, -0.35)
 	particleSpawnDef.maxpos  = vector.add(wieldPos,  0.35)
-	minetest.add_particlespawner(particleSpawnDef)
+	core.add_particlespawner(particleSpawnDef)
 
 	local result = false
 	if targetNodePos then
 		-- delay the impact until roughly when the particle effects will have reached the target
-		minetest.after(
+		core.after(
 			math.max(0, (distance / nether.lightstaff_velocity) - serverLag),
 			function()
 				light_node(targetNodePos, playerName, lightDuration)
@@ -357,7 +357,7 @@ local function lightstaff_on_use(user, boltColorString, lightDuration)
 			result = true
 		else
 			-- check whether the transmogrify will be successful
-			local targetNode = minetest.get_node(targetNodePos)
+			local targetNode = core.get_node(targetNodePos)
 			result = nether.lightstaff_recipes[targetNode.name] ~= nil
 		end
 	end
@@ -365,7 +365,7 @@ local function lightstaff_on_use(user, boltColorString, lightDuration)
 end
 
 -- Inspired by FaceDeer's torch crossbow and Xanthin's Staff of Light
-minetest.register_tool("nether:lightstaff", {
+core.register_tool("nether:lightstaff", {
 	description = S("Nether staff of Light\nTemporarily transforms the netherrack into glowstone"),
 	inventory_image = "nether_lightstaff.png",
 	wield_image     = "nether_lightstaff.png",
@@ -376,7 +376,7 @@ minetest.register_tool("nether:lightstaff", {
 	end
 })
 
-minetest.register_tool("nether:lightstaff_eternal", {
+core.register_tool("nether:lightstaff_eternal", {
 	description = S("Nether staff of Eternal Light\nCreates glowstone from netherrack"),
 	inventory_image = "nether_lightstaff.png^[colorize:#55F:90",
 	wield_image     = "nether_lightstaff.png^[colorize:#55F:90",
@@ -385,7 +385,7 @@ minetest.register_tool("nether:lightstaff_eternal", {
 	stack_max = 1,
 	on_use = function(itemstack, user, pointed_thing)
 		if lightstaff_on_use(user, "#23F", 0) -- was "#8088FF" or "#13F"
-		   and not minetest.is_creative_enabled(user) then
+		   and not core.is_creative_enabled(user) then
 			-- The staff of Eternal Light wears out, to limit how much
 			-- a player can alter the nether with it.
 			itemstack:add_wear_by_uses(nether.lightstaff_uses)

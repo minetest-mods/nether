@@ -1,10 +1,10 @@
 --[[
 
-  Nether mod portal examples for Minetest
+  Nether mod portal examples for Luanti
 
   These portal API examples work independently of the Nether realm
   and Nether portal. To try these examples, enable them in:
-	  Minetest -> Settings -> All settings -> Mods -> nether
+	  Luanti -> Settings -> All settings -> Mods -> nether
   Once enabled, details on how to build them can be found in dungeon
   chests in the book of portals.
 
@@ -47,13 +47,13 @@ local SURFACE_TRAVEL_DISTANCE = 26
 local FLOATLANDS_ENABLED
 local FLOATLAND_LEVEL    = 1280
 
-if minetest.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_PORTAL_EXAMPLE_FLOATLANDS) or ENABLE_PORTAL_EXAMPLE_FLOATLANDS then
+if core.settings:get_bool("nether_enable_portal_example_floatlands", ENABLE_PORTAL_EXAMPLE_FLOATLANDS) or ENABLE_PORTAL_EXAMPLE_FLOATLANDS then
 
 	local floatlands_flavortext = ""
-	if minetest.get_mapgen_setting("mg_name") == "v7" then
-		local mgv7_spflags = minetest.get_mapgen_setting("mgv7_spflags")
+	if core.get_mapgen_setting("mg_name") == "v7" then
+		local mgv7_spflags = core.get_mapgen_setting("mgv7_spflags")
 		FLOATLANDS_ENABLED = mgv7_spflags ~= nil and mgv7_spflags:find("floatlands") ~= nil and mgv7_spflags:find("nofloatlands") == nil
-		FLOATLAND_LEVEL = minetest.get_mapgen_setting("mgv7_floatland_level") or 1280
+		FLOATLAND_LEVEL = core.get_mapgen_setting("mgv7_floatland_level") or 1280
 
 		if FLOATLANDS_ENABLED then
 			floatlands_flavortext = "\n\n	" .. S("There is a floating land of hills and forests up there, over the edges of which is a perilous drop all the way back down to sea level. We have not found how far these pristine lands extend. I have half a mind to retire there one day.")
@@ -111,7 +111,7 @@ end
 local get_moore_distance -- will be function get_moore_distance(cell_count, x, y): integer
 local get_moore_coords   -- will be function get_moore_coords(cell_count, distance): pos2d
 
-if minetest.settings:get_bool("nether_enable_portal_example_surfacetravel", ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL) or ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL then
+if core.settings:get_bool("nether_enable_portal_example_surfacetravel", ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL) or ENABLE_PORTAL_EXAMPLE_SURFACETRAVEL then
 
 	nether.register_portal("surface_portal", {
 		shape               = nether.PortalShape_Circular,
@@ -133,7 +133,7 @@ Due to such difficulties, we never learned what determines the direction and dis
 
 		find_realm_anchorPos = function(surface_anchorPos, player_name)
 			-- This function isn't needed, since this type of portal always goes to the surface
-			minetest.log("error" , "find_realm_anchorPos called for surface portal")
+			core.log("error" , "find_realm_anchorPos called for surface portal")
 			return {x=0, y=0, z=0}
 		end,
 
@@ -176,14 +176,14 @@ Due to such difficulties, we never learned what determines the direction and dis
 				local prng = PcgRandom( -- seed the prng so that all portals for these Moore Curve coords will use the same random location
 					moore_pos.x * 65732 +
 					moore_pos.y * 729   +
-					minetest.get_mapgen_setting("seed") * 3
+					core.get_mapgen_setting("seed") * 3
 				)
 
 				local attemptLimit = 15 -- how many attempts we'll make at finding a good location
 				for attempt = 1, attemptLimit do
 					adj_x = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
 					adj_z = math.floor(prng:rand_normal_dist(-search_radius, search_radius, 2) + 0.5)
-					if minetest.get_spawn_level == nil or minetest.get_spawn_level(target_x + adj_x, target_z + adj_z)	~= nil then
+					if core.get_spawn_level == nil or core.get_spawn_level(target_x + adj_x, target_z + adj_z)	~= nil then
 						-- Found a location which will be at ground level - unless a player has built there.
 						-- Or this is MT 0.4 which does not have get_spawn_level(), so there's no point looking
 						-- at any further further random locations.
