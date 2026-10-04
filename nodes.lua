@@ -375,7 +375,11 @@ stairs.register_stair_and_slab( -- this function also registers inner and outer 
 	"nether_brick_deep",                                    -- subname
 	"nether:brick_deep",                                    -- recipeitem
 	{cracky = 2, level = 2},                                -- groups
-	{"nether_brick_deep.png"},                              -- images
+	{{
+		name        = "nether_brick_deep.png",
+		align_style = "world",
+		scale       = 2
+	}},                              						-- images
 	S("Deep Nether Stair"),                                 -- desc_stair
 	S("Deep Nether Slab"),                                  -- desc_slab
 	core.registered_nodes["nether:brick_deep"].sounds,  -- sounds
