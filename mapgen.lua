@@ -80,6 +80,17 @@ dofile(nether.path .. "/mapgen_geodes.lua")
 local math_max, math_min, math_abs, math_floor = math.max, math.min, math.abs, math.floor
 
 
+-- Decode function for object handles to get ID of unnamed decorations
+
+-- OBJDEF_HANDLE_SALT used by engine, needed to decode handle; unlikely to change, but theoretically possible!
+local SALT = 0x00585e6f
+
+-- Extract index from specified object handle
+local function get_id_from_handle(handle)
+	return bit.band(bit.bxor(handle, SALT), 0x3ffff)
+end
+
+
 -- Inject nether_caverns biome
 
 -- Move any existing biomes out of the y-range specified by 'floor_y' and 'ceiling_y'
@@ -103,10 +114,10 @@ mapgen.shift_existing_biomes = function(floor_y, ceiling_y)
 	local registered_ores_copy        = {}
 
 	for old_biome_key, old_biome_def in pairs(core.registered_biomes) do
-	   registered_biomes_copy[old_biome_key] = old_biome_def
+		registered_biomes_copy[old_biome_key] = old_biome_def
 	end
 	for old_decoration_key, old_decoration_def in pairs(core.registered_decorations) do
-	   registered_decorations_copy[old_decoration_key] = old_decoration_def
+		table.insert(registered_decorations_copy, {id = core.get_decoration_id(old_decoration_key) or get_id_from_handle(old_decoration_key), def = old_decoration_def})
 	end
 	for old_ore_key, old_ore_def in pairs(core.registered_ores) do
 		registered_ores_copy[old_ore_key] = old_ore_def
@@ -153,14 +164,16 @@ mapgen.shift_existing_biomes = function(floor_y, ceiling_y)
 		core.register_biome(new_biome_def)
 	end
 
+	-- Sort decorations by ID to preserve registration order
+	table.sort(registered_decorations_copy, function(a, b) return a.id < b.id end)
 	-- Restore biome decorations
-	for decoration_key, new_decoration_def in pairs(registered_decorations_copy) do
-	   core.register_decoration(new_decoration_def)
+	for _, new_decoration in ipairs(registered_decorations_copy) do
+		core.register_decoration(new_decoration.def)
 	end
 	-- Restore biome ores
 	for ore_key, new_ore_def in pairs(registered_ores_copy) do
 		core.register_ore(new_ore_def)
-	 end
+	end
  end
 
 -- Shift any overlapping biomes out of the way before we create the Nether biomes
